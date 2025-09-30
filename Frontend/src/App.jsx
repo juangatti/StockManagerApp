@@ -2,6 +2,7 @@ import { Routes, Route, NavLink } from "react-router-dom";
 import "./App.css";
 import InventoryPage from "./pages/InventoryPage";
 import ShoppingPage from "./pages/ShoppingPage";
+import AdjustPage from "./pages/AdjustPage";
 import { Toaster } from "react-hot-toast";
 
 function App() {
@@ -36,12 +37,16 @@ function App() {
           <NavLink to="/shopping" className={getNavLinkClass}>
             Registrar Compra
           </NavLink>
+          <NavLink to="/adjust" className={getNavLinkClass}>
+            Ajustar Stock
+          </NavLink>
         </nav>
       </header>
       <main className="max-w-5xl mx-auto">
         <Routes>
           <Route path="/" element={<InventoryPage />} />
           <Route path="/shopping" element={<ShoppingPage />} />
+          <Route path="/adjust" element={<AdjustPage />} />
         </Routes>
       </main>
     </div>
