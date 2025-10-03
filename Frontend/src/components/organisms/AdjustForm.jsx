@@ -47,7 +47,7 @@ export default function AdjustForm() {
 
     setIsSubmitting(true);
     const promise = axios.post(
-      "http://localhost:5000/api/stock/ajuste",
+      "http://localhost:5000/api/stock/adjust",
       payload
     );
 

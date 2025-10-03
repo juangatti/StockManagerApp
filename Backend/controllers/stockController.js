@@ -175,3 +175,136 @@ export const registerAdjustment = async (req, res) => {
     connection.release();
   }
 };
+
+export const registerMassiveAdjustment = async (req, res) => {
+  // Esperamos un array de ajustes, ej: [{ itemId: 1, conteoReal: 12.0 }, { itemId: 2, conteoReal: 8.5 }]
+  const ajustes = req.body;
+
+  if (!ajustes || !Array.isArray(ajustes) || ajustes.length === 0) {
+    return res
+      .status(400)
+      .json({ message: "No se proporcionaron datos para el ajuste." });
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    for (const ajuste of ajustes) {
+      const { itemId, conteoReal } = ajuste;
+
+      const [stockActualRows] = await connection.query(
+        "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
+        [itemId]
+      );
+
+      if (stockActualRows.length === 0) {
+        throw new Error(`Item con ID ${itemId} no encontrado.`);
+      }
+
+      const stockAnterior = stockActualRows[0].stock_unidades;
+      const cantidadMovida = conteoReal - stockAnterior;
+
+      if (cantidadMovida !== 0) {
+        await connection.query(
+          "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
+          [conteoReal, itemId]
+        );
+
+        await connection.query(
+          `INSERT INTO stock_movements 
+           (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) 
+           VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
+          [
+            itemId,
+            cantidadMovida,
+            stockAnterior,
+            conteoReal,
+            ajuste.descripcion || "Ajuste por conteo masivo",
+          ]
+        );
+      }
+    }
+
+    await connection.commit();
+    res.status(200).json({ message: "Ajuste masivo registrado con éxito." });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error en el ajuste masivo:", error);
+    res
+      .status(500)
+      .json({ message: "Error en el ajuste masivo.", error: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
+export const getStockMovements = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        sm.id,
+        sm.tipo_movimiento,
+        sm.cantidad_unidades_movidas,
+        sm.stock_anterior,
+        sm.stock_nuevo,
+        sm.descripcion,
+        sm.fecha_movimiento,
+        si.nombre_item
+      FROM stock_movements AS sm
+      JOIN stock_items AS si ON sm.item_id = si.id
+      ORDER BY sm.fecha_movimiento DESC
+      LIMIT 100; -- Limitamos a los últimos 100 movimientos por rendimiento
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al consultar movimientos de stock:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getPrebatches = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        id,
+        nombre_prebatch,
+        fecha_produccion,
+        cantidad_actual_ml,
+        -- Calculamos el estado basado en la fecha de producción
+        CASE
+          WHEN CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 28 DAY) THEN 'VENCIDO'
+          WHEN CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 14 DAY) THEN 'ADVERTENCIA'
+          ELSE 'FRESCO'
+        END AS estado
+      FROM prebatches
+      WHERE cantidad_actual_ml > 0
+      ORDER BY fecha_produccion ASC;
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener prebatches:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getPrebatchTotals = async (req, res) => {
+  try {
+    const query = `
+      SELECT
+        nombre_prebatch,
+        SUM(cantidad_actual_ml) / 1000 AS total_litros
+      FROM prebatches
+      GROUP BY nombre_prebatch
+      ORDER BY nombre_prebatch;
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener totales de prebatches:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};

@@ -1,28 +1,10 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import Spinner from "../atoms/Spinner";
+import useStockStore from "../../stores/useStockStore";
 import Alert from "../atoms/Alert";
 import Card from "../atoms/Card";
 
 export default function InventoryTable() {
-  const [stock, setStock] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { stockItems, error } = useStockStore();
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/stock")
-      .then((response) => setStock(response.data))
-      .catch((error) => {
-        console.error("Hubo un error al obtener el stock:", error);
-        setError(
-          "No se pudo cargar el inventario. ¿El servidor backend está funcionando?"
-        );
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <Spinner />;
   if (error) return <Alert message={error} />;
 
   return (
@@ -46,7 +28,7 @@ export default function InventoryTable() {
             </tr>
           </thead>
           <tbody>
-            {stock.map((item) => (
+            {stockItems.map((item) => (
               <tr
                 key={item.id}
                 className="border-b border-slate-700 hover:bg-slate-600"

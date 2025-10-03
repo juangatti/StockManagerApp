@@ -1,9 +1,11 @@
 import { Routes, Route, NavLink } from "react-router-dom";
-import "./App.css";
+import { Toaster } from "react-hot-toast";
 import InventoryPage from "./pages/InventoryPage";
 import ShoppingPage from "./pages/ShoppingPage";
 import AdjustPage from "./pages/AdjustPage";
-import { Toaster } from "react-hot-toast";
+import HistoricMovementPage from "./pages/HistoricMovementPage";
+import PrebatchsPage from "./pages/PrebatchsPage";
+import "./App.css";
 
 function App() {
   const getNavLinkClass = ({ isActive }) => {
@@ -34,11 +36,17 @@ function App() {
           <NavLink to="/" className={getNavLinkClass}>
             Inventario
           </NavLink>
+          <NavLink to="/prebatches" className={getNavLinkClass}>
+            Prebatches
+          </NavLink>
           <NavLink to="/shopping" className={getNavLinkClass}>
             Registrar Compra
           </NavLink>
           <NavLink to="/adjust" className={getNavLinkClass}>
             Ajustar Stock
+          </NavLink>
+          <NavLink to="/historicMovements" className={getNavLinkClass}>
+            Historial de Movimientos
           </NavLink>
         </nav>
       </header>
@@ -47,6 +55,8 @@ function App() {
           <Route path="/" element={<InventoryPage />} />
           <Route path="/shopping" element={<ShoppingPage />} />
           <Route path="/adjust" element={<AdjustPage />} />
+          <Route path="/historicMovements" element={<HistoricMovementPage />} />
+          <Route path="/prebatches" element={<PrebatchsPage />} />
         </Routes>
       </main>
     </div>

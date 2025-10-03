@@ -4,13 +4,17 @@ import {
   getStockTotals,
   registerPurchase,
   registerAdjustment,
+  registerMassiveAdjustment,
+  getStockMovements,
 } from "../controllers/stockController.js";
 
 const router = Router();
 
-router.get("/stock", getStock);
-router.get("/stock/totales", getStockTotals);
-router.post("/stock/compras", registerPurchase);
-router.post("/stock/ajuste", registerAdjustment);
+router.get("/", getStock);
+router.get("/totals", getStockTotals);
+router.post("/purchases", registerPurchase);
+router.post("/adjust", registerAdjustment);
+router.post("/MassAdjustment", registerMassiveAdjustment);
+router.get("/historicMovement", getStockMovements);
 
 export default router;

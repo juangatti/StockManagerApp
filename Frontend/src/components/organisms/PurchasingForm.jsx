@@ -55,7 +55,7 @@ export default function PurchasingForm() {
 
     // Mostramos un toast de "cargando" que luego actualizaremos
     const promise = axios.post(
-      "http://localhost:5000/api/stock/compras",
+      "http://localhost:5000/api/stock/purchases",
       compraActual
     );
 
