@@ -15,8 +15,8 @@ router.get("/", getStock);
 router.get("/totals", getStockTotals);
 router.post("/purchases", registerPurchase);
 router.post("/adjust", registerAdjustment);
-router.post("/MassAdjustment", registerMassiveAdjustment);
-router.get("/historicMovement", getStockMovements);
+router.post("/mass-adjustment", registerMassiveAdjustment);
+router.get("/historic-movement", getStockMovements);
 router.get("/ice", getIceReport);
 
 export default router;

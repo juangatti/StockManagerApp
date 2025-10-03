@@ -6,7 +6,7 @@ import { Save } from "lucide-react";
 import useStockStore from "../../stores/useStockStore"; // Usamos nuestro store
 import Spinner from "../atoms/Spinner";
 
-export default function PlanillaAjuste() {
+export default function AdjustmentSheet() {
   // Obtenemos los items y el estado de carga desde nuestro store de Zustand
   const { stockItems, loading, fetchStock } = useStockStore();
 
@@ -48,7 +48,7 @@ export default function PlanillaAjuste() {
 
     setIsSubmitting(true);
     const promise = axios.post(
-      "http://localhost:5000/api/stock/MassAdjustment",
+      "http://localhost:5000/api/stock/mass-adjustment",
       itemsAjustados
     );
 

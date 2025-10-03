@@ -20,27 +20,38 @@ export const processSalesFile = async (req, res) => {
       const productoVendido = venta.Producto;
       const cantidadVendida = venta.Cantidad;
 
-      const [recetaRows] = await connection.query(
-        "SELECT r.ingrediente_id, r.consumo_ml FROM recetas r JOIN productos p ON r.producto_id = p.id WHERE p.nombre_producto_fudo = ?",
+      const [productoRows] = await connection.query(
+        "SELECT id FROM productos WHERE nombre_producto_fudo = ?",
         [productoVendido]
       );
-
-      if (recetaRows.length === 0) {
+      if (productoRows.length === 0) {
         console.log(
-          `Advertencia: No se encontró receta para "${productoVendido}".`
+          `Advertencia: Producto "${productoVendido}" no encontrado.`
         );
         continue;
       }
+      const productoId = productoRows[0].id;
 
-      for (const receta of recetaRows) {
-        let consumoTotalMl = receta.consumo_ml * cantidadVendida;
+      const [reglasReceta] = await connection.query(
+        "SELECT DISTINCT ingrediente_id, consumo_ml FROM recetas WHERE producto_id = ?",
+        [productoId]
+      );
 
-        const [items] = await connection.query(
-          "SELECT * FROM stock_items WHERE ingrediente_id = ? AND stock_unidades > 0 ORDER BY prioridad_consumo ASC",
-          [receta.ingrediente_id]
+      for (const regla of reglasReceta) {
+        let consumoTotalMl = regla.consumo_ml * cantidadVendida;
+
+        // --- CAMBIO 1 (Ya estaba en tu código, solo confirmamos que es correcto) ---
+        // La consulta ya trae 'si.nombre_item', que es lo que necesitamos.
+        const [itemsPriorizados] = await connection.query(
+          `SELECT r.item_id, si.stock_unidades, si.equivalencia_ml, si.nombre_item
+           FROM recetas r
+           JOIN stock_items si ON r.item_id = si.id
+           WHERE r.producto_id = ? AND r.ingrediente_id = ? AND si.stock_unidades > 0
+           ORDER BY r.prioridad_item ASC`,
+          [productoId, regla.ingrediente_id]
         );
 
-        for (const item of items) {
+        for (const item of itemsPriorizados) {
           if (consumoTotalMl <= 0) break;
 
           const stockDisponibleEnMl =
@@ -52,22 +63,36 @@ export const processSalesFile = async (req, res) => {
           const aDescontarEnUnidades =
             aDescontarDeEsteItemEnMl / item.equivalencia_ml;
 
-          const stockAnterior = item.stock_unidades;
+          const [stockActualRows] = await connection.query(
+            "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
+            [item.item_id]
+          );
+          const stockAnterior = stockActualRows[0].stock_unidades;
           const stockNuevo = stockAnterior - aDescontarEnUnidades;
+
+          if (stockNuevo < 0) {
+            throw new Error(
+              `Stock insuficiente para el item ID ${item.item_id} al procesar la venta de "${productoVendido}".`
+            );
+          }
 
           await connection.query(
             "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-            [stockNuevo, item.id]
+            [stockNuevo, item.item_id]
           );
+
+          // --- CAMBIO 2: Creamos la descripción específica ---
+          const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${item.nombre_item})`;
 
           await connection.query(
             `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) VALUES (?, 'VENTA', ?, ?, ?, ?)`,
             [
-              item.id,
+              item.item_id,
               -aDescontarEnUnidades,
               stockAnterior,
               stockNuevo,
-              `Venta: ${cantidadVendida}x ${productoVendido}`,
+              // Usamos la nueva descripción detallada en lugar de la genérica
+              descripcionMovimiento,
             ]
           );
 
@@ -75,16 +100,15 @@ export const processSalesFile = async (req, res) => {
         }
 
         if (consumoTotalMl > 0.01) {
-          // Pequeño margen de error para decimales
           throw new Error(
-            `Stock insuficiente para procesar la venta de "${productoVendido}".`
+            `Stock insuficiente para el ingrediente ID ${regla.ingrediente_id} en la venta de "${productoVendido}".`
           );
         }
       }
     }
 
     await connection.commit();
-    res.status(200).json({ message: "Ventas procesadas y stock actualizado." });
+    res.status(200).json({ message: "Ventas procesadas con éxito." });
   } catch (error) {
     await connection.rollback();
     console.error("Error durante el procesamiento de ventas:", error.message);

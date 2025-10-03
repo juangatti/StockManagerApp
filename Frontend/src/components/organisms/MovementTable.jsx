@@ -9,7 +9,7 @@ export default function MovementTable() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/stock/historicMovement")
+      .get("http://localhost:5000/api/stock/historic-movement")
       .then((response) => setMovimientos(response.data))
       .catch((error) => console.error("Error al obtener movimientos:", error))
       .finally(() => setLoading(false));
