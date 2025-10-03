@@ -308,3 +308,19 @@ export const getPrebatchTotals = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getIceReport = async (req, res) => {
+  try {
+    // Buscamos items cuyo nombre contenga la palabra 'Hielo'
+    const query = `
+      SELECT nombre_item, stock_unidades 
+      FROM stock_items 
+      WHERE nombre_item LIKE '%Hielo%';
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al generar el Informe Hielístico:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};

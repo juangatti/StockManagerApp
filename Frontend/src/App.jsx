@@ -1,10 +1,12 @@
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route, NavLink, Link } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import InventoryPage from "./pages/InventoryPage";
 import ShoppingPage from "./pages/ShoppingPage";
 import AdjustPage from "./pages/AdjustPage";
 import HistoricMovementPage from "./pages/HistoricMovementPage";
 import PrebatchsPage from "./pages/PrebatchsPage";
+import IceInformation from "./pages/IceInformation";
+import { ClipboardList } from "lucide-react";
 import "./App.css";
 
 function App() {
@@ -29,11 +31,17 @@ function App() {
       />
 
       <header className="max-w-5xl mx-auto text-center mb-10">
-        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white">
-          Gestor de Stock
-        </h1>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-4 text-white hover:text-sky-400 transition-colors duration-200"
+        >
+          <ClipboardList className="h-8 w-8 sm:h-10 sm:w-10" />
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight">
+            Gestor de Stock
+          </h1>
+        </Link>
         <nav className="mt-4 flex justify-center gap-6">
-          <NavLink to="/" className={getNavLinkClass}>
+          <NavLink to="/inventory" className={getNavLinkClass}>
             Inventario
           </NavLink>
           <NavLink to="/prebatches" className={getNavLinkClass}>
@@ -52,7 +60,8 @@ function App() {
       </header>
       <main className="max-w-5xl mx-auto">
         <Routes>
-          <Route path="/" element={<InventoryPage />} />
+          <Route path="/" element={<IceInformation />} />
+          <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/shopping" element={<ShoppingPage />} />
           <Route path="/adjust" element={<AdjustPage />} />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
