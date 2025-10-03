@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import stockRoutes from "./routes/stock_Routes.js";
 import prebatchRoutes from "./routes/prebatch_Routes.js";
+import salesRoutes from "./routes/sales_Routes.js";
 
 // Cargar variables de entorno
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.json());
 // Rutas de la API
 app.use("/api/stock", stockRoutes);
 app.use("/api/prebatches", prebatchRoutes);
+app.use("/api/sales", salesRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, () => {

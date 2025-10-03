@@ -6,6 +6,7 @@ import AdjustPage from "./pages/AdjustPage";
 import HistoricMovementPage from "./pages/HistoricMovementPage";
 import PrebatchsPage from "./pages/PrebatchsPage";
 import IceInformation from "./pages/IceInformation";
+import SalesPage from "./pages/SalesPage";
 import { ClipboardList } from "lucide-react";
 import "./App.css";
 
@@ -50,6 +51,9 @@ function App() {
           <NavLink to="/shopping" className={getNavLinkClass}>
             Registrar Compra
           </NavLink>
+          <NavLink to="/sales" className={getNavLinkClass}>
+            Registrar Venta
+          </NavLink>
           <NavLink to="/adjust" className={getNavLinkClass}>
             Ajustar Stock
           </NavLink>
@@ -66,6 +70,7 @@ function App() {
           <Route path="/adjust" element={<AdjustPage />} />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
           <Route path="/prebatches" element={<PrebatchsPage />} />
+          <Route path="/sales" element={<SalesPage />} />
         </Routes>
       </main>
     </div>
