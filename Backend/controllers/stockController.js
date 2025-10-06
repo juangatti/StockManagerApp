@@ -324,3 +324,31 @@ export const getIceReport = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getStockAlerts = async (req, res) => {
+  try {
+    // Items con poco stock (stock > 0 pero <= al umbral de alerta)
+    const lowStockQuery = `
+      SELECT id, nombre_item, stock_unidades, alerta_stock_bajo
+      FROM stock_items
+      WHERE stock_unidades > 0 AND stock_unidades <= alerta_stock_bajo;
+    `;
+    const [lowStockItems] = await pool.query(lowStockQuery);
+
+    // Items agotados (stock <= 0)
+    const outOfStockQuery = `
+      SELECT id, nombre_item, stock_unidades
+      FROM stock_items
+      WHERE stock_unidades <= 0;
+    `;
+    const [outOfStockItems] = await pool.query(outOfStockQuery);
+
+    res.json({
+      lowStock: lowStockItems,
+      outOfStock: outOfStockItems,
+    });
+  } catch (error) {
+    console.error("Error al obtener alertas de stock:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};

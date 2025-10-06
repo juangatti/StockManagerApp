@@ -7,7 +7,7 @@ import ShoppingPage from "./pages/ShoppingPage";
 import AdjustPage from "./pages/AdjustPage";
 import HistoricMovementPage from "./pages/HistoricMovementPage";
 import PrebatchsPage from "./pages/PrebatchsPage";
-import IceInformation from "./pages/IceInformation";
+import DashboardPage from "./pages/DashboardPage";
 import SalesPage from "./pages/SalesPage";
 
 function App() {
@@ -26,7 +26,7 @@ function App() {
 
       <Routes>
         <Route element={<MainLayout />}>
-          <Route path="/" element={<IceInformation />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/shopping" element={<ShoppingPage />} />
           <Route path="/adjust" element={<AdjustPage />} />

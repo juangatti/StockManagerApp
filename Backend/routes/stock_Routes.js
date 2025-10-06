@@ -7,6 +7,7 @@ import {
   registerMassiveAdjustment,
   getStockMovements,
   getIceReport,
+  getStockAlerts,
 } from "../controllers/stockController.js";
 
 const router = Router();
@@ -18,5 +19,6 @@ router.post("/adjust", registerAdjustment);
 router.post("/mass-adjustment", registerMassiveAdjustment);
 router.get("/historic-movement", getStockMovements);
 router.get("/ice", getIceReport);
+router.get("/alerts", getStockAlerts);
 
 export default router;
