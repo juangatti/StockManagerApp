@@ -1,37 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { PlusCircle, ShoppingCart, Send } from "lucide-react";
 import toast from "react-hot-toast";
+import useStockStore from "../../stores/useStockStore";
 
 export default function PurchasingForm() {
-  const [listaItems, setListaItems] = useState([]);
+  const { stockItems, fetchStock } = useStockStore();
+
   const [compraActual, setCompraActual] = useState([]);
   const [itemIdSeleccionado, setItemIdSeleccionado] = useState("");
   const [cantidad, setCantidad] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState({ message: "", type: "" });
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/stock")
-      .then((response) => {
-        setListaItems(response.data);
-      })
-      .catch((error) => {
-        console.error("Error al obtener los items:", error);
-      });
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddItem = (e) => {
     e.preventDefault();
-
     if (!itemIdSeleccionado || !cantidad) {
       alert("Por favor, selecciona un item y especifica la cantidad.");
       return;
     }
 
-    const itemDetails = listaItems.find(
+    // Usamos 'stockItems' del store en lugar de 'listaItems' del estado local
+    const itemDetails = stockItems.find(
       (item) => item.id === parseInt(itemIdSeleccionado)
     );
 
@@ -39,36 +29,32 @@ export default function PurchasingForm() {
       itemId: parseInt(itemIdSeleccionado),
       nombre: itemDetails.nombre_item,
       cantidad: parseFloat(cantidad),
-      descripcion: descripcion || `Compra ${new Date().toLocaleDateString()}`,
+      descripcion: `Compra ${new Date().toLocaleDateString()}`,
     };
 
     setCompraActual([...compraActual, nuevoItem]);
     setItemIdSeleccionado("");
     setCantidad("");
-    setDescripcion("");
   };
 
   const handleSubmitCompra = () => {
     if (compraActual.length === 0) return;
 
     setIsSubmitting(true);
-
-    // Mostramos un toast de "cargando" que luego actualizaremos
     const promise = axios.post(
       "http://localhost:5000/api/stock/purchases",
       compraActual
     );
 
-    // 3. toast.promise maneja los estados de carga, éxito y error automáticamente
     toast.promise(promise, {
       loading: "Registrando compra...",
-      success: (response) => {
-        setCompraActual([]); // Limpiamos la lista en caso de éxito
+      success: () => {
+        setCompraActual([]);
         setIsSubmitting(false);
+        fetchStock(); // <-- 3. Refrescamos el estado global
         return "¡Compra registrada con éxito!";
       },
       error: (err) => {
-        console.error("Error al registrar la compra:", err);
         setIsSubmitting(false);
         return "Error al registrar la compra. Intenta de nuevo.";
       },
@@ -97,7 +83,7 @@ export default function PurchasingForm() {
             className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
           >
             <option value="">Selecciona un item...</option>
-            {listaItems.map((item) => (
+            {stockItems.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.nombre_item}
               </option>
