@@ -8,6 +8,7 @@ export const getStock = async (req, res) => {
       SELECT 
         si.id,
         si.nombre_item,
+        si.ingrediente_id,
         si.stock_unidades,
         si.equivalencia_ml,
         si.prioridad_consumo,
