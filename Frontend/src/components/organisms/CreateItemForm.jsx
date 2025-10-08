@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import toast from "react-hot-toast";
 import { PackagePlus } from "lucide-react";
 
@@ -18,8 +18,8 @@ export default function CreateItemForm() {
 
   // Al cargar, obtenemos la lista de ingredientes para el selector
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/admin/ingredients")
+    api
+      .get("/admin/ingredients")
       .then((response) => setIngredientes(response.data))
       .catch((error) => console.error("Error al obtener ingredientes:", error));
   }, []);
@@ -53,10 +53,7 @@ export default function CreateItemForm() {
     };
 
     setIsSubmitting(true);
-    const promise = axios.post(
-      "http://localhost:5000/api/admin/stock-items",
-      payload
-    );
+    const promise = api.post("/admin/stock-items", payload);
 
     toast.promise(promise, {
       loading: "Creando item de stock...",

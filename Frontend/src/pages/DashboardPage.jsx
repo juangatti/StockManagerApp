@@ -1,6 +1,6 @@
 // src/pages/DashboardPage.jsx
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/api";
 import { Snowflake, Droplets, AlertTriangle, XCircle } from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
 
@@ -43,8 +43,8 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const [iceRes, alertsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/stock/ice"),
-          axios.get("http://localhost:5000/api/stock/alerts"),
+          api.get("/stock/ice"),
+          api.get("/stock/alerts"),
         ]);
 
         const reporteHielo = {

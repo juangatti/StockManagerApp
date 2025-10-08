@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import axios from "axios";
+import api from "../api/api";
 
 const useStockStore = create((set) => ({
   // --- ESTADO INICIAL ---
@@ -17,8 +17,8 @@ const useStockStore = create((set) => ({
 
       // Hacemos las dos llamadas a la API en paralelo para más eficiencia
       const [itemsResponse, totalsResponse] = await Promise.all([
-        axios.get("http://localhost:5000/api/stock"),
-        axios.get("http://localhost:5000/api/stock/totals"),
+        api.get("/stock"),
+        api.get("/stock/totals"),
       ]);
 
       // Una vez que ambas terminan, actualizamos el estado

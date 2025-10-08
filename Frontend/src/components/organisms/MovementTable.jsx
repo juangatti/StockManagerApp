@@ -1,6 +1,6 @@
 // src/components/organisms/TablaMovimientos.jsx
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import Spinner from "../atoms/Spinner";
 
 export default function MovementTable() {
@@ -8,8 +8,8 @@ export default function MovementTable() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/stock/historic-movement")
+    api
+      .get("/stock/historic-movement")
       .then((response) => setMovimientos(response.data))
       .catch((error) => console.error("Error al obtener movimientos:", error))
       .finally(() => setLoading(false));

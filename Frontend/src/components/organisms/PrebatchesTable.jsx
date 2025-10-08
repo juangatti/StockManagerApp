@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import Spinner from "../atoms/Spinner";
 
 export default function PrebatchesTable() {
@@ -8,8 +8,8 @@ export default function PrebatchesTable() {
 
   useEffect(() => {
     // La URL ahora es /api/prebatches
-    axios
-      .get("http://localhost:5000/api/prebatches")
+    api
+      .get("/prebatches")
       .then((response) => setLotes(response.data))
       .finally(() => setLoading(false));
   }, []);

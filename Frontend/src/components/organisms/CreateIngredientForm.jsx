@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import toast from "react-hot-toast";
 import { BookPlus } from "lucide-react";
 
@@ -21,10 +21,7 @@ export default function CreateIngredientForm() {
     };
 
     setIsSubmitting(true);
-    const promise = axios.post(
-      "http://localhost:5000/api/admin/ingredients",
-      payload
-    );
+    const promise = api.post("/admin/ingredients", payload);
 
     toast.promise(promise, {
       loading: "Creando ingrediente...",

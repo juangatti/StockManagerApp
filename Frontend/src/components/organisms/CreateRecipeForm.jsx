@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import toast from "react-hot-toast";
 import { ClipboardPlus, PlusCircle, XCircle } from "lucide-react";
 
@@ -18,8 +18,8 @@ export default function CreateRecipeForm() {
     const fetchData = async () => {
       try {
         const [ingredientsRes, itemsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/admin/ingredients"),
-          axios.get("http://localhost:5000/api/stock"),
+          api.get("/admin/ingredients"),
+          api.get("/stock"),
         ]);
         setIngredients(ingredientsRes.data);
         setStockItems(itemsRes.data);
@@ -82,10 +82,7 @@ export default function CreateRecipeForm() {
     };
 
     setIsSubmitting(true);
-    const promise = axios.post(
-      "http://localhost:5000/api/admin/recipes",
-      payload
-    );
+    const promise = api.post("/admin/recipes", payload);
 
     toast.promise(promise, {
       loading: "Creando producto y receta...",

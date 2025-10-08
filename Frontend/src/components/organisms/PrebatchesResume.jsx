@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import StatCard from "../atoms/StatCard";
 import Spinner from "../atoms/Spinner";
 
@@ -8,8 +8,8 @@ export default function PrebatchesResume() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/prebatches/totals")
+    api
+      .get("/prebatches/totals")
       .then((response) => setTotales(response.data))
       .finally(() => setLoading(false));
   }, []);

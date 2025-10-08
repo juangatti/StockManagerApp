@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { protect, authorize } from "../middleware/authMiddleware.js";
 import {
   getIngredients,
   createIngredient,
@@ -9,6 +10,7 @@ import {
 
 const router = Router();
 
+router.use(protect, authorize("admin"));
 router.get("/ingredients", getIngredients);
 router.post("/ingredients", createIngredient);
 

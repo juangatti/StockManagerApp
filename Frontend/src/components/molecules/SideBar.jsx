@@ -12,6 +12,7 @@ import {
   CookingPot,
   GlassWater,
 } from "lucide-react";
+import useAuthStore from "../../stores/useAuthStore";
 
 const NavGroup = ({ title, children }) => (
   <div>
@@ -39,6 +40,7 @@ const NavItem = ({ to, icon: Icon, children }) => {
 };
 
 export default function Sidebar() {
+  const user = useAuthStore((state) => state.user);
   return (
     <aside className="bg-slate-800/50 border-r border-slate-700 p-4 flex flex-col gap-8">
       <NavGroup title="Principal">
@@ -70,11 +72,13 @@ export default function Sidebar() {
           Ajustar Stock
         </NavItem>
       </NavGroup>
-      <NavGroup title="Administración">
-        <NavItem to="/admin" icon={Settings}>
-          Gestionar Cátalogo
-        </NavItem>
-      </NavGroup>
+      {user?.role === "admin" && (
+        <NavGroup title="Administración">
+          <NavItem to="/admin" icon={Settings}>
+            Gestionar Catálogo
+          </NavItem>
+        </NavGroup>
+      )}
     </aside>
   );
 }

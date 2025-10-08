@@ -1,6 +1,6 @@
 // src/components/organisms/PlanillaAjuste.jsx
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import toast from "react-hot-toast";
 import { Save } from "lucide-react";
 import useStockStore from "../../stores/useStockStore"; // Usamos nuestro store
@@ -47,10 +47,7 @@ export default function AdjustmentSheet() {
     }
 
     setIsSubmitting(true);
-    const promise = axios.post(
-      "http://localhost:5000/api/stock/mass-adjustment",
-      itemsAjustados
-    );
+    const promise = api.post("/stock/mass-adjustment", itemsAjustados);
 
     toast.promise(promise, {
       loading: "Guardando ajustes...",

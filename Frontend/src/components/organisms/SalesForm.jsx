@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import toast from "react-hot-toast";
 import { UploadCloud, FileText } from "lucide-react";
 import useStockStore from "../../stores/useStockStore"; // Importamos el store para refrescar
@@ -23,15 +23,11 @@ export default function SalesForm() {
     formData.append("archivoVentas", selectedFile);
 
     setIsSubmitting(true);
-    const promise = axios.post(
-      "http://localhost:5000/api/sales/salesProcessor",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    const promise = api.post("/sales/salesProcessor", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
     toast.promise(promise, {
       loading: "Procesando ventas...",
