@@ -9,6 +9,7 @@ import HistoricMovementPage from "./pages/HistoricMovementPage";
 import PrebatchsPage from "./pages/PrebatchsPage";
 import DashboardPage from "./pages/DashboardPage";
 import SalesPage from "./pages/SalesPage";
+import AdminPage from "./pages/AdminPage";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
           <Route path="/prebatches" element={<PrebatchsPage />} />
           <Route path="/sales" element={<SalesPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Routes>
     </>

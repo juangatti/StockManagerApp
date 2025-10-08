@@ -6,6 +6,7 @@ import {
   FileClock,
   GitPullRequest,
   PlusCircle,
+  Settings,
   SlidersHorizontal,
   UploadCloud,
   CookingPot,
@@ -67,6 +68,11 @@ export default function Sidebar() {
         </NavItem>
         <NavItem to="/adjust" icon={SlidersHorizontal}>
           Ajustar Stock
+        </NavItem>
+      </NavGroup>
+      <NavGroup title="Administración">
+        <NavItem to="/admin" icon={Settings}>
+          Gestionar Cátalogo
         </NavItem>
       </NavGroup>
     </aside>
