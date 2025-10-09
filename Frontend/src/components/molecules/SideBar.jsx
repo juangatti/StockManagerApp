@@ -1,16 +1,14 @@
+// src/components/molecules/SideBar.jsx
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
-  BarChart3,
   Package,
   FileClock,
-  GitPullRequest,
-  PlusCircle,
-  Settings,
-  SlidersHorizontal,
-  UploadCloud,
   CookingPot,
-  GlassWater,
+  UploadCloud,
+  PlusCircle,
+  SlidersHorizontal,
+  Settings,
 } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
 
@@ -41,15 +39,14 @@ const NavItem = ({ to, icon: Icon, children }) => {
 
 export default function Sidebar() {
   const user = useAuthStore((state) => state.user);
-  return (
-    <aside className="bg-slate-800/50 border-r border-slate-700 p-4 flex flex-col gap-8">
-      <NavGroup title="Principal">
-        <NavItem to="/" icon={LayoutDashboard}>
-          Home
-        </NavItem>
-      </NavGroup>
 
-      <NavGroup title="Vistas de Stock">
+  return (
+    <aside className="flex flex-col gap-8">
+      {/* --- NUEVO GRUPO: ANÁLISIS Y REPORTES (Visible para todos) --- */}
+      <NavGroup title="Análisis y Reportes">
+        <NavItem to="/dashboard" icon={LayoutDashboard}>
+          Dashboard
+        </NavItem>
         <NavItem to="/inventory" icon={Package}>
           Inventario
         </NavItem>
@@ -61,17 +58,23 @@ export default function Sidebar() {
         </NavItem>
       </NavGroup>
 
-      <NavGroup title="Operaciones">
-        <NavItem to="/sales" icon={UploadCloud}>
-          Cargar Ventas
-        </NavItem>
-        <NavItem to="/shopping" icon={PlusCircle}>
-          Registrar Compra
-        </NavItem>
-        <NavItem to="/adjust" icon={SlidersHorizontal}>
-          Ajustar Stock
-        </NavItem>
-      </NavGroup>
+      {/* --- NUEVO GRUPO: OPERACIONES (Solo para Admin) --- */}
+      {/* Aplicaremos la misma lógica de roles que en Administración */}
+      {user?.role === "admin" && (
+        <NavGroup title="Operaciones de Stock">
+          <NavItem to="/sales" icon={UploadCloud}>
+            Cargar Ventas
+          </NavItem>
+          <NavItem to="/shopping" icon={PlusCircle}>
+            Registrar Compra
+          </NavItem>
+          <NavItem to="/adjust" icon={SlidersHorizontal}>
+            Ajustar Stock
+          </NavItem>
+        </NavGroup>
+      )}
+
+      {/* --- GRUPO DE ADMINISTRACIÓN (Solo para Admin, sin cambios) --- */}
       {user?.role === "admin" && (
         <NavGroup title="Administración">
           <NavItem to="/admin" icon={Settings}>

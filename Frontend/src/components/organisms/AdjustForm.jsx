@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import toast from "react-hot-toast";
 import { SlidersHorizontal } from "lucide-react";
 import useStockStore from "../../stores/useStockStore";
@@ -39,10 +39,7 @@ export default function AdjustForm() {
     };
 
     setIsSubmitting(true);
-    const promise = axios.post(
-      "http://localhost:5000/api/stock/adjust",
-      payload
-    );
+    const promise = api.post("/stock/adjust", payload);
 
     toast.promise(promise, {
       loading: "Registrando ajuste...",

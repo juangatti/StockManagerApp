@@ -24,7 +24,7 @@ export default function MainLayout() {
             className="inline-flex items-center gap-3 text-white hover:text-sky-400 transition-colors"
           >
             <ClipboardList className="h-8 w-8" />
-            <span className="text-xl font-bold">Gestor de Stock</span>
+            <span className="text-xl font-bold">Bar Manager</span>
           </Link>
         </header>
 

@@ -1,10 +1,10 @@
 // src/pages/DashboardPage.jsx
 import { useState, useEffect } from "react";
 import api from "../api/api";
-import { Snowflake, Droplets, AlertTriangle, XCircle } from "lucide-react";
+import { Snowflake, AlertTriangle, XCircle } from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
 
-// Un nuevo átomo para las tarjetas de alerta
+// ... (El componente AlertCard no cambia)
 const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
   <div
     className={`bg-slate-800 p-6 rounded-lg shadow-lg border-l-4 ${colorClass}`}
@@ -35,7 +35,8 @@ const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
 );
 
 export default function DashboardPage() {
-  const [hielo, setHielo] = useState(null);
+  // 1. CORRECCIÓN: 'hielo' ahora será un array para guardar todos los tipos de hielo
+  const [hielo, setHielo] = useState([]);
   const [alerts, setAlerts] = useState({ lowStock: [], outOfStock: [] });
   const [loading, setLoading] = useState(true);
 
@@ -47,17 +48,8 @@ export default function DashboardPage() {
           api.get("/stock/alerts"),
         ]);
 
-        const reporteHielo = {
-          picado:
-            iceRes.data.find((item) =>
-              item.nombre_item.toLowerCase().includes("picado")
-            )?.stock_unidades || 0,
-          rolo:
-            iceRes.data.find((item) =>
-              item.nombre_item.toLowerCase().includes("rolo")
-            )?.stock_unidades || 0,
-        };
-        setHielo(reporteHielo);
+        // 2. CORRECCIÓN: Simplemente guardamos la respuesta de la API directamente
+        setHielo(iceRes.data);
         setAlerts(alertsRes.data);
       } catch (error) {
         console.error("Error al cargar el dashboard:", error);
@@ -74,43 +66,36 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
-      {/* Informe Hielístico */}
       <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700">
         <h2 className="text-3xl font-bold text-white mb-2">
           Informe Hielístico
         </h2>
         <p className="text-sm text-slate-500 mb-6">Publicado el {fecha}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {hielo && (
-            <>
-              <div className="flex items-center gap-4">
+
+        {/* 3. CORRECCIÓN: Hacemos un map sobre el array de 'hielo' para mostrar una tarjeta por cada uno */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {hielo.length > 0 ? (
+            hielo.map((item, index) => (
+              <div key={index} className="flex items-center gap-4">
                 <Snowflake className="h-12 w-12 text-cyan-300" />
                 <div>
                   <h3 className="text-lg font-semibold text-slate-300">
-                    Hielo en Rolo
+                    {item.nombre_marca}
                   </h3>
                   <p className="text-4xl font-bold text-white font-mono">
-                    {hielo.rolo.toFixed(1)}
+                    {item.stock_unidades.toFixed(1)}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Droplets className="h-12 w-12 text-blue-300" />
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-300">
-                    Hielo Picado
-                  </h3>
-                  <p className="text-4xl font-bold text-white font-mono">
-                    {hielo.picado.toFixed(1)}
-                  </p>
-                </div>
-              </div>
-            </>
+            ))
+          ) : (
+            <p className="text-slate-500 col-span-full text-center">
+              No se encontraron items en la categoría "HIELO".
+            </p>
           )}
         </div>
       </div>
 
-      {/* Categorías de Alertas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <AlertCard
           title="Poco Stock"

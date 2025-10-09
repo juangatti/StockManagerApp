@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios"; // Mantenemos axios aquí porque el post no usa la instancia 'api' por defecto
+import api from "../../api/api";
 import { PlusCircle, ShoppingCart, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import useStockStore from "../../stores/useStockStore";
@@ -41,10 +41,7 @@ export default function PurchasingForm() {
 
     setIsSubmitting(true);
 
-    const promise = axios.post(
-      "http://localhost:5000/api/stock/purchases",
-      compraActual
-    );
+    const promise = api.post("/stock/purchases", compraActual);
 
     toast.promise(promise, {
       loading: "Registrando compra...",

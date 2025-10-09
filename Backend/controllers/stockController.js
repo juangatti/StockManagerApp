@@ -317,18 +317,24 @@ export const getPrebatchTotals = async (req, res) => {
 
 export const getIceReport = async (req, res) => {
   try {
-    // Buscamos items cuyo nombre contenga la palabra 'Hielo'
+    // CORRECCIÓN: Usamos UPPER() para hacer la comparación insensible a mayúsculas/minúsculas.
     const query = `
-      SELECT m.nombre as nombre_item, si.stock_unidades
-            FROM stock_items si
-            JOIN marcas m ON si.marca_id = m.id
-            WHERE m.nombre LIKE '%Hielo%';
+      SELECT 
+        m.nombre AS nombre_marca, 
+        si.stock_unidades 
+      FROM stock_items si
+      JOIN marcas m ON si.marca_id = m.id
+      JOIN categorias c ON m.categoria_id = c.id
+      WHERE UPPER(c.nombre) = 'HIELO';
     `;
     const [rows] = await pool.query(query);
     res.json(rows);
   } catch (error) {
     console.error("Error al generar el Informe Hielístico:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({
+      message: "Error al generar el Informe Hielístico.",
+      error: error.message,
+    });
   }
 };
 
