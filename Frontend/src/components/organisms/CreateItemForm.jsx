@@ -4,24 +4,25 @@ import toast from "react-hot-toast";
 import { PackagePlus } from "lucide-react";
 
 export default function CreateItemForm() {
+  // 1. El estado del formulario ya no tiene 'nombre_item' ni 'ingrediente_id'.
   const [formData, setFormData] = useState({
-    nombre_item: "",
-    ingrediente_id: "",
+    marca_id: "",
     equivalencia_ml: "",
     stock_unidades: "0",
     prioridad_consumo: "1",
     alerta_stock_bajo: "",
   });
 
-  const [ingredientes, setIngredientes] = useState([]);
+  const [marcas, setMarcas] = useState([]); // El estado para guardar las marcas.
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Al cargar, obtenemos la lista de ingredientes para el selector
+  // Carga la lista de marcas para el selector.
   useEffect(() => {
     api
-      .get("/admin/ingredients")
-      .then((response) => setIngredientes(response.data))
-      .catch((error) => console.error("Error al obtener ingredientes:", error));
+      .get("/admin/marcas")
+      // 2. Corregimos el nombre del estado a 'setMarcas'.
+      .then((response) => setMarcas(response.data))
+      .catch((error) => toast.error("Error al obtener marcas."));
   }, []);
 
   const handleChange = (e) => {
@@ -32,20 +33,22 @@ export default function CreateItemForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validación
+    // 3. Actualizamos la validación a los campos nuevos.
     if (
-      !formData.nombre_item ||
-      !formData.ingrediente_id ||
+      !formData.marca_id ||
       !formData.equivalencia_ml ||
       !formData.alerta_stock_bajo
     ) {
-      toast.error("Por favor, completa todos los campos obligatorios.");
+      toast.error(
+        "Por favor, completa la marca, la equivalencia y la alerta de stock."
+      );
       return;
     }
 
+    // Convertimos los valores a números antes de enviar.
     const payload = {
       ...formData,
-      ingrediente_id: parseInt(formData.ingrediente_id),
+      marca_id: parseInt(formData.marca_id),
       equivalencia_ml: parseFloat(formData.equivalencia_ml),
       stock_unidades: parseFloat(formData.stock_unidades),
       prioridad_consumo: parseInt(formData.prioridad_consumo),
@@ -59,16 +62,14 @@ export default function CreateItemForm() {
       loading: "Creando item de stock...",
       success: () => {
         setIsSubmitting(false);
-        // Limpiar formulario
+        // 4. Actualizamos la limpieza del formulario.
         setFormData({
-          nombre_item: "",
-          ingrediente_id: "",
+          marca_id: "",
           equivalencia_ml: "",
           stock_unidades: "0",
           prioridad_consumo: "1",
           alerta_stock_bajo: "",
         });
-        // Opcional: podríamos querer recargar la lista de ingredientes si uno nuevo se crea
         return "¡Item de stock creado con éxito!";
       },
       error: (err) => {
@@ -82,52 +83,35 @@ export default function CreateItemForm() {
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
       <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
         <PackagePlus className="text-sky-400" />
-        Crear Nuevo Item de Stock
+        Crear Nuevo Item de Stock (Envase)
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 5. ELIMINAMOS el campo de texto 'nombre_item' y lo reemplazamos por el selector de MARCA. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Nombre del Item */}
+          {/* Selector de Marca */}
           <div>
             <label
-              htmlFor="nombre_item"
+              htmlFor="marca_id"
               className="block mb-2 text-sm font-medium text-slate-300"
             >
-              Nombre del Item Físico
-            </label>
-            <input
-              type="text"
-              name="nombre_item"
-              value={formData.nombre_item}
-              onChange={handleChange}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
-              placeholder="Ej: Botella Fernet 750ml"
-            />
-          </div>
-
-          {/* Ingrediente Padre */}
-          <div>
-            <label
-              htmlFor="ingrediente_id"
-              className="block mb-2 text-sm font-medium text-slate-300"
-            >
-              Ingrediente Padre
+              Marca del Producto
             </label>
             <select
-              name="ingrediente_id"
-              value={formData.ingrediente_id}
+              name="marca_id"
+              value={formData.marca_id}
               onChange={handleChange}
               className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
             >
-              <option value="">Selecciona un ingrediente...</option>
-              {ingredientes.map((ing) => (
-                <option key={ing.id} value={ing.id}>
-                  {ing.nombre}
+              <option value="">Selecciona una marca...</option>
+              {marcas.map((marca) => (
+                <option key={marca.id} value={marca.id}>
+                  {marca.nombre}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Equivalencia y Stock Inicial */}
+          {/* Equivalencia (ml) */}
           <div>
             <label
               htmlFor="equivalencia_ml"
@@ -144,6 +128,8 @@ export default function CreateItemForm() {
               placeholder="Ej: 750"
             />
           </div>
+
+          {/* Stock Inicial */}
           <div>
             <label
               htmlFor="stock_unidades"
@@ -161,7 +147,7 @@ export default function CreateItemForm() {
             />
           </div>
 
-          {/* Prioridad y Alerta */}
+          {/* Prioridad de Consumo */}
           <div>
             <label
               htmlFor="prioridad_consumo"
@@ -177,6 +163,8 @@ export default function CreateItemForm() {
               className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
             />
           </div>
+
+          {/* Alerta de Stock Bajo */}
           <div>
             <label
               htmlFor="alerta_stock_bajo"

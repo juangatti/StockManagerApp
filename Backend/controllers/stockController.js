@@ -7,19 +7,23 @@ export const getStock = async (req, res) => {
     const query = `
       SELECT 
         si.id,
-        si.nombre_item,
-        si.ingrediente_id,
-        si.stock_unidades,
+        m.nombre AS nombre_marca,
+        c.nombre AS nombre_categoria,
         si.equivalencia_ml,
+        si.stock_unidades,
         si.prioridad_consumo,
-        i.nombre AS ingrediente_padre 
+        m.id as marca_id
       FROM stock_items AS si
-      JOIN ingredientes AS i ON si.ingrediente_id = i.id
-      ORDER BY i.nombre, si.prioridad_consumo;
+      JOIN marcas AS m ON si.marca_id = m.id
+      JOIN categorias AS c ON m.categoria_id = c.id
+      ORDER BY c.nombre, m.nombre, si.equivalencia_ml;
     `;
-
     const [rows] = await pool.query(query);
-    res.json(rows);
+    const stockConNombreCompleto = rows.map((item) => ({
+      ...item,
+      nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
+    }));
+    res.json(stockConNombreCompleto);
   } catch (error) {
     console.error("Error al consultar el stock", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -31,18 +35,14 @@ export const getStockTotals = async (req, res) => {
   try {
     const query = `
       SELECT
-        CASE
-          WHEN i.agrupar_totales = TRUE THEN i.nombre
-          ELSE si.nombre_item
-        END AS display_nombre,
+        m.nombre AS display_nombre,
         SUM(si.stock_unidades * si.equivalencia_ml) / 1000 AS total_litros
       FROM stock_items AS si
-      JOIN ingredientes AS i ON si.ingrediente_id = i.id
-      GROUP BY display_nombre
-      ORDER BY display_nombre;
+      JOIN marcas AS m ON si.marca_id = m.id
+      GROUP BY m.nombre
+      ORDER BY m.nombre;
     `;
-    const queryResult = await pool.query(query);
-    const rows = queryResult[0];
+    const [rows] = await pool.query(query);
     res.json(rows);
   } catch (error) {
     console.error("Error al calcular los totales", error);
@@ -243,6 +243,7 @@ export const registerMassiveAdjustment = async (req, res) => {
 
 export const getStockMovements = async (req, res) => {
   try {
+    // Consulta SQL corregida
     const query = `
       SELECT 
         sm.id,
@@ -252,17 +253,21 @@ export const getStockMovements = async (req, res) => {
         sm.stock_nuevo,
         sm.descripcion,
         sm.fecha_movimiento,
-        si.nombre_item
+        CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') AS nombre_item
       FROM stock_movements AS sm
       JOIN stock_items AS si ON sm.item_id = si.id
+      JOIN marcas AS m ON si.marca_id = m.id
       ORDER BY sm.fecha_movimiento DESC
-      LIMIT 100; -- Limitamos a los últimos 100 movimientos por rendimiento
+      LIMIT 100;
     `;
     const [rows] = await pool.query(query);
     res.json(rows);
   } catch (error) {
     console.error("Error al consultar movimientos de stock:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({
+      message: "Error al consultar movimientos de stock.",
+      error: error.message,
+    });
   }
 };
 
@@ -314,9 +319,10 @@ export const getIceReport = async (req, res) => {
   try {
     // Buscamos items cuyo nombre contenga la palabra 'Hielo'
     const query = `
-      SELECT nombre_item, stock_unidades 
-      FROM stock_items 
-      WHERE nombre_item LIKE '%Hielo%';
+      SELECT m.nombre as nombre_item, si.stock_unidades
+            FROM stock_items si
+            JOIN marcas m ON si.marca_id = m.id
+            WHERE m.nombre LIKE '%Hielo%';
     `;
     const [rows] = await pool.query(query);
     res.json(rows);
@@ -328,25 +334,31 @@ export const getIceReport = async (req, res) => {
 
 export const getStockAlerts = async (req, res) => {
   try {
-    // Items con poco stock (stock > 0 pero <= al umbral de alerta)
     const lowStockQuery = `
-      SELECT id, nombre_item, stock_unidades, alerta_stock_bajo
-      FROM stock_items
-      WHERE stock_unidades > 0 AND stock_unidades <= alerta_stock_bajo;
-    `;
+            SELECT si.id, m.nombre as nombre_marca, si.equivalencia_ml, si.stock_unidades, si.alerta_stock_bajo
+            FROM stock_items si
+            JOIN marcas m ON si.marca_id = m.id
+            WHERE si.stock_unidades > 0 AND si.stock_unidades <= si.alerta_stock_bajo;
+        `;
     const [lowStockItems] = await pool.query(lowStockQuery);
 
-    // Items agotados (stock <= 0)
     const outOfStockQuery = `
-      SELECT id, nombre_item, stock_unidades
-      FROM stock_items
-      WHERE stock_unidades <= 0;
-    `;
+            SELECT si.id, m.nombre as nombre_marca, si.equivalencia_ml, si.stock_unidades
+            FROM stock_items si
+            JOIN marcas m ON si.marca_id = m.id
+            WHERE si.stock_unidades <= 0;
+        `;
     const [outOfStockItems] = await pool.query(outOfStockQuery);
 
+    const formatItems = (items) =>
+      items.map((item) => ({
+        ...item,
+        nombre_item: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
+      }));
+
     res.json({
-      lowStock: lowStockItems,
-      outOfStock: outOfStockItems,
+      lowStock: formatItems(lowStockItems),
+      outOfStock: formatItems(outOfStockItems),
     });
   } catch (error) {
     console.error("Error al obtener alertas de stock:", error);

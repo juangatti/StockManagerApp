@@ -1,16 +1,14 @@
 import { useState } from "react";
-import api from "../../api/api";
+import axios from "axios"; // Mantenemos axios aquí porque el post no usa la instancia 'api' por defecto
 import { PlusCircle, ShoppingCart, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import useStockStore from "../../stores/useStockStore";
 
 export default function PurchasingForm() {
   const { stockItems, fetchStock } = useStockStore();
-
   const [compraActual, setCompraActual] = useState([]);
   const [itemIdSeleccionado, setItemIdSeleccionado] = useState("");
   const [cantidad, setCantidad] = useState("");
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddItem = (e) => {
@@ -20,14 +18,14 @@ export default function PurchasingForm() {
       return;
     }
 
-    // Usamos 'stockItems' del store en lugar de 'listaItems' del estado local
     const itemDetails = stockItems.find(
       (item) => item.id === parseInt(itemIdSeleccionado)
     );
 
     const nuevoItem = {
       itemId: parseInt(itemIdSeleccionado),
-      nombre: itemDetails.nombre_item,
+      // 1. CORRECCIÓN: Usar 'nombre_completo'
+      nombre: itemDetails.nombre_completo,
       cantidad: parseFloat(cantidad),
       descripcion: `Compra ${new Date().toLocaleDateString()}`,
     };
@@ -38,20 +36,26 @@ export default function PurchasingForm() {
   };
 
   const handleSubmitCompra = () => {
+    // ... (la lógica de envío no cambia)
     if (compraActual.length === 0) return;
 
     setIsSubmitting(true);
-    const promise = api.post("/stock/purchases", compraActual);
+
+    const promise = axios.post(
+      "http://localhost:5000/api/stock/purchases",
+      compraActual
+    );
 
     toast.promise(promise, {
       loading: "Registrando compra...",
-      success: () => {
+      success: (response) => {
         setCompraActual([]);
         setIsSubmitting(false);
-        fetchStock(); // <-- 3. Refrescamos el estado global
+        fetchStock(); // Refrescamos el estado global
         return "¡Compra registrada con éxito!";
       },
       error: (err) => {
+        console.error("Error al registrar la compra:", err);
         setIsSubmitting(false);
         return "Error al registrar la compra. Intenta de nuevo.";
       },
@@ -60,12 +64,10 @@ export default function PurchasingForm() {
 
   return (
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      {/* --- FORMULARIO PARA AÑADIR UN ITEM --- */}
       <form
         onSubmit={handleAddItem}
         className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-8"
       >
-        {/* Selector de Item */}
         <div className="md:col-span-2">
           <label
             htmlFor="item"
@@ -81,14 +83,14 @@ export default function PurchasingForm() {
           >
             <option value="">Selecciona un item...</option>
             {stockItems.map((item) => (
+              // 2. CORRECCIÓN: Usar 'nombre_completo' para la etiqueta
               <option key={item.id} value={item.id}>
-                {item.nombre_item}
+                {item.nombre_completo}
               </option>
             ))}
           </select>
         </div>
-
-        {/* Input de Cantidad */}
+        {/* ... (el resto del formulario no cambia) ... */}
         <div>
           <label
             htmlFor="cantidad"
@@ -105,8 +107,6 @@ export default function PurchasingForm() {
             className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
           />
         </div>
-
-        {/* Botón para Agregar */}
         <button
           type="submit"
           className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 focus:ring-4 focus:outline-none focus:ring-sky-800 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center"
@@ -115,7 +115,7 @@ export default function PurchasingForm() {
           Agregar Item
         </button>
       </form>
-      {/* --- LISTA DE ITEMS EN LA COMPRA ACTUAL --- */}
+      {/* ... (el resto del JSX no cambia) ... */}
       <h3 className="text-xl font-semibold text-white mb-4 border-t border-slate-700 pt-6">
         <ShoppingCart className="inline-block mr-3 h-6 w-6" />
         Items en esta Compra
@@ -146,7 +146,6 @@ export default function PurchasingForm() {
           </ul>
         )}
       </div>
-      {/* --- BOTÓN FINAL PARA REGISTRAR COMPRA --- */}
       {compraActual.length > 0 && (
         <div className="flex justify-end mt-8">
           <button

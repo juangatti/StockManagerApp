@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import MainLayout from "./layouts/MainLayout";
 import useAuthStore from "./stores/useAuthStore";
@@ -26,7 +27,15 @@ const ProtectedRoute = () => {
 };
 
 function App() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
+
+  useEffect(() => {
+    // Si el estado dice que está autenticado pero no hay datos de usuario,
+    // es un estado inconsistente. Forzamos el logout para limpiarlo.
+    if (isAuthenticated && !user) {
+      logout();
+    }
+  }, [isAuthenticated, user, logout]);
 
   return (
     <>

@@ -1,27 +1,19 @@
 import { useState, useEffect } from "react";
-import api from "../../api/api";
+import axios from "axios";
 import toast from "react-hot-toast";
-import { SlidersHorizontal, Send } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
+import useStockStore from "../../stores/useStockStore";
 
 export default function AdjustForm() {
-  const [listaItems, setListaItems] = useState([]);
+  const { stockItems, fetchStock } = useStockStore();
   const [itemIdSeleccionado, setItemIdSeleccionado] = useState("");
   const [itemSeleccionado, setItemSeleccionado] = useState(null);
   const [conteoReal, setConteoReal] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    api
-      .get("/api/stock")
-      .then((response) => {
-        setListaItems(response.data);
-      })
-      .catch((error) => console.error("Error al obtener los items:", error));
-  }, []);
-
-  useEffect(() => {
     if (itemIdSeleccionado) {
-      const item = listaItems.find(
+      const item = stockItems.find(
         (item) => item.id === parseInt(itemIdSeleccionado)
       );
       setItemSeleccionado(item);
@@ -30,9 +22,10 @@ export default function AdjustForm() {
       setItemSeleccionado(null);
       setConteoReal("");
     }
-  }, [itemIdSeleccionado]);
+  }, [itemIdSeleccionado, stockItems]);
 
   const handleSubmit = (e) => {
+    // ... (la lógica de envío no cambia)
     e.preventDefault();
     if (!itemIdSeleccionado || conteoReal === "") {
       toast.error("Selecciona un item y especifica el conteo real.");
@@ -46,14 +39,17 @@ export default function AdjustForm() {
     };
 
     setIsSubmitting(true);
-    const promise = api.post("/stock/adjust", payload);
+    const promise = axios.post(
+      "http://localhost:5000/api/stock/adjust",
+      payload
+    );
 
     toast.promise(promise, {
       loading: "Registrando ajuste...",
       success: (response) => {
         setIsSubmitting(false);
-        // Opcional: Actualizar el stock en la UI sin recargar
         setItemIdSeleccionado("");
+        fetchStock(); // Refrescamos el estado global
         return "¡Ajuste registrado con éxito!";
       },
       error: (err) => {
@@ -67,7 +63,6 @@ export default function AdjustForm() {
   return (
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Selector de Item */}
         <div>
           <label
             htmlFor="item"
@@ -82,15 +77,15 @@ export default function AdjustForm() {
             className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
           >
             <option value="">Selecciona un item...</option>
-            {listaItems.map((item) => (
+            {stockItems.map((item) => (
+              // 1. CORRECCIÓN: Usar 'nombre_completo'
               <option key={item.id} value={item.id}>
-                {item.nombre_item}
+                {item.nombre_completo}
               </option>
             ))}
           </select>
         </div>
-
-        {/* Información del stock actual */}
+        {/* ... (el resto del JSX no cambia) ... */}
         {itemSeleccionado && (
           <div className="bg-slate-900 p-4 rounded-lg flex justify-between items-center">
             <span className="text-slate-400">Stock actual en sistema:</span>
@@ -99,8 +94,6 @@ export default function AdjustForm() {
             </span>
           </div>
         )}
-
-        {/* Input del Conteo Real */}
         <div>
           <label
             htmlFor="conteoReal"
@@ -118,8 +111,6 @@ export default function AdjustForm() {
             placeholder="Ej: 12.5"
           />
         </div>
-
-        {/* Botón de envío */}
         <div className="flex justify-end">
           <button
             type="submit"

@@ -1,3 +1,4 @@
+// src/layouts/MainLayout.jsx
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { ClipboardList, LogOut } from "lucide-react";
 import Sidebar from "../components/molecules/SideBar";
@@ -14,8 +15,9 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="grid grid-cols-[280px_1fr] min-h-screen bg-slate-900 text-slate-100">
-      <div className="flex flex-col bg-slate-800 border-r border-slate-700">
+    <div className="grid grid-cols-[280px_1fr] h-screen bg-slate-900 text-slate-100">
+      {/* 1. Cambiamos min-h-screen por h-screen y añadimos overflow-hidden */}
+      <div className="flex flex-col bg-slate-800 border-r border-slate-700 overflow-hidden">
         <header className="p-6 text-center border-b border-slate-700">
           <Link
             to="/dashboard"
@@ -26,7 +28,8 @@ export default function MainLayout() {
           </Link>
         </header>
 
-        <nav className="flex-1 p-4">
+        {/* 2. Añadimos la clase 'overflow-y-auto' a la navegación */}
+        <nav className="flex-1 p-4 overflow-y-auto">
           <Sidebar />
         </nav>
 

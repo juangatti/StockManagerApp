@@ -1,49 +1,56 @@
+// src/components/molecules/AdminTabs.jsx
 import { useState } from "react";
-import { BookPlus, PackagePlus, ClipboardPlus } from "lucide-react";
-import CreateIngredientForm from "../organisms/CreateIngredientForm";
+import { FolderPlus, BookPlus, PackagePlus, ClipboardPlus } from "lucide-react";
+
+// Importar todos los formularios nuevos y modificados
+import CreateCategoryForm from "../organisms/CreateCategoryForm";
+import CreateMarcaForm from "../organisms/CreateMarcaForm";
 import CreateItemForm from "../organisms/CreateItemForm";
 import CreateRecipeForm from "../organisms/CreateRecipeForm";
 
 export default function AdminTabs() {
-  const [activeTab, setActiveTab] = useState("ingredient");
+  const [activeTab, setActiveTab] = useState("category");
 
-  const buttonClass = (tabName) =>
-    `flex items-center justify-center w-full px-4 py-3 text-sm font-medium border-b-2 focus:outline-none transition-colors duration-200 ${
-      activeTab === tabName
-        ? "border-sky-500 text-sky-400"
-        : "border-transparent text-slate-400 hover:text-white hover:border-slate-500"
-    }`;
+  const buttonClass = (tabName) => `...`; // (La función no cambia)
 
   return (
     <div>
       <div className="border-b border-slate-700 mb-8">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <button
-            onClick={() => setActiveTab("ingredient")}
-            className={buttonClass("ingredient")}
+            onClick={() => setActiveTab("category")}
+            className={buttonClass("category")}
+          >
+            <FolderPlus className="mr-2 h-5 w-5" />
+            Categorías
+          </button>
+          <button
+            onClick={() => setActiveTab("marca")}
+            className={buttonClass("marca")}
           >
             <BookPlus className="mr-2 h-5 w-5" />
-            Crear Ingrediente
+            Marcas
           </button>
           <button
             onClick={() => setActiveTab("item")}
             className={buttonClass("item")}
           >
             <PackagePlus className="mr-2 h-5 w-5" />
-            Crear Item de Stock
+            Items (Envases)
           </button>
           <button
             onClick={() => setActiveTab("recipe")}
             className={buttonClass("recipe")}
           >
             <ClipboardPlus className="mr-2 h-5 w-5" />
-            Crear Producto y Receta
+            Recetas
           </button>
         </div>
       </div>
 
       <div>
-        {activeTab === "ingredient" && <CreateIngredientForm />}
+        {activeTab === "category" && <CreateCategoryForm />}
+        {activeTab === "marca" && <CreateMarcaForm />}
         {activeTab === "item" && <CreateItemForm />}
         {activeTab === "recipe" && <CreateRecipeForm />}
       </div>

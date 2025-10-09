@@ -17,7 +17,7 @@ export default function InventoryTable() {
                 Item
               </th>
               <th scope="col" className="py-3 px-6">
-                Ingrediente Padre
+                Categoría
               </th>
               <th scope="col" className="py-3 px-6">
                 Stock (Unidades)
@@ -37,9 +37,9 @@ export default function InventoryTable() {
                   scope="row"
                   className="py-4 px-6 font-medium whitespace-nowrap text-white"
                 >
-                  {item.nombre_item}
+                  {item.nombre_completo}
                 </th>
-                <td className="py-4 px-6">{item.ingrediente_padre}</td>
+                <td className="py-4 px-6">{item.nombre_categoria}</td>
                 <td className="py-4 px-6 font-mono font-bold">
                   {item.stock_unidades.toFixed(2)}
                 </td>

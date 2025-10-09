@@ -4,40 +4,42 @@ import toast from "react-hot-toast";
 import { ClipboardPlus, PlusCircle, XCircle } from "lucide-react";
 
 export default function CreateRecipeForm() {
-  // --- ESTADOS PARA LOS DATOS DE LA API ---
-  const [ingredients, setIngredients] = useState([]);
+  // 1. ESTADOS PARA LOS DATOS: 'ingredients' se cambia por 'marcas'
+  const [marcas, setMarcas] = useState([]);
   const [stockItems, setStockItems] = useState([]);
 
   // --- ESTADOS DEL FORMULARIO ---
-  const [productName, setProductName] = useState(""); // <-- Reemplaza al selector
+  const [productName, setProductName] = useState("");
   const [reglas, setReglas] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- Carga inicial de datos (ya no necesitamos los productos) ---
+  // 2. CARGA DE DATOS: Pedimos '/admin/marcas' en lugar de '/admin/ingredients'
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [ingredientsRes, itemsRes] = await Promise.all([
-          api.get("/admin/ingredients"),
+        const [marcasRes, itemsRes] = await Promise.all([
+          api.get("/admin/marcas"),
           api.get("/stock"),
         ]);
-        setIngredients(ingredientsRes.data);
+        setMarcas(marcasRes.data);
         setStockItems(itemsRes.data);
       } catch (error) {
-        console.error("Error al cargar datos para el formulario:", error);
-        toast.error("No se pudieron cargar los datos necesarios.");
+        toast.error(
+          "No se pudieron cargar los datos necesarios para las recetas."
+        );
       }
     };
     fetchData();
   }, []);
 
-  // --- MANEJADORES DE EVENTOS (la mayoría no cambian) ---
+  // --- MANEJADORES DE EVENTOS ---
   const handleAddRegla = () => {
     setReglas([
       ...reglas,
       {
         id: Date.now(),
-        ingrediente_id: "",
+        // 3. La nueva regla usa 'marca_id'
+        marca_id: "",
         item_id: "",
         consumo_ml: "",
         prioridad_item: "1",
@@ -53,7 +55,8 @@ export default function CreateRecipeForm() {
     const newReglas = reglas.map((regla) => {
       if (regla.id === id) {
         const updatedRegla = { ...regla, [field]: value };
-        if (field === "ingrediente_id") updatedRegla.item_id = "";
+        // 4. Si cambia la marca, se resetea el item.
+        if (field === "marca_id") updatedRegla.item_id = "";
         return updatedRegla;
       }
       return regla;
@@ -71,10 +74,11 @@ export default function CreateRecipeForm() {
     }
 
     const payload = {
-      nombre_producto_fudo: productName.trim(), // <-- Enviamos el nombre
+      nombre_producto_fudo: productName.trim(),
+      // 5. El payload ahora envía 'marca_id'
       reglas: reglas.map(({ id, ...rest }) => ({
         ...rest,
-        ingrediente_id: parseInt(rest.ingrediente_id),
+        marca_id: parseInt(rest.marca_id),
         item_id: parseInt(rest.item_id),
         consumo_ml: parseFloat(rest.consumo_ml),
         prioridad_item: parseInt(rest.prioridad_item),
@@ -99,16 +103,13 @@ export default function CreateRecipeForm() {
     });
   };
 
-  // --- RENDERIZADO ---
   return (
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
       <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
         <ClipboardPlus className="text-sky-400" />
         Crear Producto y Receta
       </h3>
-
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Input para el Nombre del Producto */}
         <div>
           <label
             htmlFor="productName"
@@ -121,59 +122,59 @@ export default function CreateRecipeForm() {
             id="productName"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
-            placeholder="Ej: Cuba Libre"
+            placeholder="Ej: Fernet con Coca"
             className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
           />
         </div>
 
-        {/* ... (el resto del formulario para las reglas no cambia) ... */}
         <div className="space-y-4">
           {reglas.map((regla) => {
+            // 6. La lógica de filtrado ahora usa 'marca_id'
             const itemsFiltrados = stockItems.filter(
-              (item) => item.ingrediente_id === parseInt(regla.ingrediente_id)
+              (item) => item.marca_id === parseInt(regla.marca_id)
             );
             return (
               <div
                 key={regla.id}
                 className="grid grid-cols-12 gap-3 bg-slate-900 p-4 rounded-lg items-center"
               >
+                {/* Selector de Marca */}
                 <div className="col-span-3">
                   <select
-                    value={regla.ingrediente_id}
+                    value={regla.marca_id}
                     onChange={(e) =>
-                      handleReglaChange(
-                        regla.id,
-                        "ingrediente_id",
-                        e.target.value
-                      )
+                      handleReglaChange(regla.id, "marca_id", e.target.value)
                     }
                     className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
                   >
-                    <option value="">Ingrediente...</option>
-                    {ingredients.map((ing) => (
-                      <option key={ing.id} value={ing.id}>
-                        {ing.nombre}
+                    <option value="">Selecciona Marca...</option>
+                    {marcas.map((marca) => (
+                      <option key={marca.id} value={marca.id}>
+                        {marca.nombre}
                       </option>
                     ))}
                   </select>
                 </div>
+                {/* Selector de Item (Envase) */}
                 <div className="col-span-4">
                   <select
                     value={regla.item_id}
                     onChange={(e) =>
                       handleReglaChange(regla.id, "item_id", e.target.value)
                     }
-                    disabled={!regla.ingrediente_id}
+                    disabled={!regla.marca_id}
                     className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 disabled:opacity-50"
                   >
-                    <option value="">Item específico...</option>
+                    <option value="">Selecciona Envase...</option>
                     {itemsFiltrados.map((item) => (
+                      // 7. Mostramos el 'nombre_completo' que ahora viene del backend
                       <option key={item.id} value={item.id}>
-                        {item.nombre_item}
+                        {item.nombre_completo}
                       </option>
                     ))}
                   </select>
                 </div>
+                {/* Resto de los campos (no cambian) */}
                 <div className="col-span-2">
                   <input
                     type="number"
@@ -212,6 +213,7 @@ export default function CreateRecipeForm() {
             );
           })}
         </div>
+
         <div className="flex justify-between items-center pt-4">
           <button
             type="button"
@@ -219,7 +221,7 @@ export default function CreateRecipeForm() {
             className="flex items-center gap-2 text-sky-400 hover:text-sky-300 font-medium text-sm"
           >
             <PlusCircle className="h-5 w-5" />
-            Añadir Ingrediente
+            Añadir Marca a la Receta
           </button>
           <button
             type="submit"

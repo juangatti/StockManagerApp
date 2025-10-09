@@ -1,20 +1,16 @@
-// src/components/organisms/PlanillaAjuste.jsx
+// src/components/organisms/AdjustmentSheet.jsx
 import { useState, useEffect } from "react";
-import api from "../../api/api";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { Save } from "lucide-react";
-import useStockStore from "../../stores/useStockStore"; // Usamos nuestro store
+import useStockStore from "../../stores/useStockStore";
 import Spinner from "../atoms/Spinner";
 
 export default function AdjustmentSheet() {
-  // Obtenemos los items y el estado de carga desde nuestro store de Zustand
   const { stockItems, loading, fetchStock } = useStockStore();
-
-  // Estado local para manejar los valores de los inputs de la planilla
   const [conteo, setConteo] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Cuando los datos del store cargan, inicializamos el estado del conteo
   useEffect(() => {
     if (stockItems.length > 0) {
       const initialCounts = stockItems.reduce((acc, item) => {
@@ -33,7 +29,7 @@ export default function AdjustmentSheet() {
   };
 
   const handleSubmit = () => {
-    // 1. Filtramos solo los items que realmente han cambiado
+    // ... (la lógica de envío no cambia)
     const itemsAjustados = stockItems
       .filter((item) => parseFloat(conteo[item.id]) !== item.stock_unidades)
       .map((item) => ({
@@ -47,13 +43,16 @@ export default function AdjustmentSheet() {
     }
 
     setIsSubmitting(true);
-    const promise = api.post("/stock/mass-adjustment", itemsAjustados);
+    const promise = axios.post(
+      "http://localhost:5000/api/stock/mass-adjustment",
+      itemsAjustados
+    );
 
     toast.promise(promise, {
       loading: "Guardando ajustes...",
       success: () => {
         setIsSubmitting(false);
-        fetchStock(); // <-- Recargamos los datos de todo el stock desde el store
+        fetchStock();
         return "Ajustes guardados con éxito.";
       },
       error: () => {
@@ -80,7 +79,8 @@ export default function AdjustmentSheet() {
             {stockItems.map((item) => (
               <tr key={item.id} className="border-b border-slate-700">
                 <td className="py-4 px-6 font-medium text-white">
-                  {item.nombre_item}
+                  {/* AQUÍ ESTÁ LA CORRECCIÓN: Usar 'nombre_completo' */}
+                  {item.nombre_completo}
                 </td>
                 <td className="py-4 px-6 text-center font-mono">
                   {item.stock_unidades.toFixed(2)}
