@@ -1,17 +1,20 @@
-// src/components/molecules/AdminTabs.jsx
 import { useState } from "react";
 import { FolderPlus, BookPlus, PackagePlus, ClipboardPlus } from "lucide-react";
 
-// Importar todos los formularios nuevos y modificados
-import CreateCategoryForm from "../organisms/CreateCategoryForm";
-import CreateMarcaForm from "../organisms/CreateMarcaForm";
-import CreateItemForm from "../organisms/CreateItemForm";
-import CreateRecipeForm from "../organisms/CreateRecipeForm";
+import CategoryManager from "../organisms/CategoryManager";
+import MarcaManager from "../organisms/MarcaManager";
+import ItemManager from "../organisms/ItemManager";
+import RecipeManager from "../organisms/RecipeManager";
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState("category");
 
-  const buttonClass = (tabName) => `...`; // (La función no cambia)
+  const buttonClass = (tabName) =>
+    `flex items-center justify-center w-full px-4 py-3 text-sm font-medium border-b-2 focus:outline-none transition-colors duration-200 ${
+      activeTab === tabName
+        ? "border-sky-500 text-sky-400"
+        : "border-transparent text-slate-400 hover:text-white hover:border-slate-500"
+    }`;
 
   return (
     <div>
@@ -49,10 +52,13 @@ export default function AdminTabs() {
       </div>
 
       <div>
-        {activeTab === "category" && <CreateCategoryForm />}
-        {activeTab === "marca" && <CreateMarcaForm />}
-        {activeTab === "item" && <CreateItemForm />}
-        {activeTab === "recipe" && <CreateRecipeForm />}
+        {/* CORRECCIÓN: Dejamos solo el CategoryManager para la pestaña 'category' */}
+        {activeTab === "category" && <CategoryManager />}
+
+        {/* Placeholder para los futuros gestores */}
+        {activeTab === "marca" && <MarcaManager />}
+        {activeTab === "item" && <ItemManager />}
+        {activeTab === "recipe" && <RecipeManager />}
       </div>
     </div>
   );

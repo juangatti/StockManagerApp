@@ -33,6 +33,38 @@ export const createCategory = async (req, res) => {
   }
 };
 
+export const getCategoryById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query("SELECT * FROM categorias WHERE id = ?", [
+      id,
+    ]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Categoría no encontrada." });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ message: "Error del servidor." });
+  }
+};
+
+export const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre } = req.body;
+    if (!nombre) {
+      return res.status(400).json({ message: "El nombre es obligatorio." });
+    }
+    await pool.query("UPDATE categorias SET nombre = ? WHERE id = ?", [
+      nombre,
+      id,
+    ]);
+    res.status(200).json({ message: "Categoría actualizada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al actualizar la categoría." });
+  }
+};
+
 // --- GESTIÓN DE MARCAS ---
 export const getMarcas = async (req, res) => {
   try {
@@ -70,6 +102,24 @@ export const createMarca = async (req, res) => {
     }
     res.status(500).json({ message: "Error del servidor" });
   }
+};
+
+export const getMarcaById = async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await pool.query("SELECT * FROM marcas WHERE id = ?", [id]);
+  if (rows.length === 0)
+    return res.status(404).json({ message: "Marca no encontrada." });
+  res.json(rows[0]);
+};
+
+export const updateMarca = async (req, res) => {
+  const { id } = req.params;
+  const { nombre, categoria_id } = req.body;
+  await pool.query(
+    "UPDATE marcas SET nombre = ?, categoria_id = ? WHERE id = ?",
+    [nombre, categoria_id, id]
+  );
+  res.status(200).json({ message: "Marca actualizada con éxito." });
 };
 
 // --- GESTIÓN DE ITEMS DE STOCK ---
@@ -127,6 +177,27 @@ export const createStockItem = async (req, res) => {
   } finally {
     connection.release();
   }
+};
+
+export const getStockItemById = async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await pool.query("SELECT * FROM stock_items WHERE id = ?", [
+    id,
+  ]);
+  if (rows.length === 0)
+    return res.status(404).json({ message: "Item no encontrado." });
+  res.json(rows[0]);
+};
+
+export const updateStockItem = async (req, res) => {
+  const { id } = req.params;
+  const { marca_id, equivalencia_ml, prioridad_consumo, alerta_stock_bajo } =
+    req.body;
+  await pool.query(
+    "UPDATE stock_items SET marca_id = ?, equivalencia_ml = ?, prioridad_consumo = ?, alerta_stock_bajo = ? WHERE id = ?",
+    [marca_id, equivalencia_ml, prioridad_consumo, alerta_stock_bajo, id]
+  );
+  res.status(200).json({ message: "Item de stock actualizado con éxito." });
 };
 
 // --- GESTIÓN DE PRODUCTOS Y RECETAS ---
@@ -187,6 +258,57 @@ export const createRecipe = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error al guardar la receta.", error: error.message });
+  } finally {
+    connection.release();
+  }
+};
+
+export const getRecipeById = async (req, res) => {
+  const { id } = req.params; // id del producto
+  const [productRows] = await pool.query(
+    "SELECT * FROM productos WHERE id = ?",
+    [id]
+  );
+  if (productRows.length === 0)
+    return res.status(404).json({ message: "Producto no encontrado." });
+
+  const [recipeRows] = await pool.query(
+    "SELECT * FROM recetas WHERE producto_id = ?",
+    [id]
+  );
+  res.json({ product: productRows[0], reglas: recipeRows });
+};
+
+export const updateRecipe = async (req, res) => {
+  const { id } = req.params; // id del producto
+  const { nombre_producto_fudo, reglas } = req.body;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      "UPDATE productos SET nombre_producto_fudo = ? WHERE id = ?",
+      [nombre_producto_fudo, id]
+    );
+    await connection.query("DELETE FROM recetas WHERE producto_id = ?", [id]);
+
+    for (const regla of reglas) {
+      await connection.query(
+        "INSERT INTO recetas (producto_id, marca_id, item_id, consumo_ml, prioridad_item) VALUES (?, ?, ?, ?, ?)",
+        [
+          id,
+          regla.marca_id,
+          regla.item_id,
+          regla.consumo_ml,
+          regla.prioridad_item,
+        ]
+      );
+    }
+    await connection.commit();
+    res.status(200).json({ message: "Receta actualizada con éxito." });
+  } catch (error) {
+    await connection.rollback();
+    res.status(500).json({ message: "Error al actualizar la receta." });
   } finally {
     connection.release();
   }

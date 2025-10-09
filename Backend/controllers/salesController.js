@@ -32,23 +32,24 @@ export const processSalesFile = async (req, res) => {
       }
       const productoId = productoRows[0].id;
 
+      // 1. CORRECCIÓN: Ahora buscamos por 'marca_id'
       const [reglasReceta] = await connection.query(
-        "SELECT DISTINCT ingrediente_id, consumo_ml FROM recetas WHERE producto_id = ?",
+        "SELECT DISTINCT marca_id, consumo_ml FROM recetas WHERE producto_id = ?",
         [productoId]
       );
 
       for (const regla of reglasReceta) {
         let consumoTotalMl = regla.consumo_ml * cantidadVendida;
 
-        // --- CAMBIO 1 (Ya estaba en tu código, solo confirmamos que es correcto) ---
-        // La consulta ya trae 'si.nombre_item', que es lo que necesitamos.
+        // 2. CORRECCIÓN: La consulta para priorizar items ahora también usa 'marca_id'
         const [itemsPriorizados] = await connection.query(
-          `SELECT r.item_id, si.stock_unidades, si.equivalencia_ml, si.nombre_item
+          `SELECT r.item_id, si.stock_unidades, si.equivalencia_ml, CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') as nombre_completo
            FROM recetas r
            JOIN stock_items si ON r.item_id = si.id
-           WHERE r.producto_id = ? AND r.ingrediente_id = ? AND si.stock_unidades > 0
+           JOIN marcas m ON si.marca_id = m.id
+           WHERE r.producto_id = ? AND r.marca_id = ? AND si.stock_unidades > 0
            ORDER BY r.prioridad_item ASC`,
-          [productoId, regla.ingrediente_id]
+          [productoId, regla.marca_id]
         );
 
         for (const item of itemsPriorizados) {
@@ -72,7 +73,7 @@ export const processSalesFile = async (req, res) => {
 
           if (stockNuevo < 0) {
             throw new Error(
-              `Stock insuficiente para el item ID ${item.item_id} al procesar la venta de "${productoVendido}".`
+              `Stock insuficiente para el item ID ${item.item_id}`
             );
           }
 
@@ -81,8 +82,8 @@ export const processSalesFile = async (req, res) => {
             [stockNuevo, item.item_id]
           );
 
-          // --- CAMBIO 2: Creamos la descripción específica ---
-          const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${item.nombre_item})`;
+          // 3. CORRECCIÓN: Usamos el nuevo nombre construido para la descripción
+          const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${item.nombre_completo})`;
 
           await connection.query(
             `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) VALUES (?, 'VENTA', ?, ?, ?, ?)`,
@@ -91,7 +92,6 @@ export const processSalesFile = async (req, res) => {
               -aDescontarEnUnidades,
               stockAnterior,
               stockNuevo,
-              // Usamos la nueva descripción detallada en lugar de la genérica
               descripcionMovimiento,
             ]
           );
@@ -100,8 +100,9 @@ export const processSalesFile = async (req, res) => {
         }
 
         if (consumoTotalMl > 0.01) {
+          // 4. CORRECCIÓN: El mensaje de error ahora se refiere a 'marca_id'
           throw new Error(
-            `Stock insuficiente para el ingrediente ID ${regla.ingrediente_id} en la venta de "${productoVendido}".`
+            `Stock insuficiente para la marca ID ${regla.marca_id} en la venta de "${productoVendido}".`
           );
         }
       }
