@@ -53,9 +53,6 @@ export default function Sidebar() {
         <NavItem to="/prebatches" icon={CookingPot}>
           Prebatches
         </NavItem>
-        <NavItem to="/historicMovements" icon={FileClock}>
-          Historial
-        </NavItem>
       </NavGroup>
 
       {/* --- NUEVO GRUPO: OPERACIONES (Solo para Admin) --- */}
@@ -79,6 +76,9 @@ export default function Sidebar() {
         <NavGroup title="Administración">
           <NavItem to="/admin" icon={Settings}>
             Gestionar Catálogo
+          </NavItem>
+          <NavItem to="/historicMovements" icon={FileClock}>
+            Historial
           </NavItem>
         </NavGroup>
       )}

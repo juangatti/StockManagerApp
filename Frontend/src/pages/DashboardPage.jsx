@@ -72,7 +72,6 @@ export default function DashboardPage() {
         </h2>
         <p className="text-sm text-slate-500 mb-6">Publicado el {fecha}</p>
 
-        {/* 3. CORRECCIÓN: Hacemos un map sobre el array de 'hielo' para mostrar una tarjeta por cada uno */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {hielo.length > 0 ? (
             hielo.map((item, index) => (

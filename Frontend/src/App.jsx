@@ -81,7 +81,6 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/prebatches" element={<PrebatchsPage />} />
-          <Route path="/historicMovements" element={<HistoricMovementPage />} />
         </Route>
 
         {/* Rutas exclusivas para el rol 'admin' */}
@@ -90,6 +89,7 @@ function App() {
           <Route path="/shopping" element={<ShoppingPage />} />
           <Route path="/adjust" element={<AdjustPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/historicMovements" element={<HistoricMovementPage />} />
         </Route>
       </Routes>
     </>
