@@ -12,6 +12,17 @@ export const getCategories = async (req, res) => {
   }
 };
 
+export const getInactiveCategories = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM categorias WHERE is_active = FALSE ORDER BY nombre ASC"
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: "Error del servidor." });
+  }
+};
+
 export const createCategory = async (req, res) => {
   const { nombre } = req.body;
   if (!nombre) {
@@ -77,6 +88,18 @@ export const deleteCategory = async (req, res) => {
   }
 };
 
+export const restoreCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE categorias SET is_active = TRUE WHERE id = ?", [
+      id,
+    ]);
+    res.status(200).json({ message: "Categoría restaurada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al restaurar la categoría." });
+  }
+};
+
 // --- GESTIÓN DE MARCAS ---
 export const getMarcas = async (req, res) => {
   try {
@@ -91,6 +114,17 @@ export const getMarcas = async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const getInactiveMarcas = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM marcas WHERE is_active = FALSE ORDER BY nombre ASC"
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: "Error del servidor." });
   }
 };
 
@@ -142,6 +176,16 @@ export const deleteMarca = async (req, res) => {
     res.status(200).json({ message: "Marca desactivada con éxito." });
   } catch (error) {
     res.status(500).json({ message: "Error al desactivar la marca." });
+  }
+};
+
+export const restoreMarca = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE marcas SET is_active = TRUE WHERE id = ?", [id]);
+    res.status(200).json({ message: "Categoría restaurada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al restaurar la categoría." });
   }
 };
 
@@ -212,6 +256,17 @@ export const getStockItemById = async (req, res) => {
   res.json(rows[0]);
 };
 
+export const getInactiveStockItem = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM stock_items WHERE is_active = FALSE ORDER BY nombre ASC"
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: "Error del servidor." });
+  }
+};
+
 export const updateStockItem = async (req, res) => {
   const { id } = req.params;
   const { marca_id, equivalencia_ml, prioridad_consumo, alerta_stock_bajo } =
@@ -235,6 +290,18 @@ export const deleteStockItem = async (req, res) => {
   }
 };
 
+export const restoreStockItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE stock_items SET is_active = TRUE WHERE id = ?", [
+      id,
+    ]);
+    res.status(200).json({ message: "Categoría restaurada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al restaurar la categoría." });
+  }
+};
+
 // --- GESTIÓN DE PRODUCTOS Y RECETAS ---
 export const getProducts = async (req, res) => {
   try {
@@ -244,6 +311,17 @@ export const getProducts = async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ message: "Error del servidor" });
+  }
+};
+
+export const getInactiveProducts = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM productos WHERE is_active = FALSE ORDER BY nombre_producto_fudo ASC"
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: "Error del servidor." });
   }
 };
 
@@ -359,5 +437,17 @@ export const deleteProduct = async (req, res) => {
     res.status(200).json({ message: "Producto desactivado con éxito." });
   } catch (error) {
     res.status(500).json({ message: "Error al desactivar el producto." });
+  }
+};
+
+export const restoreProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE productos SET is_active = TRUE WHERE id = ?", [
+      id,
+    ]);
+    res.status(200).json({ message: "Categoría restaurada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al restaurar la categoría." });
   }
 };

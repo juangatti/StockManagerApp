@@ -5,18 +5,17 @@ import pool from "../config/db.js";
 export const getStock = async (req, res) => {
   try {
     const query = `
-      SELECT 
+     SELECT 
         si.id,
         m.nombre AS nombre_marca,
         c.nombre AS nombre_categoria,
         si.equivalencia_ml,
         si.stock_unidades,
         m.id as marca_id
-        -- Se eliminó 'si.prioridad_consumo' de la consulta
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       JOIN categorias AS c ON m.categoria_id = c.id
-      
+      WHERE si.is_active = TRUE -- <-- AÑADIR ESTA LÍNEA
       ORDER BY c.nombre, m.nombre, si.equivalencia_ml;
     `;
     const [rows] = await pool.query(query);

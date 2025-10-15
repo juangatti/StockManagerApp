@@ -19,6 +19,14 @@ import {
   deleteMarca,
   deleteStockItem,
   deleteProduct,
+  getInactiveCategories,
+  restoreCategory,
+  getInactiveMarcas,
+  restoreMarca,
+  getInactiveProducts,
+  restoreProduct,
+  getInactiveStockItem,
+  restoreStockItem,
 } from "../controllers/adminController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -29,29 +37,36 @@ router.use(protect, authorize("admin"));
 
 // Rutas para Categorías
 router.get("/categories", getCategories);
+router.get("/categories/inactive", getInactiveCategories);
 router.post("/categories", createCategory);
 router.get("/categories/:id", getCategoryById);
 router.put("/categories/:id", updateCategory);
 router.delete("/categories/:id", deleteCategory);
+router.put("/categories/:id/restore", restoreCategory);
 
 // Rutas para Marcas
 router.get("/marcas", getMarcas);
-router.post("/marcas", createMarca);
+router.get("/marcas/inactive", getInactiveMarcas);
 router.get("/marcas/:id", getMarcaById);
+router.post("/marcas", createMarca);
 router.put("/marcas/:id", updateMarca);
 router.delete("/marcas/:id", deleteMarca);
+router.put("/marcas/:id/restore", restoreMarca);
 // Rutas para Productos (Tragos)
 router.get("/products", getProducts);
-
+router.get("/products/inactive", getInactiveProducts);
+router.delete("/products/:id", deleteProduct);
+router.put("/products/:id/restore", restoreProduct);
 // Ruta para Items de Stock
-router.post("/stock-items", createStockItem);
 router.get("/stock-items/:id", getStockItemById);
+router.get("/stock-items/inactive", getInactiveStockItem);
+router.post("/stock-items", createStockItem);
 router.put("/stock-items/:id", updateStockItem);
 router.delete("/stock-items/:id", deleteStockItem);
+router.put("/stock-items/:id/restore", restoreStockItem);
 // Ruta para Recetas
 router.post("/recipes", createRecipe);
 router.get("/recipes/:id", getRecipeById);
 router.put("/recipes/:id", updateRecipe);
-router.delete("/products/:id", deleteProduct);
 
 export default router;
