@@ -11,11 +11,12 @@ export const getStock = async (req, res) => {
         c.nombre AS nombre_categoria,
         si.equivalencia_ml,
         si.stock_unidades,
-        si.prioridad_consumo,
         m.id as marca_id
+        -- Se eliminó 'si.prioridad_consumo' de la consulta
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       JOIN categorias AS c ON m.categoria_id = c.id
+      
       ORDER BY c.nombre, m.nombre, si.equivalencia_ml;
     `;
     const [rows] = await pool.query(query);

@@ -1,3 +1,4 @@
+// src/components/organisms/InventoryTable.jsx
 import useStockStore from "../../stores/useStockStore";
 import Alert from "../atoms/Alert";
 import Card from "../atoms/Card";
@@ -22,9 +23,7 @@ export default function InventoryTable() {
               <th scope="col" className="py-3 px-6">
                 Stock (Unidades)
               </th>
-              <th scope="col" className="py-3 px-6 text-center">
-                Prioridad
-              </th>
+              {/* Columna de Prioridad eliminada */}
             </tr>
           </thead>
           <tbody>
@@ -43,11 +42,7 @@ export default function InventoryTable() {
                 <td className="py-4 px-6 font-mono font-bold">
                   {item.stock_unidades.toFixed(2)}
                 </td>
-                <td className="py-4 px-6 text-center">
-                  <span className="bg-sky-900 text-sky-300 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
-                    {item.prioridad_consumo}
-                  </span>
-                </td>
+                {/* Celda de Prioridad eliminada */}
               </tr>
             ))}
           </tbody>

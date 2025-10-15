@@ -21,7 +21,7 @@ const NavGroup = ({ title, children }) => (
   </div>
 );
 
-const NavItem = ({ to, icon: Icon, children }) => {
+const NavItem = ({ to, icon: Icon, children, onLinkClick }) => {
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
       isActive
@@ -30,27 +30,31 @@ const NavItem = ({ to, icon: Icon, children }) => {
     }`;
 
   return (
-    <NavLink to={to} className={navLinkClass}>
+    <NavLink to={to} className={navLinkClass} onClick={onLinkClick}>
       <Icon className="h-4 w-4" />
       {children}
     </NavLink>
   );
 };
 
-export default function Sidebar() {
+export default function Sidebar({ onLinkClick }) {
   const user = useAuthStore((state) => state.user);
 
   return (
     <aside className="flex flex-col gap-8">
       {/* --- NUEVO GRUPO: ANÁLISIS Y REPORTES (Visible para todos) --- */}
       <NavGroup title="Análisis y Reportes">
-        <NavItem to="/dashboard" icon={LayoutDashboard}>
+        <NavItem
+          to="/dashboard"
+          icon={LayoutDashboard}
+          onLinkClick={onLinkClick}
+        >
           Dashboard
         </NavItem>
-        <NavItem to="/inventory" icon={Package}>
+        <NavItem to="/inventory" icon={Package} onLinkClick={onLinkClick}>
           Inventario
         </NavItem>
-        <NavItem to="/prebatches" icon={CookingPot}>
+        <NavItem to="/prebatches" icon={CookingPot} onLinkClick={onLinkClick}>
           Prebatches
         </NavItem>
       </NavGroup>
@@ -59,13 +63,17 @@ export default function Sidebar() {
       {/* Aplicaremos la misma lógica de roles que en Administración */}
       {user?.role === "admin" && (
         <NavGroup title="Operaciones de Stock">
-          <NavItem to="/sales" icon={UploadCloud}>
+          <NavItem to="/sales" icon={UploadCloud} onLinkClick={onLinkClick}>
             Cargar Ventas
           </NavItem>
-          <NavItem to="/shopping" icon={PlusCircle}>
+          <NavItem to="/shopping" icon={PlusCircle} onLinkClick={onLinkClick}>
             Registrar Compra
           </NavItem>
-          <NavItem to="/adjust" icon={SlidersHorizontal}>
+          <NavItem
+            to="/adjust"
+            icon={SlidersHorizontal}
+            onLinkClick={onLinkClick}
+          >
             Ajustar Stock
           </NavItem>
         </NavGroup>
@@ -74,10 +82,14 @@ export default function Sidebar() {
       {/* --- GRUPO DE ADMINISTRACIÓN (Solo para Admin, sin cambios) --- */}
       {user?.role === "admin" && (
         <NavGroup title="Administración">
-          <NavItem to="/admin" icon={Settings}>
+          <NavItem to="/admin" icon={Settings} onLinkClick={onLinkClick}>
             Gestionar Catálogo
           </NavItem>
-          <NavItem to="/historicMovements" icon={FileClock}>
+          <NavItem
+            to="/historicMovements"
+            icon={FileClock}
+            onLinkClick={onLinkClick}
+          >
             Historial
           </NavItem>
         </NavGroup>

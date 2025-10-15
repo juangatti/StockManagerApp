@@ -4,7 +4,7 @@ import pool from "../config/db.js";
 export const getCategories = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM categorias ORDER BY nombre ASC"
+      "SELECT * FROM categorias WHERE is_active = TRUE ORDER BY nombre ASC"
     );
     res.json(rows);
   } catch (error) {
@@ -65,13 +65,26 @@ export const updateCategory = async (req, res) => {
   }
 };
 
+export const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE categorias SET is_active = FALSE WHERE id = ?", [
+      id,
+    ]);
+    res.status(200).json({ message: "Categoría desactivada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al desactivar la categoría." });
+  }
+};
+
 // --- GESTIÓN DE MARCAS ---
 export const getMarcas = async (req, res) => {
   try {
     const query = `
-            SELECT m.id, m.nombre, c.nombre as categoria_nombre 
+             SELECT m.id, m.nombre, c.nombre as categoria_nombre 
             FROM marcas AS m
             JOIN categorias AS c ON m.categoria_id = c.id
+            WHERE m.is_active = TRUE -- AÑADIDO
             ORDER BY m.nombre ASC
         `;
     const [rows] = await pool.query(query);
@@ -120,6 +133,16 @@ export const updateMarca = async (req, res) => {
     [nombre, categoria_id, id]
   );
   res.status(200).json({ message: "Marca actualizada con éxito." });
+};
+
+export const deleteMarca = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE marcas SET is_active = FALSE WHERE id = ?", [id]);
+    res.status(200).json({ message: "Marca desactivada con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al desactivar la marca." });
+  }
 };
 
 // --- GESTIÓN DE ITEMS DE STOCK ---
@@ -200,11 +223,23 @@ export const updateStockItem = async (req, res) => {
   res.status(200).json({ message: "Item de stock actualizado con éxito." });
 };
 
+export const deleteStockItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE stock_items SET is_active = FALSE WHERE id = ?", [
+      id,
+    ]);
+    res.status(200).json({ message: "Item de stock desactivado con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al desactivar el item." });
+  }
+};
+
 // --- GESTIÓN DE PRODUCTOS Y RECETAS ---
 export const getProducts = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM productos ORDER BY nombre_producto_fudo ASC"
+      "SELECT * FROM productos WHERE is_active = TRUE ORDER BY nombre_producto_fudo ASC"
     );
     res.json(rows);
   } catch (error) {
@@ -311,5 +346,18 @@ export const updateRecipe = async (req, res) => {
     res.status(500).json({ message: "Error al actualizar la receta." });
   } finally {
     connection.release();
+  }
+};
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Solo necesitamos desactivar el producto. La receta puede quedar por si se reactiva.
+    await pool.query("UPDATE productos SET is_active = FALSE WHERE id = ?", [
+      id,
+    ]);
+    res.status(200).json({ message: "Producto desactivado con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al desactivar el producto." });
   }
 };
