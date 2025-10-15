@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 
 import MainLayout from "./layouts/MainLayout";
 import useAuthStore from "./stores/useAuthStore";
@@ -40,6 +41,16 @@ function App() {
       logout();
     }
   }, [isAuthenticated, user, logout]);
+
+  const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // 3. ¡Activa el hook! Esta línea pone en marcha todo el sistema.
+  useInactivityTimeout(handleLogout, INACTIVITY_TIMEOUT);
 
   return (
     <>
