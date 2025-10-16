@@ -15,7 +15,7 @@ export const getStock = async (req, res) => {
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       JOIN categorias AS c ON m.categoria_id = c.id
-      WHERE si.is_active = TRUE -- <-- AÑADIR ESTA LÍNEA
+      WHERE si.is_active = TRUE 
       ORDER BY c.nombre, m.nombre, si.equivalencia_ml;
     `;
     const [rows] = await pool.query(query);
@@ -52,7 +52,7 @@ export const getStockTotals = async (req, res) => {
 
 // Controlador para POST /api/stock/compras
 export const registerPurchase = async (req, res) => {
-  const itemsComprados = req.body;
+  const { descripcion, itemsComprados } = req.body;
 
   if (
     !itemsComprados ||
@@ -64,10 +64,25 @@ export const registerPurchase = async (req, res) => {
       .json({ message: "Datos de la compra inválidos o vacíos." });
   }
 
+  // 2. NUEVO: Validamos la descripción
+  if (!descripcion) {
+    return res
+      .status(400)
+      .json({ message: "Se requiere un detalle para la compra." });
+  }
+
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
+
+    // 3. MODIFICADO: Usamos la descripción del payload
+    const descripcionEvento = descripcion;
+    const [eventoResult] = await connection.query(
+      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('COMPRA', ?)",
+      [descripcionEvento]
+    );
+    const eventoId = eventoResult.insertId;
 
     for (const item of itemsComprados) {
       const [stockActualRows] = await connection.query(
@@ -85,16 +100,18 @@ export const registerPurchase = async (req, res) => {
         [stockNuevo, item.itemId]
       );
 
+      // 4. MODIFICADO: Usamos la descripción general para el movimiento individual
       await connection.query(
         `INSERT INTO stock_movements 
-         (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) 
-         VALUES (?, 'COMPRA', ?, ?, ?, ?)`,
+         (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) 
+         VALUES (?, 'COMPRA', ?, ?, ?, ?, ?)`,
         [
           item.itemId,
           item.cantidad,
           stockAnterior,
           stockNuevo,
-          item.descripcion || "Compra",
+          descripcionEvento, // <-- Usamos la descripción general
+          eventoId,
         ]
       );
     }
@@ -140,22 +157,32 @@ export const registerAdjustment = async (req, res) => {
 
     const cantidadMovida = conteoReal - stockAnterior;
 
+    // NUEVO: 1. Creamos el evento de AJUSTE
+    const descEvento = descripcion || "Ajuste por conteo físico";
+    const [eventoResult] = await connection.query(
+      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('AJUSTE', ?)",
+      [descEvento]
+    );
+    const eventoId = eventoResult.insertId;
+
     if (cantidadMovida !== 0) {
       await connection.query(
         "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
         [conteoReal, itemId]
       );
 
+      // MODIFICADO: 2. Añadimos el evento_id
       await connection.query(
         `INSERT INTO stock_movements 
-             (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) 
-             VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
+             (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) 
+             VALUES (?, 'AJUSTE', ?, ?, ?, ?, ?)`, // <-- 7 signos
         [
           itemId,
           cantidadMovida,
           stockAnterior,
           conteoReal,
-          descripcion || "Ajuste por conteo físico",
+          descEvento, // Usamos la misma descripción para el movimiento
+          eventoId, // <-- El nuevo ID del evento
         ]
       );
     }
@@ -179,7 +206,7 @@ export const registerAdjustment = async (req, res) => {
 
 export const registerMassiveAdjustment = async (req, res) => {
   // Esperamos un array de ajustes, ej: [{ itemId: 1, conteoReal: 12.0 }, { itemId: 2, conteoReal: 8.5 }]
-  const ajustes = req.body;
+  const { descripcion, ajustes } = req.body;
 
   if (!ajustes || !Array.isArray(ajustes) || ajustes.length === 0) {
     return res
@@ -187,10 +214,25 @@ export const registerMassiveAdjustment = async (req, res) => {
       .json({ message: "No se proporcionaron datos para el ajuste." });
   }
 
+  // 2. NUEVO: Validamos la descripción
+  if (!descripcion) {
+    return res
+      .status(400)
+      .json({ message: "Se requiere un motivo o descripción." });
+  }
+
   const connection = await pool.getConnection();
 
   try {
     await connection.beginTransaction();
+
+    // 3. MODIFICADO: Usamos la descripción del payload
+    const descEvento = descripcion; // Ya viene validada desde el frontend
+    const [eventoResult] = await connection.query(
+      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('AJUSTE', ?)",
+      [descEvento]
+    );
+    const eventoId = eventoResult.insertId;
 
     for (const ajuste of ajustes) {
       const { itemId, conteoReal } = ajuste;
@@ -213,16 +255,18 @@ export const registerMassiveAdjustment = async (req, res) => {
           [conteoReal, itemId]
         );
 
+        // 4. MODIFICADO: Usamos la descripción general del evento para todos los movimientos
         await connection.query(
           `INSERT INTO stock_movements 
-           (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) 
-           VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
+           (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) 
+           VALUES (?, 'AJUSTE', ?, ?, ?, ?, ?)`,
           [
             itemId,
             cantidadMovida,
             stockAnterior,
             conteoReal,
-            ajuste.descripcion || "Ajuste por conteo masivo",
+            descEvento, // <-- Usamos la descripción general
+            eventoId,
           ]
         );
       }
@@ -246,19 +290,17 @@ export const getStockMovements = async (req, res) => {
     // Consulta SQL corregida
     const query = `
       SELECT 
-        sm.id,
-        sm.tipo_movimiento,
-        sm.cantidad_unidades_movidas,
-        sm.stock_anterior,
-        sm.stock_nuevo,
-        sm.descripcion,
-        sm.fecha_movimiento,
-        CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') AS nombre_item
-      FROM stock_movements AS sm
-      JOIN stock_items AS si ON sm.item_id = si.id
-      JOIN marcas AS m ON si.marca_id = m.id
-      ORDER BY sm.fecha_movimiento DESC
-      LIMIT 100;
+       e.id AS evento_id,
+        e.tipo_evento,
+        e.descripcion AS evento_descripcion,
+        e.fecha_evento,
+        COUNT(sm.id) AS items_afectados
+      FROM eventos_stock AS e
+      LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
+      WHERE sm.id IS NOT NULL 
+      GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento
+      ORDER BY e.fecha_evento DESC
+      LIMIT 50;
     `;
     const [rows] = await pool.query(query);
     res.json(rows);
@@ -266,6 +308,46 @@ export const getStockMovements = async (req, res) => {
     console.error("Error al consultar movimientos de stock:", error);
     res.status(500).json({
       message: "Error al consultar movimientos de stock.",
+      error: error.message,
+    });
+  }
+};
+
+export const getMovementEventById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT 
+        e.id AS evento_id,
+        e.tipo_evento,
+        e.descripcion AS evento_descripcion,
+        e.fecha_evento,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'id', sm.id,
+            'nombre_item', CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml'),
+            'cantidad_movida', sm.cantidad_unidades_movidas,
+            'stock_anterior', sm.stock_anterior,
+            'stock_nuevo', sm.stock_nuevo,
+            'descripcion_movimiento', sm.descripcion
+          )
+        ) AS movimientos
+      FROM eventos_stock AS e
+      LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
+      LEFT JOIN stock_items AS si ON sm.item_id = si.id
+      LEFT JOIN marcas AS m ON si.marca_id = m.id
+      WHERE e.id = ? AND sm.id IS NOT NULL 
+      GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento;
+    `;
+    const [rows] = await pool.query(query, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Evento no encontrado." });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Error al consultar detalle del evento:", error);
+    res.status(500).json({
+      message: "Error al consultar detalle del evento.",
       error: error.message,
     });
   }
@@ -317,7 +399,6 @@ export const getPrebatchTotals = async (req, res) => {
 
 export const getIceReport = async (req, res) => {
   try {
-    // CORRECCIÓN: Usamos UPPER() para hacer la comparación insensible a mayúsculas/minúsculas.
     const query = `
       SELECT 
         m.nombre AS nombre_marca, 

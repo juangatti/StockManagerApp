@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 const useAuthStore = create(
   persist(
     (set) => ({
@@ -11,13 +13,10 @@ const useAuthStore = create(
 
       login: async (username, password) => {
         try {
-          const response = await axios.post(
-            "http://localhost:5000/api/auth/login",
-            {
-              username,
-              password,
-            }
-          );
+          const response = await axios.post(`${API_URL}/auth/login`, {
+            username,
+            password,
+          });
           const { user, token } = response.data;
           set({ user, token, isAuthenticated: true });
           return { success: true };

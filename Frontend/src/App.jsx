@@ -15,6 +15,7 @@ import HistoricMovementPage from "./pages/HistoricMovementPage";
 import PrebatchsPage from "./components/organisms/PrebatchsManager";
 import SalesPage from "./pages/SalesPage";
 import AdminPage from "./pages/AdminPage";
+import MovementDetailPage from "./pages/MovementDetailPage";
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
@@ -89,6 +90,10 @@ function App() {
           <Route path="/adjust" element={<AdjustPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
+          <Route
+            path="/historicMovements/:id"
+            element={<MovementDetailPage />}
+          />
         </Route>
       </Routes>
     </>

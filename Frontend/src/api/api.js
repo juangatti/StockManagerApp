@@ -3,7 +3,7 @@ import useAuthStore from "../stores/useAuthStore";
 
 // 1. Creamos una instancia de Axios con la URL base de nuestro backend
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
 // 2. Creamos un "interceptor" de peticiones

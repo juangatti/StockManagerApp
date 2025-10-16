@@ -16,6 +16,16 @@ export const processSalesFile = async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    // NUEVO: 1. Creamos un único evento de VENTA para todo el archivo
+    const descEvento = `Procesamiento de ventas (Archivo: ${
+      req.file.originalname || "desconocido"
+    })`;
+    const [eventoResult] = await connection.query(
+      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('VENTA', ?)",
+      [descEvento]
+    );
+    const eventoId = eventoResult.insertId;
+
     for (const venta of ventas) {
       const productoVendido = venta.Producto;
       const cantidadVendida = venta.Cantidad;
@@ -85,14 +95,16 @@ export const processSalesFile = async (req, res) => {
           // 3. CORRECCIÓN: Usamos el nuevo nombre construido para la descripción
           const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${item.nombre_completo})`;
 
+          // MODIFICADO: 2. Añadimos el evento_id
           await connection.query(
-            `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) VALUES (?, 'VENTA', ?, ?, ?, ?)`,
+            `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'VENTA', ?, ?, ?, ?, ?)`, // <-- 7 signos
             [
               item.item_id,
               -aDescontarEnUnidades,
               stockAnterior,
               stockNuevo,
               descripcionMovimiento,
+              eventoId, // <-- El nuevo ID del evento
             ]
           );
 

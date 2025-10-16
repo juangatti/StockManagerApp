@@ -9,6 +9,7 @@ export default function AdjustForm() {
   const [itemIdSeleccionado, setItemIdSeleccionado] = useState("");
   const [itemSeleccionado, setItemSeleccionado] = useState(null);
   const [conteoReal, setConteoReal] = useState("");
+  const [descripcion, setDescripcion] = useState(""); // <-- 1. NUEVO ESTADO
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -22,20 +23,22 @@ export default function AdjustForm() {
       setItemSeleccionado(null);
       setConteoReal("");
     }
+    setDescripcion(""); // Limpiamos la descripción al cambiar de item
   }, [itemIdSeleccionado, stockItems]);
 
   const handleSubmit = (e) => {
-    // ... (la lógica de envío no cambia)
     e.preventDefault();
-    if (!itemIdSeleccionado || conteoReal === "") {
-      toast.error("Selecciona un item y especifica el conteo real.");
+    if (!itemIdSeleccionado || conteoReal === "" || !descripcion.trim()) {
+      toast.error(
+        "Selecciona un item, especifica el conteo real y añade un motivo."
+      );
       return;
     }
 
     const payload = {
       itemId: parseInt(itemIdSeleccionado),
       conteoReal: parseFloat(conteoReal),
-      descripcion: `Ajuste por conteo físico - ${new Date().toLocaleDateString()}`,
+      descripcion: descripcion.trim(), // <-- 2. USAMOS EL ESTADO
     };
 
     setIsSubmitting(true);
@@ -45,7 +48,7 @@ export default function AdjustForm() {
       loading: "Registrando ajuste...",
       success: (response) => {
         setIsSubmitting(false);
-        setItemIdSeleccionado("");
+        setItemIdSeleccionado(""); // Esto disparará el useEffect y limpiará todo
         fetchStock(); // Refrescamos el estado global
         return "¡Ajuste registrado con éxito!";
       },
@@ -75,14 +78,13 @@ export default function AdjustForm() {
           >
             <option value="">Selecciona un item...</option>
             {stockItems.map((item) => (
-              // 1. CORRECCIÓN: Usar 'nombre_completo'
               <option key={item.id} value={item.id}>
                 {item.nombre_completo}
               </option>
             ))}
           </select>
         </div>
-        {/* ... (el resto del JSX no cambia) ... */}
+
         {itemSeleccionado && (
           <div className="bg-slate-900 p-4 rounded-lg flex justify-between items-center">
             <span className="text-slate-400">Stock actual en sistema:</span>
@@ -91,6 +93,7 @@ export default function AdjustForm() {
             </span>
           </div>
         )}
+
         <div>
           <label
             htmlFor="conteoReal"
@@ -106,8 +109,29 @@ export default function AdjustForm() {
             step="0.01"
             className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
             placeholder="Ej: 12.5"
+            disabled={!itemIdSeleccionado}
           />
         </div>
+
+        {/* --- 3. NUEVO CAMPO DE TEXTO --- */}
+        <div>
+          <label
+            htmlFor="descripcion"
+            className="block mb-2 text-sm font-medium text-slate-300"
+          >
+            Motivo del Ajuste
+          </label>
+          <input
+            type="text"
+            id="descripcion"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
+            placeholder="Ej: Rotura de botella, Conteo físico semanal"
+            disabled={!itemIdSeleccionado}
+          />
+        </div>
+
         <div className="flex justify-end">
           <button
             type="submit"

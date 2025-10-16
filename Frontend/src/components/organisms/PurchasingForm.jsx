@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "../../api/api";
-import { PlusCircle, ShoppingCart, Send } from "lucide-react";
+import { PlusCircle, ShoppingCart, Send, FileText } from "lucide-react"; // 1. Importar FileText
 import toast from "react-hot-toast";
 import useStockStore from "../../stores/useStockStore";
 
@@ -9,12 +9,13 @@ export default function PurchasingForm() {
   const [compraActual, setCompraActual] = useState([]);
   const [itemIdSeleccionado, setItemIdSeleccionado] = useState("");
   const [cantidad, setCantidad] = useState("");
+  const [descripcionCompra, setDescripcionCompra] = useState(""); // 2. Nuevo estado
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddItem = (e) => {
     e.preventDefault();
     if (!itemIdSeleccionado || !cantidad) {
-      alert("Por favor, selecciona un item y especifica la cantidad.");
+      toast.error("Por favor, selecciona un item y especifica la cantidad.");
       return;
     }
 
@@ -24,10 +25,9 @@ export default function PurchasingForm() {
 
     const nuevoItem = {
       itemId: parseInt(itemIdSeleccionado),
-      // 1. CORRECCIÓN: Usar 'nombre_completo'
       nombre: itemDetails.nombre_completo,
       cantidad: parseFloat(cantidad),
-      descripcion: `Compra ${new Date().toLocaleDateString()}`,
+      // La descripción individual ya no es necesaria aquí
     };
 
     setCompraActual([...compraActual, nuevoItem]);
@@ -36,17 +36,31 @@ export default function PurchasingForm() {
   };
 
   const handleSubmitCompra = () => {
-    // ... (la lógica de envío no cambia)
-    if (compraActual.length === 0) return;
+    // 3. Validar descripción y items
+    if (compraActual.length === 0) {
+      toast.error("Agrega al menos un item a la compra.");
+      return;
+    }
+    if (!descripcionCompra.trim()) {
+      toast.error("Añade un detalle o motivo para la compra.");
+      return;
+    }
 
     setIsSubmitting(true);
 
-    const promise = api.post("/stock/purchases", compraActual);
+    // 4. Crear el nuevo payload como objeto
+    const payload = {
+      descripcion: descripcionCompra.trim(),
+      itemsComprados: compraActual,
+    };
+
+    const promise = api.post("/stock/purchases", payload); // 5. Enviar el objeto
 
     toast.promise(promise, {
       loading: "Registrando compra...",
       success: (response) => {
         setCompraActual([]);
+        setDescripcionCompra(""); // 6. Limpiar descripción
         setIsSubmitting(false);
         fetchStock(); // Refrescamos el estado global
         return "¡Compra registrada con éxito!";
@@ -54,7 +68,10 @@ export default function PurchasingForm() {
       error: (err) => {
         console.error("Error al registrar la compra:", err);
         setIsSubmitting(false);
-        return "Error al registrar la compra. Intenta de nuevo.";
+        return (
+          err.response?.data?.message ||
+          "Error al registrar la compra. Intenta de nuevo."
+        );
       },
     });
   };
@@ -80,14 +97,12 @@ export default function PurchasingForm() {
           >
             <option value="">Selecciona un item...</option>
             {stockItems.map((item) => (
-              // 2. CORRECCIÓN: Usar 'nombre_completo' para la etiqueta
               <option key={item.id} value={item.id}>
                 {item.nombre_completo}
               </option>
             ))}
           </select>
         </div>
-        {/* ... (el resto del formulario no cambia) ... */}
         <div>
           <label
             htmlFor="cantidad"
@@ -112,7 +127,30 @@ export default function PurchasingForm() {
           Agregar Item
         </button>
       </form>
-      {/* ... (el resto del JSX no cambia) ... */}
+
+      {/* --- 7. NUEVO CAMPO DE DESCRIPCIÓN --- */}
+      <div className="mb-6">
+        <label
+          htmlFor="descripcion-compra"
+          className="block mb-2 text-sm font-medium text-slate-300"
+        >
+          Detalle de la Compra (Obligatorio)
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <FileText className="h-5 w-5 text-slate-400" />
+          </div>
+          <input
+            type="text"
+            id="descripcion-compra"
+            value={descripcionCompra}
+            onChange={(e) => setDescripcionCompra(e.target.value)}
+            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 pl-10"
+            placeholder="Ej: Compra Proveedor X, Factura Nro. 12345"
+          />
+        </div>
+      </div>
+
       <h3 className="text-xl font-semibold text-white mb-4 border-t border-slate-700 pt-6">
         <ShoppingCart className="inline-block mr-3 h-6 w-6" />
         Items en esta Compra
@@ -133,7 +171,6 @@ export default function PurchasingForm() {
                   <p className="text-md font-medium text-white">
                     {item.nombre}
                   </p>
-                  <p className="text-sm text-slate-400">{item.descripcion}</p>
                 </div>
                 <p className="text-md font-semibold text-white">
                   {item.cantidad.toFixed(2)} unidades
@@ -147,7 +184,7 @@ export default function PurchasingForm() {
         <div className="flex justify-end mt-8">
           <button
             onClick={handleSubmitCompra}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !descripcionCompra} // 8. Botón deshabilitado
             className="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
           >
             <Send className="mr-2 h-5 w-5" />

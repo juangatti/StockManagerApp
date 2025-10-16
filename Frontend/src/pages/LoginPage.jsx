@@ -1,29 +1,22 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import useAuthStore from "../stores/useAuthStore";
 import { ClipboardList } from "lucide-react";
+import { useLoginForm } from "../hooks/useLoginForm"; // 1. Importamos el nuevo hook
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const login = useAuthStore((state) => state.login);
-  const navigate = useNavigate();
+  // 2. Consumimos el hook para obtener toda la lógica y estados
+  const {
+    username,
+    setUsername,
+    password,
+    setPassword,
+    rememberUser,
+    setRememberUser,
+    error,
+    isLoading,
+    handleSubmit,
+  } = useLoginForm();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-    const result = await login(username, password);
-    setIsLoading(false);
-    if (result.success) {
-      navigate("/dashboard"); // Redirige al home tras un login exitoso
-    } else {
-      setError(result.message);
-    }
-  };
-
+  // 3. El JSX permanece idéntico, pero ahora es mucho más "limpio"
+  //    y solo se encarga de renderizar.
   return (
     <div className="flex min-h-screen flex-col justify-center bg-slate-900 py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -79,6 +72,25 @@ export default function LoginPage() {
             </div>
 
             {error && <div className="text-sm text-red-400">{error}</div>}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-user"
+                  name="remember-user"
+                  type="checkbox"
+                  checked={rememberUser}
+                  onChange={(e) => setRememberUser(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-sky-600 focus:ring-sky-500"
+                />
+                <label
+                  htmlFor="remember-user"
+                  className="ml-2 block text-sm text-slate-300"
+                >
+                  Recordar usuario
+                </label>
+              </div>
+            </div>
 
             <div>
               <button

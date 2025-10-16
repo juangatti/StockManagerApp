@@ -6,6 +6,7 @@ import {
   registerAdjustment,
   registerMassiveAdjustment,
   getStockMovements,
+  getMovementEventById,
   getIceReport,
   getStockAlerts,
 } from "../controllers/stockController.js";
@@ -18,6 +19,7 @@ router.post("/purchases", registerPurchase);
 router.post("/adjust", registerAdjustment);
 router.post("/mass-adjustment", registerMassiveAdjustment);
 router.get("/historic-movement", getStockMovements);
+router.get("/historic-movement/:id", getMovementEventById);
 router.get("/ice", getIceReport);
 router.get("/alerts", getStockAlerts);
 
