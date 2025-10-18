@@ -1,21 +1,32 @@
-import { useState, useEffect } from "react";
-import api from "../../api/api";
-import toast from "react-hot-toast";
-import { CookingPot, Edit, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { CookingPot } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
-
-// --- CORRECCIÓN DE RUTAS DE IMPORTACIÓN ---
-// Usamos './' porque los archivos están en la misma carpeta 'organisms'
 import PrebatchForm from "./PrebatchForm";
 import PrebatchesResume from "./PrebatchesResume";
 import PrebatchesTable from "./PrebatchesTable";
+import SearchBar from "../molecules/SearchBar"; // Importar
+import PaginationControls from "../molecules/PaginationControls"; // Importar
+import Alert from "../atoms/Alert"; // Importar
+import Spinner from "../atoms/Spinner"; // Importar
+import { usePrebatchList } from "../../hooks/usePrebatchList"; // 1. Importar el nuevo hook
 
 export default function PrebatchManager() {
-  // O PrebatchsPage, según cómo lo hayas nombrado
   const user = useAuthStore((state) => state.user);
   const [editingPrebatch, setEditingPrebatch] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  // 2. Usar el hook para manejar la lista
+  const {
+    prebatches,
+    pagination,
+    loading,
+    error,
+    currentPage,
+    setCurrentPage,
+    searchQuery,
+    setSearchQuery,
+    refreshList, // Función para refrescar
+  } = usePrebatchList(15); // 15 items por página
 
   const handleEdit = (prebatch) => {
     setEditingPrebatch(prebatch);
@@ -30,7 +41,16 @@ export default function PrebatchManager() {
   const handleFormSubmit = () => {
     setShowForm(false);
     setEditingPrebatch(null);
-    setRefreshKey((oldKey) => oldKey + 1);
+    refreshList(); // 3. Refrescar la lista después de submit
+  };
+
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingPrebatch(null);
+  };
+
+  const handleDeleteSuccess = () => {
+    refreshList(); // 4. Refrescar la lista después de eliminar
   };
 
   if (showForm) {
@@ -38,7 +58,7 @@ export default function PrebatchManager() {
       <PrebatchForm
         prebatchToEdit={editingPrebatch}
         onFormSubmit={handleFormSubmit}
-        onCancel={() => setShowForm(false)}
+        onCancel={handleCancelForm}
       />
     );
   }
@@ -46,9 +66,12 @@ export default function PrebatchManager() {
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-white">Gestión de Prebatches</h2>
-      <PrebatchesResume key={`resume-${refreshKey}`} />
+      {/* El resumen puede necesitar su propio refresh o una key basada en refreshList */}
+      <PrebatchesResume key={`resume-${pagination?.totalPrebatches}`} />
 
-      <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
+      <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
+        {" "}
+        {/* Ajuste de padding */}
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold text-white">
             Listado de Lotes Activos
@@ -62,13 +85,30 @@ export default function PrebatchManager() {
             </button>
           )}
         </div>
-
+        {/* 5. Añadir SearchBar */}
+        <SearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          placeholder="Buscar por nombre de prebatch..."
+        />
+        {error && <Alert message={error} />}
+        {loading && prebatches.length === 0 && <Spinner />}
+        {/* 6. Pasar datos a PrebatchesTable */}
         <PrebatchesTable
-          key={`table-${refreshKey}`}
+          prebatches={prebatches}
+          loading={loading} // Pasamos el estado de carga
           isAdmin={user.role === "admin"}
           onEdit={handleEdit}
-          refreshDependency={refreshKey} // Cambié el nombre de la prop para más claridad
+          onDeleteSuccess={handleDeleteSuccess} // Pasamos la función de refresco
         />
+        {/* 7. Añadir PaginationControls */}
+        {!loading && pagination?.totalPages > 1 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={pagination.totalPages}
+            setCurrentPage={setCurrentPage}
+          />
+        )}
       </div>
     </div>
   );

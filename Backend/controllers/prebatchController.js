@@ -4,18 +4,56 @@ import pool from "../config/db.js";
 // GET /api/prebatches
 export const getAllPrebatches = async (req, res) => {
   try {
-    const query = `
-      SELECT *, CASE
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15; // 15 prebatches por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE is_active = TRUE"; // Mantenemos el filtro de activos
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND nombre_prebatch LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta para el CONTEO TOTAL
+    const countQuery = `
+      SELECT COUNT(id) AS totalPrebatches
+      FROM prebatches
+      ${whereClause};
+    `;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalPrebatches = countRows[0].totalPrebatches;
+    const totalPages = Math.ceil(totalPrebatches / limit);
+
+    // 2. Consulta para los DATOS PAGINADOS
+    const dataQuery = `
+      SELECT *, 
+        CASE
           WHEN CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 28 DAY) THEN 'VENCIDO'
           WHEN CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 14 DAY) THEN 'ADVERTENCIA'
           ELSE 'FRESCO'
         END AS estado
       FROM prebatches
-      WHERE is_active = TRUE -- Solo activos
-      ORDER BY fecha_produccion ASC;
+      ${whereClause}
+      ORDER BY fecha_produccion ASC
+      LIMIT ?
+      OFFSET ?;
     `;
-    const [rows] = await pool.query(query);
-    res.json(rows);
+    const dataParams = [...queryParams, limit, offset];
+    const [prebatches] = await pool.query(dataQuery, dataParams);
+
+    // 3. Devolver la respuesta estructurada
+    res.json({
+      prebatches,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalPrebatches,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error al obtener prebatches." });
   }
