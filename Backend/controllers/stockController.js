@@ -4,7 +4,34 @@ import pool from "../config/db.js";
 // Controlador para GET /api/stock
 export const getStock = async (req, res) => {
   try {
-    const query = `
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25; // 25 items por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE si.is_active = TRUE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      // Buscamos en nombre de marca y nombre de categoría
+      whereClause += " AND (m.nombre LIKE ? OR c.nombre LIKE ?)";
+      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+    }
+
+    // 1. Consulta para el CONTEO TOTAL de items
+    const countQuery = `
+      SELECT COUNT(si.id) AS totalItems
+      FROM stock_items AS si
+      JOIN marcas AS m ON si.marca_id = m.id
+      JOIN categorias AS c ON m.categoria_id = c.id
+      ${whereClause};
+    `;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalItems = countRows[0].totalItems;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // 2. Consulta para obtener los ITEMS PAGINADOS
+    const dataQuery = `
      SELECT 
         si.id,
         m.nombre AS nombre_marca,
@@ -15,15 +42,29 @@ export const getStock = async (req, res) => {
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       JOIN categorias AS c ON m.categoria_id = c.id
-      WHERE si.is_active = TRUE 
-      ORDER BY c.nombre, m.nombre, si.equivalencia_ml;
+      ${whereClause}
+      ORDER BY c.nombre, m.nombre, si.equivalencia_ml
+      LIMIT ?
+      OFFSET ?;
     `;
-    const [rows] = await pool.query(query);
-    const stockConNombreCompleto = rows.map((item) => ({
+    const dataParams = [...queryParams, limit, offset];
+    const [items] = await pool.query(dataQuery, dataParams);
+
+    const stockConNombreCompleto = items.map((item) => ({
       ...item,
       nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
     }));
-    res.json(stockConNombreCompleto);
+
+    // 3. Devolver la respuesta estructurada
+    res.json({
+      items: stockConNombreCompleto,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        limit,
+      },
+    });
   } catch (error) {
     console.error("Error al consultar el stock", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -287,27 +328,65 @@ export const registerMassiveAdjustment = async (req, res) => {
 
 export const getStockMovements = async (req, res) => {
   try {
-    // Consulta SQL corregida
-    const query = `
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20; // 20 eventos por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE sm.id IS NOT NULL";
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND e.descripcion LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta para obtener el CONTEO TOTAL de eventos
+    const countQuery = `
+      SELECT COUNT(DISTINCT e.id) AS totalEventos
+      FROM eventos_stock AS e
+      LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
+      ${whereClause};
+    `;
+
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalEventos = countRows[0].totalEventos;
+    const totalPages = Math.ceil(totalEventos / limit);
+
+    // 2. Consulta para obtener los EVENTOS PAGINADOS
+    const dataQuery = `
       SELECT 
-       e.id AS evento_id,
+        e.id AS evento_id,
         e.tipo_evento,
         e.descripcion AS evento_descripcion,
         e.fecha_evento,
         COUNT(sm.id) AS items_afectados
       FROM eventos_stock AS e
       LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
-      WHERE sm.id IS NOT NULL 
+      ${whereClause}
       GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento
       ORDER BY e.fecha_evento DESC
-      LIMIT 50;
+      LIMIT ?
+      OFFSET ?;
     `;
-    const [rows] = await pool.query(query);
-    res.json(rows);
+
+    const dataParams = [...queryParams, limit, offset];
+    const [eventos] = await pool.query(dataQuery, dataParams);
+
+    // 3. Devolver la respuesta estructurada
+    res.json({
+      eventos,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalEventos,
+        limit,
+      },
+    });
   } catch (error) {
-    console.error("Error al consultar movimientos de stock:", error);
+    console.error("Error al consultar lista de eventos:", error);
     res.status(500).json({
-      message: "Error al consultar movimientos de stock.",
+      message: "Error al consultar lista de eventos.",
       error: error.message,
     });
   }
