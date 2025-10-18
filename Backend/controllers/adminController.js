@@ -3,10 +3,46 @@ import pool from "../config/db.js";
 // --- GESTIÓN DE CATEGORÍAS ---
 export const getCategories = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM categorias WHERE is_active = TRUE ORDER BY nombre ASC"
-    );
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15; // 15 categorías por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE is_active = TRUE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND nombre LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `SELECT COUNT(id) AS totalCategories FROM categorias ${whereClause};`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalCategories = countRows[0].totalCategories;
+    const totalPages = Math.ceil(totalCategories / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT * FROM categorias 
+      ${whereClause} 
+      ORDER BY nombre ASC 
+      LIMIT ? 
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [categories] = await pool.query(dataQuery, dataParams);
+
+    // 3. Respuesta estructurada
+    res.json({
+      categories,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCategories,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor" });
   }
@@ -14,10 +50,46 @@ export const getCategories = async (req, res) => {
 
 export const getInactiveCategories = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM categorias WHERE is_active = FALSE ORDER BY nombre ASC"
-    );
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE is_active = FALSE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND nombre LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `SELECT COUNT(id) AS totalCategories FROM categorias ${whereClause};`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalCategories = countRows[0].totalCategories;
+    const totalPages = Math.ceil(totalCategories / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT * FROM categorias 
+      ${whereClause} 
+      ORDER BY nombre ASC 
+      LIMIT ? 
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [categories] = await pool.query(dataQuery, dataParams);
+
+    // 3. Respuesta estructurada
+    res.json({
+      categories,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCategories,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor." });
   }
@@ -103,15 +175,52 @@ export const restoreCategory = async (req, res) => {
 // --- GESTIÓN DE MARCAS ---
 export const getMarcas = async (req, res) => {
   try {
-    const query = `
-             SELECT m.id, m.nombre, c.nombre as categoria_nombre 
-            FROM marcas AS m
-            JOIN categorias AS c ON m.categoria_id = c.id
-            WHERE m.is_active = TRUE -- AÑADIDO
-            ORDER BY m.nombre ASC
-        `;
-    const [rows] = await pool.query(query);
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15; // 15 marcas por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE m.is_active = TRUE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND m.nombre LIKE ?"; // Buscamos por nombre de marca
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `
+      SELECT COUNT(m.id) AS totalMarcas
+      FROM marcas AS m
+      ${whereClause};
+    `;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalMarcas = countRows[0].totalMarcas;
+    const totalPages = Math.ceil(totalMarcas / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT m.id, m.nombre, c.nombre as categoria_nombre, m.categoria_id 
+      FROM marcas AS m
+      JOIN categorias AS c ON m.categoria_id = c.id
+      ${whereClause}
+      ORDER BY m.nombre ASC
+      LIMIT ?
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [marcas] = await pool.query(dataQuery, dataParams);
+
+    // 3. Respuesta estructurada
+    res.json({
+      marcas,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalMarcas,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor" });
   }
@@ -119,10 +228,46 @@ export const getMarcas = async (req, res) => {
 
 export const getInactiveMarcas = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM marcas WHERE is_active = FALSE ORDER BY nombre ASC"
-    );
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE is_active = FALSE"; // Cambiamos a FALSE
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND nombre LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `SELECT COUNT(id) AS totalMarcas FROM marcas ${whereClause};`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalMarcas = countRows[0].totalMarcas;
+    const totalPages = Math.ceil(totalMarcas / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT * FROM marcas 
+      ${whereClause} 
+      ORDER BY nombre ASC 
+      LIMIT ? 
+      OFFSET ?;
+    `; // No necesitamos join para inactivas por ahora
+    const dataParams = [...queryParams, limit, offset];
+    const [marcas] = await pool.query(dataQuery, dataParams);
+
+    // 3. Respuesta estructurada
+    res.json({
+      marcas,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalMarcas,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor." });
   }
@@ -256,12 +401,136 @@ export const getStockItemById = async (req, res) => {
   res.json(rows[0]);
 };
 
+export const getActiveStockItems = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15; // 15 items por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE si.is_active = TRUE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      // Buscamos en nombre de marca o categoría
+      whereClause += " AND (m.nombre LIKE ? OR c.nombre LIKE ?)";
+      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `
+      SELECT COUNT(si.id) AS totalItems
+      FROM stock_items AS si
+      JOIN marcas AS m ON si.marca_id = m.id
+      JOIN categorias AS c ON m.categoria_id = c.id
+      ${whereClause};
+    `;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalItems = countRows[0].totalItems;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+     SELECT 
+        si.id,
+        m.nombre AS nombre_marca,
+        c.nombre AS nombre_categoria,
+        si.equivalencia_ml,
+        si.stock_unidades,
+        m.id as marca_id,
+        si.prioridad_consumo,  -- Añadido para el form
+        si.alerta_stock_bajo -- Añadido para el form
+      FROM stock_items AS si
+      JOIN marcas AS m ON si.marca_id = m.id
+      JOIN categorias AS c ON m.categoria_id = c.id
+      ${whereClause}
+      ORDER BY c.nombre, m.nombre, si.equivalencia_ml
+      LIMIT ?
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [items] = await pool.query(dataQuery, dataParams);
+
+    const stockConNombreCompleto = items.map((item) => ({
+      ...item,
+      nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
+    }));
+
+    // 3. Respuesta estructurada
+    res.json({
+      items: stockConNombreCompleto,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching active stock items:", error);
+    res.status(500).json({
+      message: "Error del servidor al obtener items de stock activos.",
+    });
+  }
+};
+
 export const getInactiveStockItem = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM stock_items WHERE is_active = FALSE ORDER BY nombre ASC"
-    );
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE si.is_active = FALSE"; // Cambiado a FALSE
+    const queryParams = [];
+
+    if (searchQuery) {
+      // Buscamos en nombre de marca o categoría también para inactivos
+      whereClause += " AND (m.nombre LIKE ? OR c.nombre LIKE ?)";
+      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `
+        SELECT COUNT(si.id) AS totalItems 
+        FROM stock_items si 
+        JOIN marcas m ON si.marca_id = m.id 
+        JOIN categorias c ON m.categoria_id = c.id 
+        ${whereClause};
+    `;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalItems = countRows[0].totalItems;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT si.id, m.nombre AS nombre_marca, si.equivalencia_ml, c.nombre AS nombre_categoria
+      FROM stock_items si 
+      JOIN marcas m ON si.marca_id = m.id 
+      JOIN categorias c ON m.categoria_id = c.id 
+      ${whereClause} 
+      ORDER BY m.nombre ASC 
+      LIMIT ? 
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [items] = await pool.query(dataQuery, dataParams);
+
+    const stockConNombreCompleto = items.map((item) => ({
+      ...item,
+      nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
+    }));
+
+    // 3. Respuesta estructurada
+    res.json({
+      items: stockConNombreCompleto, // Cambiado a 'items' por consistencia
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor." });
   }
@@ -305,10 +574,46 @@ export const restoreStockItem = async (req, res) => {
 // --- GESTIÓN DE PRODUCTOS Y RECETAS ---
 export const getProducts = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM productos WHERE is_active = TRUE ORDER BY nombre_producto_fudo ASC"
-    );
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15; // 15 productos por página
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE is_active = TRUE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND nombre_producto_fudo LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `SELECT COUNT(id) AS totalProducts FROM productos ${whereClause};`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalProducts = countRows[0].totalProducts;
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT * FROM productos 
+      ${whereClause} 
+      ORDER BY nombre_producto_fudo ASC 
+      LIMIT ? 
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [products] = await pool.query(dataQuery, dataParams);
+
+    // 3. Respuesta estructurada
+    res.json({
+      products,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalProducts,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor" });
   }
@@ -316,10 +621,46 @@ export const getProducts = async (req, res) => {
 
 export const getInactiveProducts = async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM productos WHERE is_active = FALSE ORDER BY nombre_producto_fudo ASC"
-    );
-    res.json(rows);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE is_active = FALSE"; // Cambiado a FALSE
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause += " AND nombre_producto_fudo LIKE ?";
+      queryParams.push(`%${searchQuery}%`);
+    }
+
+    // 1. Consulta de Conteo
+    const countQuery = `SELECT COUNT(id) AS totalProducts FROM productos ${whereClause};`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalProducts = countRows[0].totalProducts;
+    const totalPages = Math.ceil(totalProducts / limit);
+
+    // 2. Consulta de Datos Paginados
+    const dataQuery = `
+      SELECT * FROM productos 
+      ${whereClause} 
+      ORDER BY nombre_producto_fudo ASC 
+      LIMIT ? 
+      OFFSET ?;
+    `;
+    const dataParams = [...queryParams, limit, offset];
+    const [products] = await pool.query(dataQuery, dataParams);
+
+    // 3. Respuesta estructurada
+    res.json({
+      products,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalProducts,
+        limit,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Error del servidor." });
   }

@@ -25,6 +25,7 @@ import {
   restoreMarca,
   getInactiveProducts,
   restoreProduct,
+  getActiveStockItems,
   getInactiveStockItem,
   restoreStockItem,
 } from "../controllers/adminController.js";
@@ -52,18 +53,22 @@ router.post("/marcas", createMarca);
 router.put("/marcas/:id", updateMarca);
 router.delete("/marcas/:id", deleteMarca);
 router.put("/marcas/:id/restore", restoreMarca);
+
 // Rutas para Productos (Tragos)
 router.get("/products", getProducts);
 router.get("/products/inactive", getInactiveProducts);
 router.delete("/products/:id", deleteProduct);
 router.put("/products/:id/restore", restoreProduct);
+
 // Ruta para Items de Stock
+router.get("/stock-items", getActiveStockItems);
 router.get("/stock-items/:id", getStockItemById);
 router.get("/stock-items/inactive", getInactiveStockItem);
 router.post("/stock-items", createStockItem);
 router.put("/stock-items/:id", updateStockItem);
 router.delete("/stock-items/:id", deleteStockItem);
 router.put("/stock-items/:id/restore", restoreStockItem);
+
 // Ruta para Recetas
 router.post("/recipes", createRecipe);
 router.get("/recipes/:id", getRecipeById);
