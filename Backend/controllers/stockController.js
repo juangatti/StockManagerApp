@@ -91,6 +91,43 @@ export const getStockTotals = async (req, res) => {
   }
 };
 
+export const searchStockItems = async (req, res) => {
+  try {
+    const query = req.query.query || ""; // Término de búsqueda del frontend
+    const limit = parseInt(req.query.limit) || 10; // Límite de sugerencias
+
+    if (!query) {
+      return res.json([]); // Devolver vacío si no hay término de búsqueda
+    }
+
+    // Buscamos items ACTIVOS que coincidan en nombre de marca o equivalencia
+    // Usamos CONCAT para buscar en el "nombre_completo" implícito
+    const searchQuery = `
+     SELECT 
+        si.id,
+        CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') AS nombre_completo
+      FROM stock_items AS si
+      JOIN marcas AS m ON si.marca_id = m.id
+      WHERE si.is_active = TRUE 
+        AND (
+          m.nombre LIKE ? 
+          OR si.equivalencia_ml LIKE ? 
+          OR CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') LIKE ?
+        )
+      ORDER BY nombre_completo ASC
+      LIMIT ?;
+    `;
+
+    const searchParams = [`%${query}%`, `%${query}%`, `%${query}%`, limit];
+    const [rows] = await pool.query(searchQuery, searchParams);
+
+    res.json(rows); // Devolvemos la lista de { id, nombre_completo }
+  } catch (error) {
+    console.error("Error searching stock items:", error);
+    res.status(500).json({ message: "Error al buscar items de stock." });
+  }
+};
+
 // Controlador para POST /api/stock/compras
 export const registerPurchase = async (req, res) => {
   const { descripcion, itemsComprados } = req.body;

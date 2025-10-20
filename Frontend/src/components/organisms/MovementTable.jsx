@@ -2,9 +2,8 @@
 import { useNavigate } from "react-router-dom";
 import Spinner from "../atoms/Spinner";
 import Alert from "../atoms/Alert";
-import SearchBar from "../molecules/SearchBar"; // <-- 1. Importar SearchBar
-import PaginationControls from "../molecules/PaginationControls"; // <-- 2. Importar PaginationControls
-import { Eye } from "lucide-react";
+import SearchBar from "../molecules/SearchBar";
+import PaginationControls from "../molecules/PaginationControls";
 import { useMovementHistory } from "../../hooks/useMovementHistory";
 
 export default function MovementTable() {
@@ -21,11 +20,11 @@ export default function MovementTable() {
 
   const navigate = useNavigate();
 
-  // (Las funciones formatFecha, getTypeClass y handleViewDetails no cambian)
   const formatFecha = (fecha) => {
-    return new Date(fecha).toLocaleString("es-AR", {
-      dateStyle: "short",
-      timeStyle: "short",
+    return new Date(fecha).toLocaleDateString("es-AR", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
     });
   };
 
@@ -47,13 +46,11 @@ export default function MovementTable() {
   };
 
   return (
-    // Ajustamos el padding aquí en el contenedor principal del organismo
     <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
-      {/* 3. Usar SearchBar */}
       <SearchBar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        placeholder="Buscar por descripción del evento..."
+        placeholder="Buscar por descripción del evento..." // Mantenemos búsqueda por descripción
       />
 
       {error && <Alert message={error} />}
@@ -65,20 +62,24 @@ export default function MovementTable() {
             <Spinner />
           </div>
         )}
-        <table className="w-full text-sm text-left text-slate-300">
-          <thead className="text-xs uppercase bg-slate-700 text-slate-400">
+        <table className="w-full min-w-[600px] text-sm text-left text-slate-300">
+          <thead className="text-xs uppercase bg-slate-700 text-slate-400 hidden md:table-header-group">
             <tr>
-              <th className="py-3 px-6">Fecha</th>
-              <th className="py-3 px-6">Tipo</th>
-              <th className="py-3 px-6">Descripción del Evento</th>
-              <th className="py-3 px-6 text-center">Items Afectados</th>
-              <th className="py-3 px-6 text-right">Acciones</th>
+              <th className="py-3 px-6 whitespace-nowrap">Fecha</th>
+              {/* 1. Tipo ahora va segundo */}
+              <th className="py-3 px-6 whitespace-nowrap">Tipo</th>
+              {/* 2. Descripción ahora va tercero */}
+              <th className="py-3 px-6 whitespace-nowrap">Descripción</th>
+              <th className="py-3 px-6 text-center whitespace-nowrap hidden md:table-cell">
+                Items Afectados
+              </th>
+              {/* Columna Acciones eliminada */}
             </tr>
           </thead>
           <tbody>
             {!loading && eventos.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center py-8 text-slate-500">
+                <td colSpan={4} className="text-center py-8 text-slate-500">
                   {searchQuery
                     ? "No se encontraron eventos."
                     : "No hay eventos para mostrar."}
@@ -86,15 +87,30 @@ export default function MovementTable() {
               </tr>
             ) : (
               eventos.map((evento) => (
+                // TR como tarjeta en móvil, fila en escritorio
                 <tr
                   key={evento.evento_id}
-                  className="border-b border-slate-700 hover:bg-slate-600/50 cursor-pointer"
+                  className="block md:table-row border-b border-slate-700 mb-2 md:mb-0 bg-slate-800/50 md:bg-transparent rounded-lg md:rounded-none overflow-hidden md:overflow-visible shadow-md md:shadow-none cursor-pointer hover:bg-slate-700/50 md:hover:bg-slate-600/50"
                   onClick={() => handleViewDetails(evento.evento_id)}
                 >
-                  <td className="py-4 px-6 text-slate-400 whitespace-nowrap">
+                  {/* Celda Fecha (igual) */}
+                  <td
+                    data-label="Fecha"
+                    className="block md:table-cell py-2 px-4 md:py-4 md:px-6 text-slate-400 md:whitespace-nowrap border-b md:border-b-0 border-slate-700"
+                  >
+                    <span className="md:hidden font-semibold text-slate-500 mr-2">
+                      Fecha:{" "}
+                    </span>
                     {formatFecha(evento.fecha_evento)}
                   </td>
-                  <td className="py-4 px-6">
+                  {/* 3. Celda Tipo (ahora segunda) */}
+                  <td
+                    data-label="Tipo"
+                    className="block md:table-cell py-2 px-4 md:py-4 md:px-6 border-b md:border-b-0 border-slate-700 md:whitespace-nowrap" // Añadido whitespace-nowrap
+                  >
+                    <span className="md:hidden font-semibold text-slate-500 mr-2">
+                      Tipo:{" "}
+                    </span>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-semibold ${getTypeClass(
                         evento.tipo_evento
@@ -103,24 +119,26 @@ export default function MovementTable() {
                       {evento.tipo_evento}
                     </span>
                   </td>
-                  <td className="py-4 px-6 font-medium text-white">
+                  {/* 4. Celda Descripción (ahora tercera) */}
+                  <td
+                    data-label="Descripción"
+                    // Permitimos que se trunque si es muy larga en escritorio
+                    className="block md:table-cell py-2 px-4 md:py-4 md:px-6 font-medium text-white border-b md:border-b-0 border-slate-700 md:truncate"
+                    title={evento.evento_descripcion} // Tooltip con descripción completa
+                  >
+                    <span className="md:hidden font-semibold text-slate-500 mr-2">
+                      Descripción:{" "}
+                    </span>
                     {evento.evento_descripcion}
                   </td>
-                  <td className="py-4 px-6 text-center font-mono">
+                  {/* Celda Items Afectados (oculta en móvil, igual) */}
+                  <td
+                    data-label="Items Afectados"
+                    className="hidden md:table-cell py-2 px-4 md:py-4 md:px-6 text-center font-mono"
+                  >
                     {evento.items_afectados}
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetails(evento.evento_id);
-                      }}
-                      className="p-2 rounded-md hover:bg-slate-700"
-                      title="Ver detalle"
-                    >
-                      <Eye className="h-5 w-5 text-sky-400" />
-                    </button>
-                  </td>
+                  {/* Celda Acciones eliminada */}
                 </tr>
               ))
             )}
@@ -128,7 +146,6 @@ export default function MovementTable() {
         </table>
       </div>
 
-      {/* 4. Usar PaginationControls */}
       {!loading && pagination?.totalPages > 1 && (
         <PaginationControls
           currentPage={currentPage}

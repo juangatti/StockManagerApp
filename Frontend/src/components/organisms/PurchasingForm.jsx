@@ -1,42 +1,52 @@
-import { useState } from "react";
+// src/components/organisms/PurchasingForm.jsx
+import React, { useState, useRef } from "react"; // 1. Importar useRef
 import api from "../../api/api";
-import { PlusCircle, ShoppingCart, Send, FileText } from "lucide-react"; // 1. Importar FileText
+import { PlusCircle, ShoppingCart, Send, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import useStockStore from "../../stores/useStockStore";
+import AutocompleteInput from "../molecules/AutocompleteInput"; // 2. Importar AutocompleteInput
 
 export default function PurchasingForm() {
-  const { stockItems, fetchStock } = useStockStore();
+  const { fetchStock } = useStockStore(); // Ya no necesitamos stockItems aquí
   const [compraActual, setCompraActual] = useState([]);
-  const [itemIdSeleccionado, setItemIdSeleccionado] = useState("");
   const [cantidad, setCantidad] = useState("");
-  const [descripcionCompra, setDescripcionCompra] = useState(""); // 2. Nuevo estado
+  const [descripcionCompra, setDescripcionCompra] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 3. Nuevo estado para el item seleccionado en el autocomplete
+  const [selectedItemToAdd, setSelectedItemToAdd] = useState(null); // { id, nombre_completo } | null
+  const autocompleteRef = useRef(); // 4. Ref para el AutocompleteInput
+
+  // 5. Callback para el AutocompleteInput
+  const handleItemSelectionToAdd = (item) => {
+    setSelectedItemToAdd(item);
+  };
 
   const handleAddItem = (e) => {
     e.preventDefault();
-    if (!itemIdSeleccionado || !cantidad) {
-      toast.error("Por favor, selecciona un item y especifica la cantidad.");
+    // 6. Validar usando selectedItemToAdd
+    if (!selectedItemToAdd || !cantidad) {
+      toast.error("Selecciona un item y especifica la cantidad.");
       return;
     }
 
-    const itemDetails = stockItems.find(
-      (item) => item.id === parseInt(itemIdSeleccionado)
-    );
-
     const nuevoItem = {
-      itemId: parseInt(itemIdSeleccionado),
-      nombre: itemDetails.nombre_completo,
+      itemId: selectedItemToAdd.id,
+      nombre: selectedItemToAdd.nombre_completo,
       cantidad: parseFloat(cantidad),
-      // La descripción individual ya no es necesaria aquí
     };
 
     setCompraActual([...compraActual, nuevoItem]);
-    setItemIdSeleccionado("");
+
+    // 7. Limpiar campos y el AutocompleteInput
     setCantidad("");
+    setSelectedItemToAdd(null); // Limpiar estado local
+    if (autocompleteRef.current) {
+      autocompleteRef.current.clear(); // Limpiar el input del componente hijo
+    }
   };
 
   const handleSubmitCompra = () => {
-    // 3. Validar descripción y items
     if (compraActual.length === 0) {
       toast.error("Agrega al menos un item a la compra.");
       return;
@@ -47,22 +57,24 @@ export default function PurchasingForm() {
     }
 
     setIsSubmitting(true);
-
-    // 4. Crear el nuevo payload como objeto
     const payload = {
       descripcion: descripcionCompra.trim(),
       itemsComprados: compraActual,
     };
 
-    const promise = api.post("/stock/purchases", payload); // 5. Enviar el objeto
+    const promise = api.post("/stock/purchases", payload);
 
     toast.promise(promise, {
       loading: "Registrando compra...",
       success: (response) => {
         setCompraActual([]);
-        setDescripcionCompra(""); // 6. Limpiar descripción
+        setDescripcionCompra("");
         setIsSubmitting(false);
-        fetchStock(); // Refrescamos el estado global
+        // fetchStock() puede ser necesario si la tabla de inventario está visible
+        // o si otros componentes dependen de ella actualizada inmediatamente.
+        // Si no, se actualizará la próxima vez que se navegue a Inventario.
+        // Por ahora lo dejamos para mantener consistencia.
+        fetchStock();
         return "¡Compra registrada con éxito!";
       },
       error: (err) => {
@@ -82,26 +94,14 @@ export default function PurchasingForm() {
         onSubmit={handleAddItem}
         className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-8"
       >
+        {/* 8. Reemplazar <select> con <AutocompleteInput> */}
         <div className="md:col-span-2">
-          <label
-            htmlFor="item"
-            className="block mb-2 text-sm font-medium text-slate-300"
-          >
-            Item
-          </label>
-          <select
-            id="item"
-            value={itemIdSeleccionado}
-            onChange={(e) => setItemIdSeleccionado(e.target.value)}
-            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
-          >
-            <option value="">Selecciona un item...</option>
-            {stockItems.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.nombre_completo}
-              </option>
-            ))}
-          </select>
+          <AutocompleteInput
+            ref={autocompleteRef} // Asignar ref
+            label="Item"
+            placeholder="Escribe para buscar item..."
+            onItemSelected={handleItemSelectionToAdd}
+          />
         </div>
         <div>
           <label
@@ -117,18 +117,22 @@ export default function PurchasingForm() {
             onChange={(e) => setCantidad(e.target.value)}
             step="0.01"
             className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
+            // Deshabilitar cantidad si no hay item seleccionado
+            disabled={!selectedItemToAdd}
           />
         </div>
         <button
           type="submit"
-          className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 focus:ring-4 focus:outline-none focus:ring-sky-800 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center"
+          // Deshabilitar botón si no hay item o cantidad
+          disabled={!selectedItemToAdd || !cantidad}
+          className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 focus:ring-4 focus:outline-none focus:ring-sky-800 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center disabled:bg-slate-500 disabled:opacity-70"
         >
           <PlusCircle className="mr-2 h-5 w-5" />
           Agregar Item
         </button>
       </form>
 
-      {/* --- 7. NUEVO CAMPO DE DESCRIPCIÓN --- */}
+      {/* Campo de Descripción (sin cambios) */}
       <div className="mb-6">
         <label
           htmlFor="descripcion-compra"
@@ -151,6 +155,7 @@ export default function PurchasingForm() {
         </div>
       </div>
 
+      {/* Lista de Items en Compra (sin cambios) */}
       <h3 className="text-xl font-semibold text-white mb-4 border-t border-slate-700 pt-6">
         <ShoppingCart className="inline-block mr-3 h-6 w-6" />
         Items en esta Compra
@@ -164,7 +169,7 @@ export default function PurchasingForm() {
           <ul className="divide-y divide-slate-700">
             {compraActual.map((item, index) => (
               <li
-                key={index}
+                key={index} // Considera usar item.itemId si no permites duplicados o una key más robusta
                 className="py-3 sm:py-4 flex justify-between items-center"
               >
                 <div>
@@ -180,11 +185,13 @@ export default function PurchasingForm() {
           </ul>
         )}
       </div>
+
+      {/* Botón Registrar Compra (sin cambios en lógica, solo validación) */}
       {compraActual.length > 0 && (
         <div className="flex justify-end mt-8">
           <button
             onClick={handleSubmitCompra}
-            disabled={isSubmitting || !descripcionCompra} // 8. Botón deshabilitado
+            disabled={isSubmitting || !descripcionCompra}
             className="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
           >
             <Send className="mr-2 h-5 w-5" />
