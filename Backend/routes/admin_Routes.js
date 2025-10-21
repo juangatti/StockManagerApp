@@ -66,13 +66,13 @@ router.delete("/products/:id", deleteProduct);
 router.put("/products/:id/restore", restoreProduct);
 
 // Ruta para Items de Stock
-router.get("/stock-items", getActiveStockItems);
-router.get("/stock-items/:id", getStockItemById);
-router.get("/stock-items/inactive", getInactiveStockItem);
 router.get(
   "/stock-items/all-for-adjustment",
   getAllActiveStockItemsForAdjustment
 );
+router.get("/stock-items", getActiveStockItems);
+router.get("/stock-items/:id", getStockItemById);
+router.get("/stock-items/inactive", getInactiveStockItem);
 router.post("/stock-items", createStockItem);
 router.put("/stock-items/:id", updateStockItem);
 router.delete("/stock-items/:id", deleteStockItem);
