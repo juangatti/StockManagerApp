@@ -1,225 +1,215 @@
-// src/components/organisms/AdjustmentSheet.jsx
+// src/components/organisms/AdjustForm.jsx
 import { useState, useEffect } from "react";
+import api from "../../api/api"; // Asegúrate que la ruta a api.js sea correcta
 import toast from "react-hot-toast";
-import { Save, Edit, CheckSquare, FileText } from "lucide-react";
-import useStockStore from "../../stores/useStockStore";
-import api from "../../api/api";
-import Spinner from "../atoms/Spinner";
-import ConfirmationModal from "../molecules/ConfirmationModal"; // 1. Importar el modal
+import { SlidersHorizontal } from "lucide-react";
+// Ya NO necesitamos useStockStore aquí para obtener la lista
+// import useStockStore from "../../stores/useStockStore";
+import AutocompleteInput from "../molecules/AutocompleteInput";
+import Spinner from "../atoms/Spinner"; // Importar Spinner para la carga del stock
 
-export default function AdjustmentSheet() {
-  const { stockItems, loading, fetchStock } = useStockStore();
-  const [conteo, setConteo] = useState({});
+export default function AdjustForm() {
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [stockActualSistema, setStockActualSistema] = useState(null);
+  const [conteoReal, setConteoReal] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false); // Ahora indica carga DENTRO del modal
-  const [editingRowId, setEditingRowId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingStock, setIsLoadingStock] = useState(false); // Estado para cargar stock individual
 
-  // 2. Nuevos estados para el modal
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [changesToConfirm, setChangesToConfirm] = useState([]); // Guardará { id, nombre_completo, stock_anterior, conteo_nuevo }
-  const [itemsAjustadosPayload, setItemsAjustadosPayload] = useState([]); // Guardará el payload para la API
+  // Ya no necesitamos traer stockItems ni fetchStock del store aquí
+  // const { fetchStock, stockItems } = useStockStore();
 
+  // --- useEffect MODIFICADO ---
+  // Ahora llama a la API para obtener el stock del item seleccionado
   useEffect(() => {
-    if (stockItems.length > 0) {
-      const initialCounts = stockItems.reduce((acc, item) => {
-        acc[item.id] = item.stock_unidades.toFixed(2);
-        return acc;
-      }, {});
-      setConteo(initialCounts);
-    }
-  }, [stockItems]);
-
-  const handleInputChange = (itemId, nuevoValor) => {
-    setConteo((prevConteo) => ({
-      ...prevConteo,
-      [itemId]: nuevoValor,
-    }));
-  };
-
-  const handleConfirmEdit = (itemId) => {
-    setEditingRowId(null);
-  };
-
-  // 3. Modificar handleSubmit para MOSTRAR el modal
-  const handleSubmit = () => {
-    if (!descripcion.trim()) {
-      toast.error(
-        "Debes añadir un motivo o descripción para el ajuste masivo."
-      );
-      return;
+    // Si no hay item seleccionado, limpiar todo
+    if (!selectedItem) {
+      setStockActualSistema(null);
+      setConteoReal("");
+      setDescripcion("");
+      setIsLoadingStock(false); // Asegurarse que no esté cargando
+      return; // Salir temprano
     }
 
-    // Calcular qué items cambiaron
-    const itemsConCambios = stockItems
-      .filter((item) => parseFloat(conteo[item.id]) !== item.stock_unidades)
-      .map((item) => ({
-        id: item.id, // Necesario para la key en el modal
-        nombre_completo: item.nombre_completo,
-        stock_anterior: item.stock_unidades,
-        conteo_nuevo: parseFloat(conteo[item.id]), // Usamos el valor del estado 'conteo'
-      }));
-
-    if (itemsConCambios.length === 0) {
-      toast.success("No hay cambios en el conteo para guardar.");
-      return;
-    }
-
-    // Preparar payload para la API (solo id y conteoReal)
-    const payloadParaApi = itemsConCambios.map((item) => ({
-      itemId: item.id,
-      conteoReal: item.conteo_nuevo,
-    }));
-
-    // Guardar los cambios y el payload en el estado y mostrar modal
-    setChangesToConfirm(itemsConCambios);
-    setItemsAjustadosPayload(payloadParaApi); // Guardamos el payload que necesita la API
-    setShowConfirmationModal(true);
-    // Ya NO llamamos a la API aquí
-  };
-
-  // 4. Nueva función para confirmar desde el modal
-  const handleConfirmSubmit = async () => {
-    setIsSubmitting(true); // Activar spinner en el botón del modal
-    const payload = {
-      descripcion: descripcion.trim(),
-      ajustes: itemsAjustadosPayload, // Usamos el payload guardado
+    // Si hay un item seleccionado, buscar su stock actual en la API
+    const fetchItemStock = async () => {
+      setIsLoadingStock(true); // Indicar que estamos cargando el stock
+      setStockActualSistema(null); // Limpiar valor anterior mientras carga
+      setConteoReal("");
+      setDescripcion("");
+      try {
+        // Usamos la ruta específica del admin controller para obtener un item por ID
+        const response = await api.get(`/admin/stock-items/${selectedItem.id}`);
+        if (response.data && response.data.stock_unidades !== undefined) {
+          const stock = response.data.stock_unidades.toFixed(2);
+          setStockActualSistema(stock);
+          setConteoReal(stock); // Pre-llenar conteo
+        } else {
+          console.error(
+            `Respuesta inesperada para el item ID ${selectedItem.id}:`,
+            response.data
+          );
+          setStockActualSistema("Error");
+          toast.error("No se pudo obtener el stock actual del item.");
+        }
+      } catch (error) {
+        console.error(
+          `Error fetching stock for item ID ${selectedItem.id}:`,
+          error
+        );
+        setStockActualSistema("Error");
+        toast.error("Error de red al obtener el stock del item.");
+      } finally {
+        setIsLoadingStock(false); // Terminar carga
+      }
     };
 
-    try {
-      await api.post("/stock/mass-adjustment", payload);
-      toast.success("Ajustes guardados con éxito.");
-      setShowConfirmationModal(false); // Cerrar modal
-      setEditingRowId(null);
-      setDescripcion("");
-      fetchStock(); // Recargar datos
-    } catch (err) {
+    fetchItemStock();
+  }, [selectedItem]); // Depende solo del item seleccionado
+
+  const handleItemSelection = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleSubmit = (e) => {
+    // ... (lógica handleSubmit sin cambios) ...
+    e.preventDefault();
+    if (!selectedItem || conteoReal === "" || !descripcion.trim()) {
       toast.error(
-        err.response?.data?.message || "Error al guardar los ajustes."
+        "Selecciona un item, especifica el conteo real y añade un motivo."
       );
-      // Mantenemos el modal abierto en caso de error para que el usuario vea
-    } finally {
-      setIsSubmitting(false); // Desactivar spinner del modal
+      return;
     }
-  };
+    // Asegurarse que el stock se haya cargado correctamente antes de permitir guardar
+    if (
+      stockActualSistema === null ||
+      stockActualSistema === "Error" ||
+      stockActualSistema === "N/A"
+    ) {
+      toast.error(
+        "Espera a que cargue el stock actual o selecciona un item válido."
+      );
+      return;
+    }
 
-  // 5. Nueva función para cancelar desde el modal
-  const handleCancelSubmit = () => {
-    setShowConfirmationModal(false);
-    // No reseteamos nada, los cambios en 'conteo' y 'descripcion' se mantienen
-  };
+    const payload = {
+      itemId: selectedItem.id,
+      conteoReal: parseFloat(conteoReal),
+      descripcion: descripcion.trim(),
+    };
 
-  if (loading && Object.keys(conteo).length === 0) return <Spinner />; // Spinner inicial
+    setIsSubmitting(true);
+    const promise = api.post("/stock/adjust", payload);
+
+    toast.promise(promise, {
+      loading: "Registrando ajuste...",
+      success: (response) => {
+        setIsSubmitting(false);
+        setSelectedItem(null); // Limpia selección y campos asociados
+        // Quizás llamar a fetchStock() del store si es necesario actualizar la tabla principal
+        // useStockStore.getState().fetchStock(); // Llamada directa al store si es necesario
+        return "¡Ajuste registrado con éxito!";
+      },
+      error: (err) => {
+        setIsSubmitting(false);
+        console.error("Error al registrar el ajuste:", err);
+        return err.response?.data?.message || "Error al registrar el ajuste.";
+      },
+    });
+  };
 
   return (
-    <>
-      {" "}
-      {/* 6. Envolver en Fragment para el modal */}
-      <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-        <div className="overflow-x-auto">
-          {/* Tabla (sin cambios internos) */}
-          <table className="w-full min-w-[500px] text-sm text-left text-slate-300">
-            <thead className="text-xs uppercase bg-slate-700 text-slate-400">
-              <tr>
-                <th className="py-3 px-6">Item</th>
-                <th className="py-3 px-6 text-center">Stock Actual / Conteo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stockItems.map((item) => (
-                <tr key={item.id} className="border-b border-slate-700">
-                  <td className="py-4 px-6 font-medium text-white">
-                    {item.nombre_completo}
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    {editingRowId === item.id ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={conteo[item.id] || ""}
-                          onChange={(e) =>
-                            handleInputChange(item.id, e.target.value)
-                          }
-                          className="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg w-full max-w-[100px] p-2 text-center font-mono focus:ring-sky-500 focus:border-sky-500"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleConfirmEdit(item.id)}
-                          className="p-2 rounded-md hover:bg-slate-700 flex-shrink-0"
-                          title="Confirmar cambio"
-                        >
-                          <CheckSquare className="h-5 w-5 text-green-400" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="font-mono">
-                          {conteo[item.id] !== undefined
-                            ? conteo[item.id]
-                            : item.stock_unidades.toFixed(2)}
-                        </span>
-                        <button
-                          onClick={() => setEditingRowId(item.id)}
-                          className="p-2 rounded-md hover:bg-slate-700 flex-shrink-0"
-                          title="Habilitar edición"
-                        >
-                          <Edit className="h-5 w-5 text-sky-400" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <AutocompleteInput
+          label="Item a Ajustar"
+          placeholder="Escribe para buscar item..."
+          onItemSelected={handleItemSelection}
+          // Necesitamos una forma de limpiar el AutocompleteInput programáticamente
+          // cuando setSelectedItem(null) se llama desde handleSubmit.
+          // Esto requiere usar forwardRef y useImperativeHandle en AutocompleteInput
+          // y pasarle una ref desde aquí. (PENDIENTE si no se hizo)
+        />
 
-        {/* Campo Descripción (sin cambios) */}
-        <div className="mt-8 border-t border-slate-700 pt-6">
+        {/* Mostrar stock actual o spinner */}
+        {selectedItem && (
+          <div className="bg-slate-900 p-4 rounded-lg flex justify-between items-center min-h-[60px]">
+            {" "}
+            {/* Altura mínima */}
+            <span className="text-slate-400">Stock actual en sistema:</span>
+            {isLoadingStock ? (
+              <Spinner />
+            ) : (
+              <span
+                className={`font-bold text-lg ${
+                  stockActualSistema === "Error" ? "text-red-400" : "text-white"
+                }`}
+              >
+                {stockActualSistema}{" "}
+                {stockActualSistema !== "Error" && stockActualSistema !== "N/A"
+                  ? "unidades"
+                  : ""}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Campo Conteo Real */}
+        <div>
           <label
-            htmlFor="descripcion-masiva"
+            htmlFor="conteoReal"
             className="block mb-2 text-sm font-medium text-slate-300"
           >
-            Motivo del Ajuste Masivo (Obligatorio)
+            Conteo Físico Real (unidades)
           </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FileText className="h-5 w-5 text-slate-400" />
-            </div>
-            <input
-              type="text"
-              id="descripcion-masiva"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 pl-10"
-              placeholder="Ej: Conteo semanal barra principal, Cierre de mes"
-            />
-          </div>
+          <input
+            type="number"
+            id="conteoReal"
+            value={conteoReal}
+            onChange={(e) => setConteoReal(e.target.value)}
+            step="0.01"
+            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
+            placeholder="Ej: 12.5"
+            disabled={!selectedItem || isLoadingStock} // Deshabilitar mientras carga stock
+          />
         </div>
 
-        {/* Botón Guardar (AHORA llama a handleSubmit, que muestra el modal) */}
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={handleSubmit} // Llama a la función que abre el modal
-            // Ya no usamos isSubmitting aquí, el modal lo maneja
-            disabled={!descripcion || editingRowId !== null} // Deshabilitar si se está editando una fila o no hay descripción
-            className="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+        {/* Campo Motivo */}
+        <div>
+          <label
+            htmlFor="descripcion"
+            className="block mb-2 text-sm font-medium text-slate-300"
           >
-            <Save className="mr-2 h-5 w-5" />
-            Revisar y Guardar Ajustes
+            Motivo del Ajuste
+          </label>
+          <input
+            type="text"
+            id="descripcion"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
+            placeholder="Ej: Rotura de botella, Conteo físico semanal"
+            disabled={!selectedItem || isLoadingStock} // Deshabilitar mientras carga stock
+          />
+        </div>
+
+        {/* Botón Submit */}
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={
+              isSubmitting ||
+              !selectedItem ||
+              isLoadingStock ||
+              stockActualSistema === "Error"
+            } // Deshabilitar si carga o hay error
+            className="flex items-center justify-center text-white bg-amber-600 hover:bg-amber-700 focus:ring-4 focus:ring-amber-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+          >
+            <SlidersHorizontal className="mr-2 h-5 w-5" />
+            {isSubmitting ? "Ajustando..." : "Confirmar Ajuste"}
           </button>
         </div>
-      </div>
-      {/* 7. Renderizar el Modal */}
-      <ConfirmationModal
-        isOpen={showConfirmationModal}
-        title="Confirmar Ajuste Masivo"
-        changes={changesToConfirm}
-        onConfirm={handleConfirmSubmit}
-        onCancel={handleCancelSubmit}
-        confirmText="Guardar Cambios"
-        isSubmitting={isSubmitting} // Pasamos el estado de carga al modal
-      />
-    </>
+      </form>
+    </div>
   );
 }

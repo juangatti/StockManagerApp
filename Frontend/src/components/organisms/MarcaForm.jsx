@@ -11,10 +11,28 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // *** CORRECCIÓN AQUÍ ***
+    // Llamamos al nuevo endpoint que devuelve la lista completa de categorías
     api
-      .get("/admin/categories")
-      .then((res) => setCategories(res.data))
-      .catch(() => toast.error("No se pudieron cargar las categorías."));
+      .get("/admin/categories/all")
+      .then((res) => {
+        // Verificamos que sea un array
+        if (Array.isArray(res.data)) {
+          setCategories(res.data); // Guardamos el array
+        } else {
+          console.error(
+            "La respuesta de /admin/categories/all no es un array:",
+            res.data
+          );
+          setCategories([]);
+          toast.error(
+            "Error al cargar la lista de categorías (formato inesperado)."
+          );
+        }
+      })
+      .catch(() =>
+        toast.error("No se pudieron cargar las categorías (error de red).")
+      );
   }, []);
 
   useEffect(() => {

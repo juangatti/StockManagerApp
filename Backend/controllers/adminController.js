@@ -48,6 +48,24 @@ export const getCategories = async (req, res) => {
   }
 };
 
+export const getAllActiveCategories = async (req, res) => {
+  try {
+    const query = `
+      SELECT id, nombre 
+      FROM categorias 
+      WHERE is_active = TRUE 
+      ORDER BY nombre ASC;
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows); // Devuelve directamente el array de categorías
+  } catch (error) {
+    console.error("Error fetching all active categories:", error);
+    res.status(500).json({
+      message: "Error del servidor al obtener todas las categorías activas.",
+    });
+  }
+};
+
 export const getInactiveCategories = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -272,6 +290,23 @@ export const getInactiveMarcas = async (req, res) => {
     res.status(500).json({ message: "Error del servidor." });
   }
 };
+export const getAllActiveMarcas = async (req, res) => {
+  try {
+    const query = `
+      SELECT id, nombre 
+      FROM marcas 
+      WHERE is_active = TRUE 
+      ORDER BY nombre ASC;
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows); // Devuelve directamente el array de marcas
+  } catch (error) {
+    console.error("Error fetching all active marcas:", error);
+    res.status(500).json({
+      message: "Error del servidor al obtener todas las marcas activas.",
+    });
+  }
+};
 
 export const createMarca = async (req, res) => {
   const { nombre, categoria_id } = req.body;
@@ -399,6 +434,32 @@ export const getStockItemById = async (req, res) => {
   if (rows.length === 0)
     return res.status(404).json({ message: "Item no encontrado." });
   res.json(rows[0]);
+};
+
+export const getAllActiveStockItemsForAdjustment = async (req, res) => {
+  try {
+    // Necesitamos id, nombre_completo y stock_unidades actual
+    const query = `
+     SELECT 
+        si.id,
+        CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') AS nombre_completo,
+        si.stock_unidades 
+      FROM stock_items AS si
+      JOIN marcas AS m ON si.marca_id = m.id
+      WHERE si.is_active = TRUE 
+      ORDER BY nombre_completo ASC; 
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows); // Devuelve array completo
+  } catch (error) {
+    console.error(
+      "Error fetching all active stock items for adjustment:",
+      error
+    );
+    res
+      .status(500)
+      .json({ message: "Error del servidor al obtener items para ajuste." });
+  }
 };
 
 export const getActiveStockItems = async (req, res) => {

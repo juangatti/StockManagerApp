@@ -16,12 +16,28 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
     const loadData = async () => {
       try {
         const [marcasRes] = await Promise.all([
-          api.get("/admin/marcas"),
+          api.get("/admin/marcas/all"), // Llama al endpoint correcto
           fetchStock(),
         ]);
-        setMarcas(marcasRes.data);
+
+        // Verifica si es un array antes de hacer setMarcas
+        if (Array.isArray(marcasRes.data)) {
+          setMarcas(marcasRes.data);
+        } else {
+          console.error(
+            "La respuesta de /admin/marcas/all no es un array:",
+            marcasRes.data
+          );
+          setMarcas([]); // Asegura que marcas sea un array vacío si falla
+          toast.error(
+            "Error al cargar la lista de marcas (formato inesperado)."
+          );
+        }
       } catch (error) {
-        toast.error("No se pudieron cargar los datos para el formulario.");
+        toast.error(
+          "No se pudieron cargar los datos iniciales para el formulario."
+        );
+        setMarcas([]); // Asegura que marcas sea un array vacío en caso de error de red
       }
     };
     loadData();
@@ -139,6 +155,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                   className={`col-span-3 ${commonInputClass}`}
                 >
                   <option value="">Selecciona Marca...</option>
+                  {console.log("Valor de 'marcas' antes del map:", marcas)}
                   {marcas.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.nombre}
