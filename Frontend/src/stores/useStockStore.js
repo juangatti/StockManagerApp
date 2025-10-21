@@ -33,7 +33,7 @@ const useStockStore = create((set, get) => ({
       const response = await api.get("/stock", {
         params: {
           page: stockCurrentPage,
-          limit: 25,
+          limit: 15,
           search: searchTerm, // Usamos el argumento recibido
         },
       });
