@@ -1,18 +1,18 @@
 import { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
 
 import MainLayout from "./layouts/MainLayout";
 import useAuthStore from "./stores/useAuthStore";
-
+import BarPage from "./pages/BarPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import InventoryPage from "./pages/InventoryPage";
+
 import ShoppingPage from "./pages/ShoppingPage";
 import AdjustPage from "./pages/AdjustPage";
 import HistoricMovementPage from "./pages/HistoricMovementPage";
-import PrebatchsPage from "./components/organisms/PrebatchsManager";
+import ProductionPage from "./pages/ProductionPage";
 import SalesPage from "./pages/SalesPage";
 import AdminPage from "./pages/AdminPage";
 import MovementDetailPage from "./pages/MovementDetailPage";
@@ -36,7 +36,7 @@ const AdminRoute = () => {
 
 function App() {
   const { isAuthenticated, user, logout } = useAuthStore();
-
+  const navigate = useNavigate();
   useEffect(() => {
     if (isAuthenticated && !user) {
       logout();
@@ -80,11 +80,11 @@ function App() {
 
         <Route element={<AuthRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/prebatches" element={<PrebatchsPage />} />
+          <Route path="/bar" element={<BarPage />} />
         </Route>
 
         <Route element={<AdminRoute />}>
+          <Route path="/production" element={<ProductionPage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/shopping" element={<ShoppingPage />} />
           <Route path="/adjust" element={<AdjustPage />} />

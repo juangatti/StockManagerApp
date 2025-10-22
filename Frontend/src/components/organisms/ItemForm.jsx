@@ -1,97 +1,99 @@
 // src/components/organisms/ItemForm.jsx
 import { useState, useEffect } from "react";
-import api from "../../api/api"; // Asegúrate que la ruta a api.js sea correcta
+import api from "../../api/api"; //
 import toast from "react-hot-toast";
 import { PackagePlus } from "lucide-react";
-// NO DEBE HABER import useStockStore from ... aquí
 
 export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
+  // Estado sin prioridad_consumo
   const [formData, setFormData] = useState({
     marca_id: "",
+    variacion: "",
     equivalencia_ml: "",
-    prioridad_consumo: "1",
+    // prioridad_consumo: "1", // <-- Eliminado
     alerta_stock_bajo: "",
   });
-  const [marcas, setMarcas] = useState([]); // Estado local para las marcas
+  const [marcas, setMarcas] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // useEffect para cargar TODAS las marcas al montar
+  // Cargar marcas (sin cambios)
   useEffect(() => {
     api
-      .get("/admin/marcas/all") // Llama al endpoint que devuelve la lista completa
+      .get("/admin/marcas/all") //
       .then((res) => {
         if (Array.isArray(res.data)) {
-          setMarcas(res.data); // Guarda el array
+          setMarcas(res.data);
         } else {
-          console.error(
-            "La respuesta de /admin/marcas/all no es un array:",
-            res.data
-          );
+          console.error(/* ... */);
           setMarcas([]);
-          toast.error(
-            "Error al cargar la lista de marcas (formato inesperado)."
-          );
+          toast.error(/* ... */);
         }
       })
-      .catch(() =>
-        toast.error("No se pudieron cargar las marcas (error de red).")
-      );
-  }, []); // Vacío para ejecutar solo al montar
+      .catch(() => toast.error(/* ... */));
+  }, []);
 
-  // useEffect para pre-llenar el form si estamos editando
+  // Pre-llenar form (sin prioridad_consumo)
   useEffect(() => {
     if (itemToEdit) {
       setFormData({
         marca_id: itemToEdit.marca_id || "",
+        variacion: itemToEdit.variacion || "",
         equivalencia_ml: itemToEdit.equivalencia_ml || "",
-        prioridad_consumo: itemToEdit.prioridad_consumo || "1",
+        // prioridad_consumo: itemToEdit.prioridad_consumo || "1", // <-- Eliminado
         alerta_stock_bajo: itemToEdit.alerta_stock_bajo || "",
       });
     } else {
-      // Resetear para creación
+      // Resetear (sin prioridad_consumo)
       setFormData({
         marca_id: "",
+        variacion: "",
         equivalencia_ml: "",
-        prioridad_consumo: "1",
+        // prioridad_consumo: "1", // <-- Eliminado
         alerta_stock_bajo: "",
       });
     }
   }, [itemToEdit]);
 
   const handleChange = (e) => {
+    /* ... (sin cambios) ... */
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Validación (sin prioridad_consumo)
     if (
       !formData.marca_id ||
       !formData.equivalencia_ml ||
-      !formData.alerta_stock_bajo // Asegúrate que prioridad_consumo no sea null o undefined si es requerido
+      !formData.alerta_stock_bajo
+      // !formData.prioridad_consumo // <-- Eliminado
     ) {
       toast.error(
-        "La marca, equivalencia, prioridad y alerta de stock son obligatorios."
+        "La marca, equivalencia y alerta de stock son obligatorios." // <-- Mensaje actualizado
       );
       return;
     }
 
     setIsSubmitting(true);
+    // Payload (sin prioridad_consumo)
     const payload = {
       ...formData,
       marca_id: parseInt(formData.marca_id),
+      variacion: formData.variacion.trim() || null,
       equivalencia_ml: parseFloat(formData.equivalencia_ml),
-      // Asegurarse que prioridad_consumo siempre tenga un valor numérico válido
-      prioridad_consumo: parseInt(formData.prioridad_consumo) || 1,
+      // prioridad_consumo: parseInt(formData.prioridad_consumo) || 1, // <-- Eliminado
       alerta_stock_bajo: parseFloat(formData.alerta_stock_bajo),
     };
     const isEditing = !!itemToEdit?.id;
 
+    // Llamada API (sin cambios)
     const promise = isEditing
-      ? api.put(`/admin/stock-items/${itemToEdit.id}`, payload)
-      : api.post("/admin/stock-items", payload);
+      ? api.put(`/admin/stock-items/${itemToEdit.id}`, payload) //
+      : api.post("/admin/stock-items", payload); //
 
     toast.promise(promise, {
+      /* ... (sin cambios) ... */
       loading: isEditing ? "Actualizando item..." : "Creando item...",
       success: () => {
         setIsSubmitting(false);
@@ -105,33 +107,40 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
     });
   };
 
+  const commonInputClass =
+    "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500";
+
   // --- JSX ---
   return (
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
       <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
+        {/* ... (título sin cambios) ... */}
         <PackagePlus className="text-sky-400" />
         {itemToEdit?.id ? "Editar Item de Stock" : "Crear Nuevo Item (Envase)"}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Ajustar grid a 2 columnas si queda mejor sin el campo de prioridad */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {" "}
+          {/* <-- Cambiado a 2 columnas */}
+          {/* Marca */}
           <div>
+            {/* ... (código de Marca sin cambios) ... */}
             <label
               htmlFor="marca_id"
               className="block mb-2 text-sm font-medium text-slate-300"
             >
-              Marca del Producto
+              Marca del Producto (*)
             </label>
-            {/* Este select usa el estado local 'marcas' */}
             <select
               name="marca_id"
               id="marca_id"
               value={formData.marca_id}
               onChange={handleChange}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
-              required // Hacer obligatorio
+              className={commonInputClass}
+              required
             >
               <option value="">Selecciona una marca...</option>
-              {/* Verifica que 'marcas' sea un array antes de mapear */}
               {Array.isArray(marcas) &&
                 marcas.map((marca) => (
                   <option key={marca.id} value={marca.id}>
@@ -140,12 +149,33 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
                 ))}
             </select>
           </div>
+          {/* Variación */}
           <div>
+            {/* ... (código de Variación sin cambios) ... */}
+            <label
+              htmlFor="variacion"
+              className="block mb-2 text-sm font-medium text-slate-300"
+            >
+              Variación (Opcional)
+            </label>
+            <input
+              type="text"
+              name="variacion"
+              id="variacion"
+              placeholder="Ej: Pera, Classic, Reposado"
+              value={formData.variacion}
+              onChange={handleChange}
+              className={commonInputClass}
+            />
+          </div>
+          {/* Equivalencia */}
+          <div>
+            {/* ... (código de Equivalencia sin cambios) ... */}
             <label
               htmlFor="equivalencia_ml"
               className="block mb-2 text-sm font-medium text-slate-300"
             >
-              Equivalencia (ml)
+              Equivalencia (ml) (*)
             </label>
             <input
               type="number"
@@ -154,36 +184,20 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
               placeholder="Ej: 750"
               value={formData.equivalencia_ml}
               onChange={handleChange}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
+              className={commonInputClass}
               required
-              min="0" // No permitir negativos
+              min="0"
+              step="0.01"
             />
           </div>
+          {/* Alerta Stock */}
           <div>
-            <label
-              htmlFor="prioridad_consumo"
-              className="block mb-2 text-sm font-medium text-slate-300"
-            >
-              Prioridad de Consumo
-            </label>
-            <input
-              type="number"
-              name="prioridad_consumo"
-              id="prioridad_consumo"
-              value={formData.prioridad_consumo}
-              onChange={handleChange}
-              min="1"
-              step="1"
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
-              required
-            />
-          </div>
-          <div>
+            {/* ... (código de Alerta Stock sin cambios) ... */}
             <label
               htmlFor="alerta_stock_bajo"
               className="block mb-2 text-sm font-medium text-slate-300"
             >
-              Alerta de Stock Bajo (unidades)
+              Alerta Stock Bajo (unid.) (*)
             </label>
             <input
               type="number"
@@ -194,12 +208,21 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
               placeholder="Ej: 4.0"
               value={formData.alerta_stock_bajo}
               onChange={handleChange}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
+              className={commonInputClass}
               required
             />
           </div>
+          {/* Prioridad Consumo - ELIMINADO */}
+          {/*
+          <div>
+            <label htmlFor="prioridad_consumo" ...>Prioridad Consumo (*)</label>
+            <input type="number" name="prioridad_consumo" ... />
+          </div>
+          */}
         </div>
+        {/* Botones (sin cambios) */}
         <div className="flex justify-end pt-2 gap-4">
+          {/* ... (botones Cancelar y Guardar) ... */}
           <button
             type="button"
             onClick={onCancel}

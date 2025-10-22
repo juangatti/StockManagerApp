@@ -2,16 +2,19 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
-  Package,
+  // Package, // <-- Eliminado
   FileClock,
-  CookingPot,
+  // CookingPot, // <-- Eliminado
+  ClipboardList, // <-- Usaremos este para Barra
   UploadCloud,
   PlusCircle,
   SlidersHorizontal,
   Settings,
+  Hammer, // <-- Icono para Producción (ejemplo)
 } from "lucide-react";
-import useAuthStore from "../../stores/useAuthStore";
+import useAuthStore from "../../stores/useAuthStore"; //
 
+// ... (NavGroup y NavItem sin cambios) ...
 const NavGroup = ({ title, children }) => (
   <div>
     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 mb-2">
@@ -38,11 +41,11 @@ const NavItem = ({ to, icon: Icon, children, onLinkClick }) => {
 };
 
 export default function Sidebar({ onLinkClick }) {
-  const user = useAuthStore((state) => state.user);
+  const user = useAuthStore((state) => state.user); //
 
   return (
     <aside className="flex flex-col gap-8">
-      {/* --- NUEVO GRUPO: ANÁLISIS Y REPORTES (Visible para todos) --- */}
+      {/* --- GRUPO ANÁLISIS Y REPORTES --- */}
       <NavGroup title="Análisis y Reportes">
         <NavItem
           to="/dashboard"
@@ -51,16 +54,17 @@ export default function Sidebar({ onLinkClick }) {
         >
           Dashboard
         </NavItem>
-        <NavItem to="/inventory" icon={Package} onLinkClick={onLinkClick}>
-          Inventario
-        </NavItem>
-        <NavItem to="/prebatches" icon={CookingPot} onLinkClick={onLinkClick}>
-          Prebatches
+        {/* <NavItem to="/inventory" icon={Package} onLinkClick={onLinkClick}> Inventario </NavItem> */}{" "}
+        {/* <-- Eliminado */}
+        {/* <NavItem to="/prebatches" icon={CookingPot} onLinkClick={onLinkClick}> Prebatches </NavItem> */}{" "}
+        {/* <-- Eliminado */}
+        {/* Nuevo NavItem para Barra */}
+        <NavItem to="/bar" icon={ClipboardList} onLinkClick={onLinkClick}>
+          Barra (Stock)
         </NavItem>
       </NavGroup>
 
-      {/* --- NUEVO GRUPO: OPERACIONES (Solo para Admin) --- */}
-      {/* Aplicaremos la misma lógica de roles que en Administración */}
+      {/* --- GRUPO OPERACIONES --- */}
       {user?.role === "admin" && (
         <NavGroup title="Operaciones de Stock">
           <NavItem to="/sales" icon={UploadCloud} onLinkClick={onLinkClick}>
@@ -76,10 +80,14 @@ export default function Sidebar({ onLinkClick }) {
           >
             Ajustar Stock
           </NavItem>
+          {/* Nuevo NavItem para Producción */}
+          <NavItem to="/production" icon={Hammer} onLinkClick={onLinkClick}>
+            Registrar Producción
+          </NavItem>
         </NavGroup>
       )}
 
-      {/* --- GRUPO DE ADMINISTRACIÓN (Solo para Admin, sin cambios) --- */}
+      {/* --- GRUPO ADMINISTRACIÓN --- */}
       {user?.role === "admin" && (
         <NavGroup title="Administración">
           <NavItem to="/admin" icon={Settings} onLinkClick={onLinkClick}>

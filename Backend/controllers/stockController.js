@@ -1,11 +1,13 @@
 // Importamos el pool de la base de datos que crearemos en /config/db.js
 import pool from "../config/db.js";
 
+// Función auxiliar para construir el nombre completo del item
+
 // Controlador para GET /api/stock
 export const getStock = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 25; // 25 items por página
+    const limit = parseInt(req.query.limit) || 15; // 15 items por página
     const searchQuery = req.query.search || "";
     const offset = (page - 1) * limit;
 
@@ -14,8 +16,13 @@ export const getStock = async (req, res) => {
 
     if (searchQuery) {
       // Buscamos en nombre de marca y nombre de categoría
-      whereClause += " AND (m.nombre LIKE ? OR c.nombre LIKE ?)";
-      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+      whereClause +=
+        " AND (m.nombre LIKE ? OR c.nombre LIKE ? OR si.variacion LIKE ?)";
+      queryParams.push(
+        `%${searchQuery}%`,
+        `%${searchQuery}%`,
+        `%${searchQuery}%`
+      );
     }
 
     // 1. Consulta para el CONTEO TOTAL de items
@@ -36,28 +43,30 @@ export const getStock = async (req, res) => {
         si.id,
         m.nombre AS nombre_marca,
         c.nombre AS nombre_categoria,
+        si.variacion,
         si.equivalencia_ml,
         si.stock_unidades,
-        m.id as marca_id
+        m.id as marca_id,
+        CONCAT(
+        m.nombre,
+        CASE WHEN si.variacion IS NOT NULL and si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+        ' ', 
+        si.equivalencia_ml, 'ml'
+        ) AS nombre_completo
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       JOIN categorias AS c ON m.categoria_id = c.id
       ${whereClause}
-      ORDER BY c.nombre, m.nombre, si.equivalencia_ml
+      ORDER BY c.nombre, m.nombre, si.variacion, si.equivalencia_ml
       LIMIT ?
       OFFSET ?;
     `;
     const dataParams = [...queryParams, limit, offset];
     const [items] = await pool.query(dataQuery, dataParams);
 
-    const stockConNombreCompleto = items.map((item) => ({
-      ...item,
-      nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
-    }));
-
     // 3. Devolver la respuesta estructurada
     res.json({
-      items: stockConNombreCompleto,
+      items: items,
       pagination: {
         currentPage: page,
         totalPages,
@@ -93,32 +102,47 @@ export const getStockTotals = async (req, res) => {
 
 export const searchStockItems = async (req, res) => {
   try {
-    const query = req.query.query || ""; // Término de búsqueda del frontend
-    const limit = parseInt(req.query.limit) || 10; // Límite de sugerencias
+    const query = req.query.query || "";
+    const limit = parseInt(req.query.limit) || 10;
 
     if (!query) {
-      return res.json([]); // Devolver vacío si no hay término de búsqueda
+      return res.json([]);
     }
 
-    // Buscamos items ACTIVOS que coincidan en nombre de marca o equivalencia
-    // Usamos CONCAT para buscar en el "nombre_completo" implícito
     const searchQuery = `
      SELECT 
         si.id,
-        CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') AS nombre_completo
+        CONCAT(
+            m.nombre,
+            CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+            ' ',
+            si.equivalencia_ml, 'ml'
+        ) AS nombre_completo
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       WHERE si.is_active = TRUE 
         AND (
           m.nombre LIKE ? 
           OR si.equivalencia_ml LIKE ? 
-          OR CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') LIKE ?
+          OR si.variacion LIKE ?
+          OR CONCAT(
+               m.nombre,
+               CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+               ' ',
+               si.equivalencia_ml, 'ml'
+             ) LIKE ?
         )
       ORDER BY nombre_completo ASC
       LIMIT ?;
     `;
 
-    const searchParams = [`%${query}%`, `%${query}%`, `%${query}%`, limit];
+    const searchParams = [
+      `%${query}%`,
+      `%${query}%`,
+      `%${query}%`,
+      `%${query}%`,
+      limit,
+    ];
     const [rows] = await pool.query(searchQuery, searchParams);
 
     res.json(rows); // Devolvemos la lista de { id, nombre_completo }
@@ -441,7 +465,10 @@ export const getMovementEventById = async (req, res) => {
         JSON_ARRAYAGG(
           JSON_OBJECT(
             'id', sm.id,
-            'nombre_item', CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml'),
+            'nombre_item', CONCAT(m.nombre,
+                CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+                ' ',
+                si.equivalencia_ml, 'ml'),
             'cantidad_movida', sm.cantidad_unidades_movidas,
             'stock_anterior', sm.stock_anterior,
             'stock_nuevo', sm.stock_nuevo,
@@ -457,9 +484,23 @@ export const getMovementEventById = async (req, res) => {
     `;
     const [rows] = await pool.query(query, [id]);
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Evento no encontrado." });
+      const [eventOnly] = await pool.query(
+        "SELECT * FROM eventos_stock WHERE id = ?",
+        [id]
+      ); //
+      if (eventOnly.length > 0) {
+        // Devolver el evento sin movimientos si existe
+        res.json({
+          ...eventOnly[0],
+          evento_descripcion: eventOnly[0].descripcion,
+          movimientos: [],
+        });
+      } else {
+        return res.status(404).json({ message: "Evento no encontrado." });
+      }
+    } else {
+      res.json(rows[0]);
     }
-    res.json(rows[0]);
   } catch (error) {
     console.error("Error al consultar detalle del evento:", error);
     res.status(500).json({
@@ -518,14 +559,25 @@ export const getIceReport = async (req, res) => {
     const query = `
       SELECT 
         m.nombre AS nombre_marca, 
+        si.variacion,
         si.stock_unidades 
       FROM stock_items si
       JOIN marcas m ON si.marca_id = m.id
       JOIN categorias c ON m.categoria_id = c.id
-      WHERE UPPER(c.nombre) = 'HIELO';
+      WHERE UPPER(c.nombre) = 'HIELO' AND si.is_active = TRUE;
     `;
-    const [rows] = await pool.query(query);
-    res.json(rows);
+    const [rows] = await pool.query(query); //
+    // Construir nombre completo aquí si es necesario para el frontend
+    const reportData = rows.map((item) => ({
+      ...item,
+      // Opcional: Construir un nombre más descriptivo si hay variaciones
+      nombre_completo_hielo: buildNombreCompleto(
+        item.nombre_marca,
+        item.variacion,
+        null
+      ), // Equivalencia no aplica para el nombre aquí
+    }));
+    res.json(reportData);
   } catch (error) {
     console.error("Error al generar el Informe Hielístico:", error);
     res.status(500).json({
@@ -537,34 +589,44 @@ export const getIceReport = async (req, res) => {
 
 export const getStockAlerts = async (req, res) => {
   try {
-    const lowStockQuery = `
-            SELECT si.id, m.nombre as nombre_marca, si.equivalencia_ml, si.stock_unidades, si.alerta_stock_bajo
-            FROM stock_items si
-            JOIN marcas m ON si.marca_id = m.id
-            WHERE si.stock_unidades > 0 AND si.stock_unidades <= si.alerta_stock_bajo;
-        `;
-    const [lowStockItems] = await pool.query(lowStockQuery);
+    const buildAlertQuery = (condition) => `
+      SELECT
+        si.id,
+        m.nombre as nombre_marca,
+        si.variacion, -- <-- Incluir variación
+        si.equivalencia_ml,
+        si.stock_unidades,
+        si.alerta_stock_bajo,
+        -- Construcción dinámica del nombre completo
+        CONCAT(
+            m.nombre,
+            CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+            ' ',
+            si.equivalencia_ml, 'ml'
+        ) AS nombre_item -- Renombrar a nombre_item para consistencia con frontend
+      FROM stock_items si
+      JOIN marcas m ON si.marca_id = m.id
+      WHERE si.is_active = TRUE AND ${condition};
+    `;
 
-    const outOfStockQuery = `
-            SELECT si.id, m.nombre as nombre_marca, si.equivalencia_ml, si.stock_unidades
-            FROM stock_items si
-            JOIN marcas m ON si.marca_id = m.id
-            WHERE si.stock_unidades <= 0;
-        `;
-    const [outOfStockItems] = await pool.query(outOfStockQuery);
+    const lowStockQuery = buildAlertQuery(
+      "si.stock_unidades > 0 AND si.stock_unidades <= si.alerta_stock_bajo"
+    );
+    const [lowStockItems] = await pool.query(lowStockQuery); //
 
-    const formatItems = (items) =>
-      items.map((item) => ({
-        ...item,
-        nombre_item: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
-      }));
+    const outOfStockQuery = buildAlertQuery("si.stock_unidades <= 0");
+    const [outOfStockItems] = await pool.query(outOfStockQuery); //
 
+    // Ya no necesitamos formatItems porque el nombre se construye en SQL
     res.json({
-      lowStock: formatItems(lowStockItems),
-      outOfStock: formatItems(outOfStockItems),
+      lowStock: lowStockItems,
+      outOfStock: outOfStockItems,
     });
   } catch (error) {
     console.error("Error al obtener alertas de stock:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({
+      message: "Error al obtener alertas de stock.",
+      error: error.message,
+    });
   }
 };

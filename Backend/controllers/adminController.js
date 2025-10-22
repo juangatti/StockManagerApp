@@ -373,37 +373,43 @@ export const restoreMarca = async (req, res) => {
 export const createStockItem = async (req, res) => {
   const {
     marca_id,
+    variacion,
     equivalencia_ml,
     stock_unidades,
-    prioridad_consumo,
     alerta_stock_bajo,
   } = req.body;
 
   if (!marca_id || !equivalencia_ml || !alerta_stock_bajo) {
+    console.error("Error: Faltan datos obligatorios en createStockItem"); // Log de error de validación
     return res.status(400).json({ message: "Faltan datos obligatorios." });
   }
 
-  const connection = await pool.getConnection();
+  let connection;
+
   try {
+    connection = await pool.getConnection(); //
+
     await connection.beginTransaction();
 
+    const insertData = [
+      marca_id,
+      variacion || null,
+      equivalencia_ml,
+      stock_unidades || 0,
+      alerta_stock_bajo,
+    ];
+
     const [result] = await connection.query(
-      `INSERT INTO stock_items (marca_id, equivalencia_ml, stock_unidades, prioridad_consumo, alerta_stock_bajo) 
+      `INSERT INTO stock_items (marca_id, variacion, equivalencia_ml, stock_unidades, alerta_stock_bajo)
        VALUES (?, ?, ?, ?, ?)`,
-      [
-        marca_id,
-        equivalencia_ml,
-        stock_unidades || 0,
-        prioridad_consumo || 1,
-        alerta_stock_bajo,
-      ]
+      insertData
     );
     const newItemId = result.insertId;
 
     if (stock_unidades && stock_unidades > 0) {
       await connection.query(
-        `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion) 
-         VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
+        `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion)
+          VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
         [
           newItemId,
           stock_unidades,
@@ -415,14 +421,24 @@ export const createStockItem = async (req, res) => {
     }
 
     await connection.commit();
+
     res
       .status(201)
       .json({ message: "Item de stock creado con éxito.", newItemId });
   } catch (error) {
-    await connection.rollback();
-    res.status(500).json({ message: "Error al crear el item." });
+    if (connection) {
+      await connection.rollback();
+    }
+
+    res.status(500).json({
+      message: "Error interno del servidor al crear el item.",
+      error: error.message,
+      code: error.code,
+    });
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -438,19 +454,24 @@ export const getStockItemById = async (req, res) => {
 
 export const getAllActiveStockItemsForAdjustment = async (req, res) => {
   try {
-    // Necesitamos id, nombre_completo y stock_unidades actual
+    // La consulta AHORA incluye la lógica para la variación
     const query = `
-     SELECT 
+     SELECT
         si.id,
-        CONCAT(m.nombre, ' ', si.equivalencia_ml, 'ml') AS nombre_completo,
-        si.stock_unidades 
+        CONCAT(
+            m.nombre,
+            CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+            ' ',
+            si.equivalencia_ml, 'ml'
+        ) AS nombre_completo,
+        si.stock_unidades
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
-      WHERE si.is_active = TRUE 
+      WHERE si.is_active = TRUE
       ORDER BY nombre_completo ASC; 
     `;
-    const [rows] = await pool.query(query);
-    res.json(rows); // Devuelve array completo
+    const [rows] = await pool.query(query); //
+    res.json(rows);
   } catch (error) {
     console.error(
       "Error fetching all active stock items for adjustment:",
@@ -499,7 +520,7 @@ export const getActiveStockItems = async (req, res) => {
         si.equivalencia_ml,
         si.stock_unidades,
         m.id as marca_id,
-        si.prioridad_consumo,  -- Añadido para el form
+      
         si.alerta_stock_bajo -- Añadido para el form
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
@@ -599,13 +620,53 @@ export const getInactiveStockItem = async (req, res) => {
 
 export const updateStockItem = async (req, res) => {
   const { id } = req.params;
-  const { marca_id, equivalencia_ml, prioridad_consumo, alerta_stock_bajo } =
-    req.body;
-  await pool.query(
-    "UPDATE stock_items SET marca_id = ?, equivalencia_ml = ?, prioridad_consumo = ?, alerta_stock_bajo = ? WHERE id = ?",
-    [marca_id, equivalencia_ml, prioridad_consumo, alerta_stock_bajo, id]
-  );
-  res.status(200).json({ message: "Item de stock actualizado con éxito." });
+  const {
+    marca_id,
+    variacion,
+    equivalencia_ml,
+    /*prioridad_consumo,*/ alerta_stock_bajo,
+  } = req.body; // <-- Quitar prioridad_consumo
+
+  // Validación sin prioridad_consumo
+  if (
+    marca_id === undefined ||
+    equivalencia_ml === undefined ||
+    alerta_stock_bajo === undefined
+  ) {
+    return res.status(400).json({
+      message:
+        "Faltan datos obligatorios (marca_id, equivalencia_ml, alerta_stock_bajo).",
+    });
+  }
+
+  try {
+    await pool.query(
+      //
+      // Query sin prioridad_consumo
+      "UPDATE stock_items SET marca_id = ?, variacion = ?, equivalencia_ml = ?, alerta_stock_bajo = ? WHERE id = ?",
+      [
+        marca_id,
+        variacion || null,
+        equivalencia_ml,
+        // prioridad_consumo, // <-- Eliminado
+        alerta_stock_bajo,
+        id,
+      ]
+    );
+    res.status(200).json({ message: "Item de stock actualizado con éxito." });
+  } catch (error) {
+    // ... (manejo de errores duplicados sin cambios) ...
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "Ya existe otro item con esa marca, variación y equivalencia.",
+      });
+    }
+    console.error("Error updating stock item:", error);
+    res.status(500).json({
+      message: "Error al actualizar el item de stock.",
+      error: error.message,
+    });
+  }
 };
 
 export const deleteStockItem = async (req, res) => {
