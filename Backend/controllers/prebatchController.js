@@ -5,11 +5,11 @@ import pool from "../config/db.js";
 export const getAllPrebatches = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 15; // 15 prebatches por página
+    const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || "";
     const offset = (page - 1) * limit;
 
-    let whereClause = "WHERE is_active = TRUE"; // Mantenemos el filtro de activos
+    let whereClause = "WHERE is_active = TRUE";
     const queryParams = [];
 
     if (searchQuery) {
@@ -17,34 +17,40 @@ export const getAllPrebatches = async (req, res) => {
       queryParams.push(`%${searchQuery}%`);
     }
 
-    // 1. Consulta para el CONTEO TOTAL
+    // Consulta de Conteo (sin cambios)
     const countQuery = `
       SELECT COUNT(id) AS totalPrebatches
       FROM prebatches
       ${whereClause};
     `;
-    const [countRows] = await pool.query(countQuery, queryParams);
+    const [countRows] = await pool.query(countQuery, queryParams); //
     const totalPrebatches = countRows[0].totalPrebatches;
     const totalPages = Math.ceil(totalPrebatches / limit);
 
-    // 2. Consulta para los DATOS PAGINADOS
+    // Consulta de Datos Paginados (CASE MODIFICADO)
     const dataQuery = `
-      SELECT *, 
+      SELECT id, nombre_prebatch, fecha_produccion, fecha_vencimiento, cantidad_actual_ml, identificador_lote,
         CASE
-          WHEN CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 28 DAY) THEN 'VENCIDO'
-          WHEN CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 14 DAY) THEN 'ADVERTENCIA'
+          -- Lógica con fecha de vencimiento manual (Aviso 7 días antes)
+          WHEN fecha_vencimiento IS NOT NULL AND CURDATE() >= fecha_vencimiento THEN 'VENCIDO'
+          WHEN fecha_vencimiento IS NOT NULL AND CURDATE() >= DATE_SUB(fecha_vencimiento, INTERVAL 7 DAY) THEN 'ADVERTENCIA'
+
+          -- Lógica original (fallback si no hay fecha manual - 14/28 días desde producción)
+          WHEN fecha_vencimiento IS NULL AND CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 28 DAY) THEN 'VENCIDO'
+          WHEN fecha_vencimiento IS NULL AND CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 14 DAY) THEN 'ADVERTENCIA'
+
+          -- Por defecto
           ELSE 'FRESCO'
         END AS estado
       FROM prebatches
       ${whereClause}
-      ORDER BY fecha_produccion ASC
+      ORDER BY fecha_produccion ASC -- Puedes cambiar a ORDER BY estado, fecha_vencimiento, fecha_produccion si prefieres
       LIMIT ?
       OFFSET ?;
     `;
     const dataParams = [...queryParams, limit, offset];
-    const [prebatches] = await pool.query(dataQuery, dataParams);
+    const [prebatches] = await pool.query(dataQuery, dataParams); //
 
-    // 3. Devolver la respuesta estructurada
     res.json({
       prebatches,
       pagination: {
@@ -55,7 +61,28 @@ export const getAllPrebatches = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Error fetching prebatches:", error); // Añadir log
     res.status(500).json({ message: "Error al obtener prebatches." });
+  }
+};
+
+export const getPrebatchNames = async (req, res) => {
+  try {
+    const query = `
+      SELECT DISTINCT nombre_prebatch
+      FROM prebatches
+      WHERE is_active = TRUE
+      ORDER BY nombre_prebatch ASC;
+    `;
+    const [rows] = await pool.query(query); //
+    // Devolver solo un array de strings (nombres)
+    const names = rows.map((row) => row.nombre_prebatch);
+    res.json(names);
+  } catch (error) {
+    console.error("Error fetching distinct prebatch names:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener nombres de prebatches." });
   }
 };
 

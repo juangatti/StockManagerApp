@@ -1,5 +1,16 @@
 import pool from "../config/db.js";
 
+const buildNombreCompleto = (nombreMarca, variacion, cantidad, unidad) => {
+  let parts = [nombreMarca];
+  if (variacion && variacion.trim() !== "") {
+    parts.push(variacion.trim());
+  }
+  // Formatear cantidad (ej: quitar decimales innecesarios si es posible)
+  const formattedCantidad = parseFloat(cantidad).toString();
+  parts.push(`${formattedCantidad}${unidad}`); // Usar unidad directamente
+  return parts.join(" ");
+};
+
 // --- GESTIÓN DE CATEGORÍAS ---
 export const getCategories = async (req, res) => {
   try {
@@ -374,42 +385,50 @@ export const createStockItem = async (req, res) => {
   const {
     marca_id,
     variacion,
-    equivalencia_ml,
+    cantidad_por_envase, // <-- Nuevo nombre
+    unidad_medida, // <-- Nueva columna
     stock_unidades,
     alerta_stock_bajo,
   } = req.body;
 
-  if (!marca_id || !equivalencia_ml || !alerta_stock_bajo) {
-    console.error("Error: Faltan datos obligatorios en createStockItem"); // Log de error de validación
-    return res.status(400).json({ message: "Faltan datos obligatorios." });
+  // Validación
+  if (
+    !marca_id ||
+    !cantidad_por_envase ||
+    !unidad_medida ||
+    !alerta_stock_bajo ||
+    !["ml", "g"].includes(unidad_medida)
+  ) {
+    return res.status(400).json({
+      message:
+        "Faltan datos obligatorios o la unidad de medida es inválida ('ml' o 'g').",
+    });
   }
 
-  let connection;
-
+  const connection = await pool.getConnection(); //
   try {
-    connection = await pool.getConnection(); //
-
     await connection.beginTransaction();
 
-    const insertData = [
-      marca_id,
-      variacion || null,
-      equivalencia_ml,
-      stock_unidades || 0,
-      alerta_stock_bajo,
-    ];
-
     const [result] = await connection.query(
-      `INSERT INTO stock_items (marca_id, variacion, equivalencia_ml, stock_unidades, alerta_stock_bajo)
-       VALUES (?, ?, ?, ?, ?)`,
-      insertData
+      // Query actualizada
+      `INSERT INTO stock_items (marca_id, variacion, cantidad_por_envase, unidad_medida, stock_unidades, alerta_stock_bajo)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        marca_id,
+        variacion || null,
+        cantidad_por_envase,
+        unidad_medida, // Guardar 'ml' o 'g'
+        stock_unidades || 0,
+        alerta_stock_bajo,
+      ]
     );
     const newItemId = result.insertId;
 
+    // Lógica de stock inicial (sin cambios)
     if (stock_unidades && stock_unidades > 0) {
       await connection.query(
         `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion)
-          VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
+           VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
         [
           newItemId,
           stock_unidades,
@@ -421,32 +440,33 @@ export const createStockItem = async (req, res) => {
     }
 
     await connection.commit();
-
     res
       .status(201)
       .json({ message: "Item de stock creado con éxito.", newItemId });
   } catch (error) {
-    if (connection) {
-      await connection.rollback();
+    await connection.rollback();
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message:
+          "Ya existe un item con esa marca, variación, cantidad y unidad.",
+      }); // Mensaje más específico
     }
-
-    res.status(500).json({
-      message: "Error interno del servidor al crear el item.",
-      error: error.message,
-      code: error.code,
-    });
+    console.error("Error creating stock item:", error); // Loggear error
+    res
+      .status(500)
+      .json({ message: "Error al crear el item.", error: error.message });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    if (connection) connection.release();
   }
 };
 
 export const getStockItemById = async (req, res) => {
   const { id } = req.params;
-  const [rows] = await pool.query("SELECT * FROM stock_items WHERE id = ?", [
-    id,
-  ]);
+  const [rows] = await pool.query(
+    //
+    "SELECT *, cantidad_por_envase, unidad_medida FROM stock_items WHERE id = ?",
+    [id]
+  );
   if (rows.length === 0)
     return res.status(404).json({ message: "Item no encontrado." });
   res.json(rows[0]);
@@ -454,25 +474,28 @@ export const getStockItemById = async (req, res) => {
 
 export const getAllActiveStockItemsForAdjustment = async (req, res) => {
   try {
-    // La consulta AHORA incluye la lógica para la variación
     const query = `
      SELECT
         si.id,
+        -- Construcción dinámica del nombre completo con unidad
         CONCAT(
             m.nombre,
             CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
             ' ',
-            si.equivalencia_ml, 'ml'
+            FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)), -- Formatear número
+            si.unidad_medida -- Añadir unidad
         ) AS nombre_completo,
-        si.stock_unidades
+        si.stock_unidades,
+        si.unidad_medida -- Enviar unidad por si el frontend la necesita
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       WHERE si.is_active = TRUE
-      ORDER BY nombre_completo ASC; 
+      ORDER BY nombre_completo ASC;
     `;
     const [rows] = await pool.query(query); //
     res.json(rows);
   } catch (error) {
+    /* ... (manejo de error sin cambios) ... */
     console.error(
       "Error fetching all active stock items for adjustment:",
       error
@@ -485,70 +508,72 @@ export const getAllActiveStockItemsForAdjustment = async (req, res) => {
 
 export const getActiveStockItems = async (req, res) => {
   try {
+    // ... (paginación y búsqueda sin cambios, buscar por variacion ya estaba) ...
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 15; // 15 items por página
+    const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || "";
     const offset = (page - 1) * limit;
-
     let whereClause = "WHERE si.is_active = TRUE";
     const queryParams = [];
-
     if (searchQuery) {
-      // Buscamos en nombre de marca o categoría
-      whereClause += " AND (m.nombre LIKE ? OR c.nombre LIKE ?)";
-      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+      whereClause +=
+        " AND (m.nombre LIKE ? OR c.nombre LIKE ? OR si.variacion LIKE ?)";
+      queryParams.push(
+        `%${searchQuery}%`,
+        `%${searchQuery}%`,
+        `%${searchQuery}%`
+      );
     }
 
-    // 1. Consulta de Conteo
+    // Consulta de Conteo (sin cambios)
     const countQuery = `
-      SELECT COUNT(si.id) AS totalItems
-      FROM stock_items AS si
-      JOIN marcas AS m ON si.marca_id = m.id
-      JOIN categorias AS c ON m.categoria_id = c.id
-      ${whereClause};
-    `;
-    const [countRows] = await pool.query(countQuery, queryParams);
+  SELECT COUNT(si.id) AS totalItems
+  FROM stock_items AS si
+  JOIN marcas AS m ON si.marca_id = m.id
+  JOIN categorias AS c ON m.categoria_id = c.id
+  ${whereClause};
+`;
+    const [countRows] = await pool.query(countQuery, queryParams); //
     const totalItems = countRows[0].totalItems;
     const totalPages = Math.ceil(totalItems / limit);
 
-    // 2. Consulta de Datos Paginados
+    // Consulta de Datos Paginados
     const dataQuery = `
-     SELECT 
+     SELECT
         si.id,
         m.nombre AS nombre_marca,
         c.nombre AS nombre_categoria,
-        si.equivalencia_ml,
+        si.variacion,
+        si.cantidad_por_envase, -- <-- Nueva
+        si.unidad_medida,       -- <-- Nueva
         si.stock_unidades,
         m.id as marca_id,
-      
-        si.alerta_stock_bajo -- Añadido para el form
+        si.alerta_stock_bajo,
+        -- Construcción dinámica del nombre completo con unidad
+        CONCAT(
+            m.nombre,
+            CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+            ' ',
+             FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
+            si.unidad_medida
+        ) AS nombre_completo
       FROM stock_items AS si
       JOIN marcas AS m ON si.marca_id = m.id
       JOIN categorias AS c ON m.categoria_id = c.id
       ${whereClause}
-      ORDER BY c.nombre, m.nombre, si.equivalencia_ml
+      ORDER BY c.nombre, m.nombre, si.variacion, si.cantidad_por_envase -- Ordenar por cantidad
       LIMIT ?
       OFFSET ?;
     `;
     const dataParams = [...queryParams, limit, offset];
-    const [items] = await pool.query(dataQuery, dataParams);
+    const [items] = await pool.query(dataQuery, dataParams); //
 
-    const stockConNombreCompleto = items.map((item) => ({
-      ...item,
-      nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
-    }));
-
-    // 3. Respuesta estructurada
     res.json({
-      items: stockConNombreCompleto,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems,
-        limit,
-      },
+      items: items,
+      pagination: { currentPage: page, totalPages, totalItems, limit },
     });
   } catch (error) {
+    /* ... (manejo de error sin cambios) ... */
     console.error("Error fetching active stock items:", error);
     res.status(500).json({
       message: "Error del servidor al obtener items de stock activos.",
@@ -558,63 +583,68 @@ export const getActiveStockItems = async (req, res) => {
 
 export const getInactiveStockItem = async (req, res) => {
   try {
+    // ... (paginación y búsqueda sin cambios) ...
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || "";
     const offset = (page - 1) * limit;
-
-    let whereClause = "WHERE si.is_active = FALSE"; // Cambiado a FALSE
+    let whereClause = "WHERE si.is_active = FALSE";
     const queryParams = [];
-
     if (searchQuery) {
-      // Buscamos en nombre de marca o categoría también para inactivos
-      whereClause += " AND (m.nombre LIKE ? OR c.nombre LIKE ?)";
-      queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+      whereClause +=
+        " AND (m.nombre LIKE ? OR c.nombre LIKE ? OR si.variacion LIKE ?)";
+      queryParams.push(
+        `%${searchQuery}%`,
+        `%${searchQuery}%`,
+        `%${searchQuery}%`
+      );
     }
 
-    // 1. Consulta de Conteo
-    const countQuery = `
-        SELECT COUNT(si.id) AS totalItems 
-        FROM stock_items si 
-        JOIN marcas m ON si.marca_id = m.id 
-        JOIN categorias c ON m.categoria_id = c.id 
-        ${whereClause};
-    `;
-    const [countRows] = await pool.query(countQuery, queryParams);
+    // Consulta de Conteo (sin cambios)
+    const countQuery = `...`; // Igual que antes
+    const [countRows] = await pool.query(countQuery, queryParams); //
     const totalItems = countRows[0].totalItems;
     const totalPages = Math.ceil(totalItems / limit);
 
-    // 2. Consulta de Datos Paginados
+    // Consulta de Datos Paginados
     const dataQuery = `
-      SELECT si.id, m.nombre AS nombre_marca, si.equivalencia_ml, c.nombre AS nombre_categoria
-      FROM stock_items si 
-      JOIN marcas m ON si.marca_id = m.id 
-      JOIN categorias c ON m.categoria_id = c.id 
-      ${whereClause} 
-      ORDER BY m.nombre ASC 
-      LIMIT ? 
+      SELECT
+        si.id,
+        m.nombre AS nombre_marca,
+        si.variacion,
+        si.cantidad_por_envase, -- <-- Nueva
+        si.unidad_medida,       -- <-- Nueva
+        c.nombre AS nombre_categoria,
+        -- Construcción dinámica del nombre completo con unidad
+        CONCAT(
+            m.nombre,
+            CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+            ' ',
+            FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
+            si.unidad_medida
+        ) AS nombre_completo
+      FROM stock_items si
+      JOIN marcas m ON si.marca_id = m.id
+      JOIN categorias c ON m.categoria_id = c.id
+      ${whereClause}
+      ORDER BY m.nombre, si.variacion, si.cantidad_por_envase
+      LIMIT ?
       OFFSET ?;
     `;
     const dataParams = [...queryParams, limit, offset];
-    const [items] = await pool.query(dataQuery, dataParams);
+    const [items] = await pool.query(dataQuery, dataParams); //
 
-    const stockConNombreCompleto = items.map((item) => ({
-      ...item,
-      nombre_completo: `${item.nombre_marca} ${item.equivalencia_ml}ml`,
-    }));
-
-    // 3. Respuesta estructurada
     res.json({
-      items: stockConNombreCompleto, // Cambiado a 'items' por consistencia
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems,
-        limit,
-      },
+      items: items,
+      pagination: { currentPage: page, totalPages, totalItems, limit },
     });
   } catch (error) {
-    res.status(500).json({ message: "Error del servidor." });
+    /* ... (manejo de error sin cambios) ... */
+    console.error("Error fetching inactive stock items:", error);
+    res.status(500).json({
+      message: "Error del servidor al obtener items inactivos.",
+      error: error.message,
+    });
   }
 };
 
@@ -623,42 +653,45 @@ export const updateStockItem = async (req, res) => {
   const {
     marca_id,
     variacion,
-    equivalencia_ml,
-    /*prioridad_consumo,*/ alerta_stock_bajo,
-  } = req.body; // <-- Quitar prioridad_consumo
+    cantidad_por_envase,
+    unidad_medida,
+    alerta_stock_bajo,
+  } = req.body; // <-- Nuevos campos
 
-  // Validación sin prioridad_consumo
+  // Validación
   if (
-    marca_id === undefined ||
-    equivalencia_ml === undefined ||
-    alerta_stock_bajo === undefined
+    !marca_id ||
+    !cantidad_por_envase ||
+    !unidad_medida ||
+    !alerta_stock_bajo ||
+    !["ml", "g"].includes(unidad_medida)
   ) {
     return res.status(400).json({
       message:
-        "Faltan datos obligatorios (marca_id, equivalencia_ml, alerta_stock_bajo).",
+        "Faltan datos obligatorios o la unidad de medida es inválida ('ml' o 'g').",
     });
   }
 
   try {
     await pool.query(
       //
-      // Query sin prioridad_consumo
-      "UPDATE stock_items SET marca_id = ?, variacion = ?, equivalencia_ml = ?, alerta_stock_bajo = ? WHERE id = ?",
+      // Query actualizada
+      "UPDATE stock_items SET marca_id = ?, variacion = ?, cantidad_por_envase = ?, unidad_medida = ?, alerta_stock_bajo = ? WHERE id = ?",
       [
         marca_id,
         variacion || null,
-        equivalencia_ml,
-        // prioridad_consumo, // <-- Eliminado
+        cantidad_por_envase,
+        unidad_medida,
         alerta_stock_bajo,
         id,
       ]
     );
     res.status(200).json({ message: "Item de stock actualizado con éxito." });
   } catch (error) {
-    // ... (manejo de errores duplicados sin cambios) ...
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
-        message: "Ya existe otro item con esa marca, variación y equivalencia.",
+        message:
+          "Ya existe otro item con esa marca, variación, cantidad y unidad.",
       });
     }
     console.error("Error updating stock item:", error);

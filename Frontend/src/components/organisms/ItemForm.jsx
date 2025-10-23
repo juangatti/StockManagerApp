@@ -5,12 +5,12 @@ import toast from "react-hot-toast";
 import { PackagePlus } from "lucide-react";
 
 export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
-  // Estado sin prioridad_consumo
+  // Estado actualizado: renombrado equivalencia_ml, añadido unidad_medida, quitado prioridad_consumo
   const [formData, setFormData] = useState({
     marca_id: "",
     variacion: "",
-    equivalencia_ml: "",
-    // prioridad_consumo: "1", // <-- Eliminado
+    cantidad_por_envase: "", // <-- Nuevo nombre
+    unidad_medida: "ml", // <-- Nuevo campo, default 'ml'
     alerta_stock_bajo: "",
   });
   const [marcas, setMarcas] = useState([]);
@@ -24,89 +24,102 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
         if (Array.isArray(res.data)) {
           setMarcas(res.data);
         } else {
-          console.error(/* ... */);
+          /* ... manejo error formato ... */
+          console.error(
+            "La respuesta de /admin/marcas/all no es un array:",
+            res.data
+          );
           setMarcas([]);
-          toast.error(/* ... */);
+          toast.error(
+            "Error al cargar la lista de marcas (formato inesperado)."
+          );
         }
       })
-      .catch(() => toast.error(/* ... */));
+      .catch(() =>
+        toast.error("No se pudieron cargar las marcas (error de red).")
+      );
   }, []);
 
-  // Pre-llenar form (sin prioridad_consumo)
+  // Pre-llenar form (actualizado)
   useEffect(() => {
     if (itemToEdit) {
       setFormData({
         marca_id: itemToEdit.marca_id || "",
         variacion: itemToEdit.variacion || "",
-        equivalencia_ml: itemToEdit.equivalencia_ml || "",
-        // prioridad_consumo: itemToEdit.prioridad_consumo || "1", // <-- Eliminado
+        cantidad_por_envase: itemToEdit.cantidad_por_envase || "", // <-- Nuevo nombre
+        unidad_medida: itemToEdit.unidad_medida || "ml", // <-- Nuevo campo
         alerta_stock_bajo: itemToEdit.alerta_stock_bajo || "",
       });
     } else {
-      // Resetear (sin prioridad_consumo)
+      // Resetear (actualizado)
       setFormData({
         marca_id: "",
         variacion: "",
-        equivalencia_ml: "",
-        // prioridad_consumo: "1", // <-- Eliminado
+        cantidad_por_envase: "", // <-- Nuevo nombre
+        unidad_medida: "ml", // <-- Nuevo campo
         alerta_stock_bajo: "",
       });
     }
   }, [itemToEdit]);
 
   const handleChange = (e) => {
-    /* ... (sin cambios) ... */
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Validación (sin prioridad_consumo)
+    // Validación actualizada
     if (
       !formData.marca_id ||
-      !formData.equivalencia_ml ||
+      !formData.cantidad_por_envase ||
+      !formData.unidad_medida || // <-- Validar unidad
       !formData.alerta_stock_bajo
-      // !formData.prioridad_consumo // <-- Eliminado
     ) {
       toast.error(
-        "La marca, equivalencia y alerta de stock son obligatorios." // <-- Mensaje actualizado
+        "La marca, cantidad por envase, unidad de medida y alerta de stock son obligatorios." // <-- Mensaje actualizado
       );
+      return;
+    }
+    // Validar que cantidad sea número positivo
+    const cantidadNum = parseFloat(formData.cantidad_por_envase);
+    if (isNaN(cantidadNum) || cantidadNum <= 0) {
+      toast.error("La cantidad por envase debe ser un número positivo.");
       return;
     }
 
     setIsSubmitting(true);
-    // Payload (sin prioridad_consumo)
+    // Payload actualizado
     const payload = {
-      ...formData,
       marca_id: parseInt(formData.marca_id),
       variacion: formData.variacion.trim() || null,
-      equivalencia_ml: parseFloat(formData.equivalencia_ml),
-      // prioridad_consumo: parseInt(formData.prioridad_consumo) || 1, // <-- Eliminado
+      cantidad_por_envase: cantidadNum, // Enviar número validado
+      unidad_medida: formData.unidad_medida, // Enviar 'ml' o 'g'
       alerta_stock_bajo: parseFloat(formData.alerta_stock_bajo),
     };
     const isEditing = !!itemToEdit?.id;
 
-    // Llamada API (sin cambios)
+    // Llamada API (sin cambios en la ruta)
     const promise = isEditing
       ? api.put(`/admin/stock-items/${itemToEdit.id}`, payload) //
       : api.post("/admin/stock-items", payload); //
 
     toast.promise(promise, {
-      /* ... (sin cambios) ... */
       loading: isEditing ? "Actualizando item..." : "Creando item...",
       success: () => {
         setIsSubmitting(false);
-        onFormSubmit();
+        onFormSubmit(); // Llama a la función del padre para refrescar/cerrar
         return `¡Item ${isEditing ? "actualizado" : "creado"} con éxito!`;
       },
       error: (err) => {
         setIsSubmitting(false);
+        // Mostrar mensaje específico del backend si existe
         return err.response?.data?.message || "Ocurrió un error al guardar.";
       },
     });
   };
 
+  // Clase común para inputs
   const commonInputClass =
     "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500";
 
@@ -114,18 +127,14 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
   return (
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
       <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        {/* ... (título sin cambios) ... */}
         <PackagePlus className="text-sky-400" />
         {itemToEdit?.id ? "Editar Item de Stock" : "Crear Nuevo Item (Envase)"}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Ajustar grid a 2 columnas si queda mejor sin el campo de prioridad */}
+        {/* Usaremos grid de 2 columnas ahora */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {" "}
-          {/* <-- Cambiado a 2 columnas */}
           {/* Marca */}
           <div>
-            {/* ... (código de Marca sin cambios) ... */}
             <label
               htmlFor="marca_id"
               className="block mb-2 text-sm font-medium text-slate-300"
@@ -144,14 +153,15 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
               {Array.isArray(marcas) &&
                 marcas.map((marca) => (
                   <option key={marca.id} value={marca.id}>
-                    {marca.nombre}
+                    {" "}
+                    {marca.nombre}{" "}
                   </option>
                 ))}
             </select>
           </div>
+
           {/* Variación */}
           <div>
-            {/* ... (código de Variación sin cambios) ... */}
             <label
               htmlFor="variacion"
               className="block mb-2 text-sm font-medium text-slate-300"
@@ -168,31 +178,52 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
               className={commonInputClass}
             />
           </div>
-          {/* Equivalencia */}
+
+          {/* Cantidad por Envase */}
           <div>
-            {/* ... (código de Equivalencia sin cambios) ... */}
             <label
-              htmlFor="equivalencia_ml"
+              htmlFor="cantidad_por_envase"
               className="block mb-2 text-sm font-medium text-slate-300"
             >
-              Equivalencia (ml) (*)
+              Cantidad por Envase (*) {/* <-- Label actualizado */}
             </label>
             <input
               type="number"
-              name="equivalencia_ml"
-              id="equivalencia_ml"
-              placeholder="Ej: 750"
-              value={formData.equivalencia_ml}
+              name="cantidad_por_envase"
+              id="cantidad_por_envase" /* <-- name actualizado */
+              placeholder="Ej: 750 ó 1000"
+              value={formData.cantidad_por_envase}
               onChange={handleChange}
               className={commonInputClass}
               required
-              min="0"
-              step="0.01"
+              min="0.001"
+              step="any" // Permitir decimales
             />
           </div>
-          {/* Alerta Stock */}
+
+          {/* Unidad de Medida */}
           <div>
-            {/* ... (código de Alerta Stock sin cambios) ... */}
+            <label
+              htmlFor="unidad_medida"
+              className="block mb-2 text-sm font-medium text-slate-300"
+            >
+              Unidad de Medida (*) {/* <-- Nuevo campo */}
+            </label>
+            <select
+              name="unidad_medida"
+              id="unidad_medida"
+              value={formData.unidad_medida}
+              onChange={handleChange}
+              className={commonInputClass}
+              required
+            >
+              <option value="ml">ml (Mililitros)</option>
+              <option value="g">g (Gramos)</option>
+            </select>
+          </div>
+
+          {/* Alerta Stock Bajo */}
+          <div>
             <label
               htmlFor="alerta_stock_bajo"
               className="block mb-2 text-sm font-medium text-slate-300"
@@ -212,17 +243,12 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
               required
             />
           </div>
-          {/* Prioridad Consumo - ELIMINADO */}
-          {/*
-          <div>
-            <label htmlFor="prioridad_consumo" ...>Prioridad Consumo (*)</label>
-            <input type="number" name="prioridad_consumo" ... />
-          </div>
-          */}
+
+          {/* Campo Vacío Opcional para alinear grid si hay 5 campos */}
+          <div></div>
         </div>
-        {/* Botones (sin cambios) */}
+        {/* Botones */}
         <div className="flex justify-end pt-2 gap-4">
-          {/* ... (botones Cancelar y Guardar) ... */}
           <button
             type="button"
             onClick={onCancel}

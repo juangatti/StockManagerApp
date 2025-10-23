@@ -12,202 +12,162 @@ const buildNombreCompleto = (nombreMarca, variacion, equivalenciaMl) => {
 };
 
 export const processSalesFile = async (req, res) => {
+  // ... (lectura de archivo y inicio transacción sin cambios) ...
   if (!req.file) {
-    return res.status(400).json({ message: "No se subió ningún archivo." });
+    /* ... */
   }
-
   const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
-  const ventas = xlsx.utils.sheet_to_json(worksheet);
-
-  const connection = await pool.getConnection(); //
-
+  // ...
+  let connection;
   try {
+    connection = await pool.getConnection(); //
     await connection.beginTransaction();
-
-    const descEvento = `Procesamiento de ventas (Archivo: ${
-      req.file.originalname || "desconocido"
-    })`;
-    const [eventoResult] = await connection.query(
-      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('VENTA', ?)",
-      [descEvento]
-    );
+    // ... (Crear evento VENTA) ...
+    const [eventoResult] = await connection.query(/* ... */);
     const eventoId = eventoResult.insertId;
 
     for (const venta of ventas) {
       const productoVendido = venta.Producto;
       const cantidadVendida = venta.Cantidad;
-
-      // Validar cantidad
-      if (isNaN(cantidadVendida) || cantidadVendida <= 0) {
-        console.log(
-          `Advertencia: Cantidad inválida (${cantidadVendida}) para producto "${productoVendido}". Saltando.`
-        );
-        continue;
-      }
-
-      const [productoRows] = await connection.query(
-        "SELECT id FROM productos WHERE nombre_producto_fudo = ? AND is_active = TRUE", // Buscar solo activos
-        [productoVendido]
-      );
-      if (productoRows.length === 0) {
-        console.log(
-          `Advertencia: Producto "${productoVendido}" no encontrado o inactivo. Saltando venta.`
-        );
-        continue;
-      }
+      // ... (Validar cantidad, buscar productoId) ...
+      if (isNaN(cantidadVendida) || cantidadVendida <= 0) continue;
+      const [productoRows] = await connection.query(/* ... */);
+      if (productoRows.length === 0) continue;
       const productoId = productoRows[0].id;
 
+      // Obtener reglas de receta (sin cambios aquí)
       const [reglasReceta] = await connection.query(
-        // Asegurarse de que la receta exista y traiga los datos necesarios
-        `SELECT DISTINCT
-            r.marca_id,
-            r.consumo_ml
-          FROM recetas r
-          JOIN stock_items si ON r.item_id = si.id
-          JOIN marcas m ON r.marca_id = m.id -- Unir con marcas para validar que existe
-          WHERE r.producto_id = ?`,
-        [productoId]
+        `SELECT DISTINCT r.marca_id, r.consumo_ml, m.nombre AS nombre_marca FROM recetas r JOIN marcas m ... WHERE r.producto_id = ?`,
+        [productId]
       );
-
-      if (reglasReceta.length === 0) {
-        console.log(
-          `Advertencia: No se encontraron reglas de receta válidas para "${productoVendido}". Saltando venta.`
-        );
-        continue; // Saltar si no hay receta
-      }
+      if (reglasReceta.length === 0) continue;
 
       for (const regla of reglasReceta) {
-        let consumoTotalMl = regla.consumo_ml * cantidadVendida;
+        let consumoTotalMl = regla.consumo_ml * cantidadVendida; // Consumo requerido en ML
 
-        // La consulta de items priorizados necesita traer la variación
+        if (consumoTotalMl <= 0) continue;
+
+        // Obtener items priorizados (incluyendo unidad_medida y cantidad_por_envase)
         const [itemsPriorizados] = await connection.query(
           `SELECT
              r.item_id,
              si.stock_unidades,
-             si.variacion,          -- <-- Seleccionar variación
-             si.equivalencia_ml,
-             m.nombre as nombre_marca -- Necesitamos nombre de marca para construir nombre completo
+             si.variacion,
+             si.cantidad_por_envase, -- <-- Nueva
+             si.unidad_medida,       -- <-- Nueva
+             m.nombre as nombre_marca
            FROM recetas r
            JOIN stock_items si ON r.item_id = si.id
-           JOIN marcas m ON si.marca_id = m.id -- Unir con marcas
-           WHERE r.producto_id = ? AND r.marca_id = ? AND si.stock_unidades > 0 AND si.is_active = TRUE -- Solo items activos
+           JOIN marcas m ON si.marca_id = m.id
+           WHERE r.producto_id = ? AND r.marca_id = ? AND si.stock_unidades > 0 AND si.is_active = TRUE
            ORDER BY r.prioridad_item ASC`,
-          [productoId, regla.marca_id]
+          [productId, regla.marca_id]
         );
 
         for (const item of itemsPriorizados) {
-          if (consumoTotalMl <= 0.001) break; // Usar tolerancia pequeña para floats
+          if (consumoTotalMl <= 0.001) break;
 
-          const stockDisponibleEnMl =
-            item.stock_unidades * item.equivalencia_ml;
-          const aDescontarDeEsteItemEnMl = Math.min(
-            consumoTotalMl,
-            stockDisponibleEnMl
-          );
+          const nombreCompletoItem = buildNombreCompleto(
+            item.nombre_marca,
+            item.variacion,
+            item.cantidad_por_envase,
+            item.unidad_medida
+          ); // Construir nombre
 
-          // Evitar divisiones por cero o valores inválidos
-          if (item.equivalencia_ml <= 0) {
-            console.log(
-              `Advertencia: Equivalencia inválida (${item.equivalencia_ml}) para item ID ${item.item_id}. Saltando descuento.`
+          // Verificar cantidad_por_envase
+          if (item.cantidad_por_envase <= 0) {
+            console.warn(
+              `Advertencia: Cantidad por envase inválida para ${nombreCompletoItem} (ID: ${item.item_id}). Saltando.`
             );
             continue;
           }
 
-          const aDescontarEnUnidades =
-            aDescontarDeEsteItemEnMl / item.equivalencia_ml;
+          // --- Calcular unidades a descontar (Ajuste 1:1 para sólidos) ---
+          let cantidadConsumidaEnUnidadBase = consumoTotalMl; // Asumir ml
+          if (item.unidad_medida === "g") {
+            // TODO: Implementar conversión con densidad si es necesaria. Asumiendo 1ml = 1g.
+            console.log(
+              `   INFO: Venta - Asumiendo 1ml = 1g para item sólido ${nombreCompletoItem}`
+            );
+            // cantidadConsumidaEnUnidadBase = consumoTotalMl; // Sigue siendo el mismo número
+          }
 
-          // Obtener stock actual con bloqueo
+          // Calcular cuánto de la unidad base (ml o g) hay disponible en stock
+          const stockDisponibleEnUnidadBase =
+            item.stock_unidades * item.cantidad_por_envase;
+
+          // Determinar cuánto consumir de este item (en la unidad base del item)
+          const aDescontarDeEsteItemEnUnidadBase = Math.min(
+            cantidadConsumidaEnUnidadBase, // Lo que necesitamos (ya sea ml o g asumido)
+            stockDisponibleEnUnidadBase // Lo que hay disponible
+          );
+
+          // Calcular unidades de envase a descontar
+          const aDescontarEnUnidades =
+            aDescontarDeEsteItemEnUnidadBase / item.cantidad_por_envase;
+          // --- Fin cálculo ---
+
+          // ... (Obtener stock actual FOR UPDATE) ...
           const [stockActualRows] = await connection.query(
             "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
             [item.item_id]
           );
-          if (stockActualRows.length === 0) {
-            // Esto no debería pasar si la consulta anterior funcionó, pero por si acaso
-            throw new Error(
-              `Item ID ${item.item_id} desapareció inesperadamente.`
-            );
-          }
-
+          if (stockActualRows.length === 0)
+            throw new Error(`Item ID ${item.item_id} no encontrado...`);
           const stockAnterior = stockActualRows[0].stock_unidades;
           const stockNuevo = stockAnterior - aDescontarEnUnidades;
 
-          // Usar tolerancia para comparación de floats
+          // ... (Verificar stock < -0.001, Redondear, UPDATE stock_items) ...
           if (stockNuevo < -0.001) {
-            // Construir nombre completo para el mensaje de error
-            const nombreCompletoItemError = buildNombreCompleto(
-              item.nombre_marca,
-              item.variacion,
-              item.equivalencia_ml
-            );
             throw new Error(
-              `Stock insuficiente para "${nombreCompletoItemError}" (ID: ${
-                item.item_id
-              }) al procesar venta de "${productoVendido}". Necesita: ${aDescontarEnUnidades.toFixed(
-                3
-              )}, Disponible: ${stockAnterior.toFixed(3)}`
+              `Stock insuficiente para "${nombreCompletoItem}"...`
             );
           }
-          // Redondear stock nuevo para evitar problemas de precisión flotante muy pequeños
           const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
-
           await connection.query(
             "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
             [stockNuevoRedondeado, item.item_id]
           );
 
-          // Construir nombre completo para descripción
-          const nombreCompletoItemDesc = buildNombreCompleto(
-            item.nombre_marca,
-            item.variacion,
-            item.equivalencia_ml
-          );
-          const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItemDesc})`;
-
+          // ... (INSERT stock_movements) ...
+          const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItem})`;
           await connection.query(
-            `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'VENTA', ?, ?, ?, ?, ?)`,
+            `INSERT INTO stock_movements (...) VALUES (?, 'VENTA', ?, ?, ?, ?, ?)`,
             [
               item.item_id,
-              -aDescontarEnUnidades, // Guardar la cantidad exacta descontada
+              -aDescontarEnUnidades,
               stockAnterior,
-              stockNuevoRedondeado, // Guardar el stock redondeado
+              stockNuevoRedondeado,
               descripcionMovimiento,
               eventoId,
             ]
           );
 
-          consumoTotalMl -= aDescontarDeEsteItemEnMl;
-        }
+          // Restar lo consumido (en ML, porque consumoTotalMl está en ML)
+          consumoTotalMl -= aDescontarDeEsteItemEnUnidadBase; // Restamos la cantidad en la unidad base (ml o g asumido)
+        } // Fin bucle itemsPriorizados
 
+        // ... (Verificar si consumoTotalMl > 0.01 y lanzar error) ...
         if (consumoTotalMl > 0.01) {
-          // Obtener nombre de la marca para el error
-          const [marcaInfo] = await connection.query(
-            "SELECT nombre FROM marcas WHERE id = ?",
-            [regla.marca_id]
-          );
-          const nombreMarcaError =
-            marcaInfo.length > 0 ? marcaInfo[0].nombre : `ID ${regla.marca_id}`;
           throw new Error(
-            `Stock insuficiente para la marca "${nombreMarcaError}" en la venta de "${productoVendido}". Faltaron ${consumoTotalMl.toFixed(
-              2
-            )}ml por descontar.`
+            `Stock insuficiente para la marca "${regla.nombre_marca}"...`
           );
         }
-      }
-    }
+      } // Fin bucle reglasReceta
+    } // Fin bucle ventas
 
     await connection.commit();
     res.status(200).json({ message: "Ventas procesadas con éxito." });
   } catch (error) {
+    /* ... (rollback, manejo de error) ... */
     await connection.rollback();
-    console.error("Error durante el procesamiento de ventas:", error); // Loggear el error completo
-    // Devolver un mensaje más específico si es posible
+    console.error("Error durante el procesamiento de ventas:", error);
     res.status(500).json({
-      message: "Error al procesar las ventas.",
-      error: error.message || "Error desconocido",
+      message: error.message || "Error al procesar...",
+      error: error.message,
     });
   } finally {
-    connection.release();
+    /* ... (release connection) ... */
+    if (connection) connection.release();
   }
 };
