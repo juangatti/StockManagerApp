@@ -2,7 +2,17 @@
 import pool from "../config/db.js";
 
 // Función auxiliar para construir el nombre completo del item
-
+const buildNombreCompleto = (nombreMarca, variacion, equivalenciaMl) => {
+  let parts = [nombreMarca];
+  if (variacion && variacion.trim() !== "") {
+    parts.push(variacion.trim());
+  }
+  // Solo añadir equivalencia si es un número válido y mayor a 0, útil si se usa para ingredientes sin ml
+  if (typeof equivalenciaMl === "number" && equivalenciaMl > 0) {
+    parts.push(`${equivalenciaMl}ml`);
+  }
+  return parts.join(" ");
+};
 // Controlador para GET /api/stock
 export const getStock = async (req, res) => {
   try {
@@ -628,5 +638,251 @@ export const getStockAlerts = async (req, res) => {
       message: "Error al obtener alertas de stock.",
       error: error.message,
     });
+  }
+};
+
+export const registerProduction = async (req, res) => {
+  const { productId, quantityProduced, description } = req.body;
+
+  // 1. Validar entradas
+  if (
+    !productId ||
+    !quantityProduced ||
+    !description ||
+    quantityProduced <= 0
+  ) {
+    return res.status(400).json({
+      message:
+        "Faltan datos (Producto, Cantidad > 0, Descripción) o son inválidos.",
+    });
+  }
+
+  let connection;
+  try {
+    console.log(
+      `Iniciando registro de producción para Producto ID: ${productId}, Cantidad: ${quantityProduced}`
+    );
+    connection = await pool.getConnection(); //
+    await connection.beginTransaction();
+    console.log("Transacción iniciada.");
+
+    // 2. Crear evento de PRODUCCION
+    const [eventoResult] = await connection.query(
+      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('PRODUCCION', ?)",
+      [description]
+    );
+    const eventoId = eventoResult.insertId;
+    console.log(`Evento PRODUCCION creado con ID: ${eventoId}`);
+
+    // 3. Obtener la receta del productoId
+    const [reglasReceta] = await connection.query(
+      // Traemos marca_id y consumo_ml distintos para cada marca involucrada
+      `SELECT DISTINCT
+            r.marca_id,
+            r.consumo_ml,
+            m.nombre AS nombre_marca -- Necesario para mensajes de error
+          FROM recetas r
+          JOIN marcas m ON r.marca_id = m.id
+          WHERE r.producto_id = ?`,
+      [productId]
+    );
+
+    if (reglasReceta.length === 0) {
+      throw new Error(
+        `No se encontró receta activa o válida para el producto ID ${productId}.`
+      );
+    }
+    console.log(
+      `Receta encontrada con ${reglasReceta.length} marca(s) de ingredientes.`
+    );
+
+    // 4. Bucle por cada *tipo* de ingrediente (marca_id) en la receta
+    for (const regla of reglasReceta) {
+      let consumoTotalMl = regla.consumo_ml * quantityProduced;
+      console.log(
+        `Procesando ingrediente Marca ID: ${regla.marca_id} (${regla.nombre_marca}). Consumo total requerido: ${consumoTotalMl}ml`
+      );
+
+      if (consumoTotalMl <= 0) {
+        console.log(`Consumo 0ml para Marca ID: ${regla.marca_id}. Saltando.`);
+        continue; // Saltar si el consumo es 0
+      }
+
+      // 5. Obtener items priorizados para esta marca_id
+      const [itemsPriorizados] = await connection.query(
+        `SELECT
+             r.item_id,
+             si.stock_unidades,
+             si.variacion,
+             si.equivalencia_ml,
+             m.nombre as nombre_marca
+           FROM recetas r
+           JOIN stock_items si ON r.item_id = si.id
+           JOIN marcas m ON si.marca_id = m.id
+           WHERE r.producto_id = ? AND r.marca_id = ? AND si.stock_unidades > 0 AND si.is_active = TRUE
+           ORDER BY r.prioridad_item ASC`, // Usa la prioridad definida en la receta
+        [productId, regla.marca_id]
+      );
+
+      console.log(
+        `Encontrados ${itemsPriorizados.length} items activos con stock para Marca ID: ${regla.marca_id}`
+      );
+
+      // 6. Bucle por los items encontrados para descontar
+      for (const item of itemsPriorizados) {
+        if (consumoTotalMl <= 0.001) break; // Tolerancia para punto flotante
+
+        console.log(
+          `Intentando descontar del Item ID: ${
+            item.item_id
+          } (${buildNombreCompleto(
+            item.nombre_marca,
+            item.variacion,
+            item.equivalencia_ml
+          )})`
+        );
+
+        const stockDisponibleEnMl = item.stock_unidades * item.equivalencia_ml;
+        const aDescontarDeEsteItemEnMl = Math.min(
+          consumoTotalMl,
+          stockDisponibleEnMl
+        );
+
+        if (item.equivalencia_ml <= 0) {
+          console.warn(
+            `Advertencia: Equivalencia inválida (${item.equivalencia_ml}) para item ID ${item.item_id}. Saltando este item.`
+          );
+          continue; // Evitar división por cero
+        }
+        const aDescontarEnUnidades =
+          aDescontarDeEsteItemEnMl / item.equivalencia_ml;
+
+        // Obtener stock actual con bloqueo
+        const [stockActualRows] = await connection.query(
+          "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
+          [item.item_id]
+        );
+        if (stockActualRows.length === 0) {
+          // Esto no debería ocurrir si la consulta anterior lo encontró
+          throw new Error(
+            `Item ID ${item.item_id} no encontrado durante la actualización de stock.`
+          );
+        }
+
+        const stockAnterior = stockActualRows[0].stock_unidades;
+        const stockNuevo = stockAnterior - aDescontarEnUnidades;
+        console.log(
+          `   Stock Anterior: ${stockAnterior.toFixed(
+            3
+          )}, A descontar: ${aDescontarEnUnidades.toFixed(
+            3
+          )}, Stock Nuevo (calculado): ${stockNuevo.toFixed(3)}`
+        );
+
+        // Verificar stock suficiente con tolerancia
+        if (stockNuevo < -0.001) {
+          const nombreCompletoItemError = buildNombreCompleto(
+            item.nombre_marca,
+            item.variacion,
+            item.equivalencia_ml
+          );
+          throw new Error(
+            `Stock insuficiente para "${nombreCompletoItemError}" (ID: ${
+              item.item_id
+            }). Necesita descontar: ${aDescontarEnUnidades.toFixed(
+              3
+            )}, Disponible: ${stockAnterior.toFixed(3)}`
+          );
+        }
+        // Redondear stock nuevo para evitar problemas de precisión flotante
+        const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
+        console.log(`   Stock Nuevo (redondeado): ${stockNuevoRedondeado}`);
+
+        // Actualizar stock_items
+        await connection.query(
+          "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
+          [stockNuevoRedondeado, item.item_id]
+        );
+        console.log(`   Stock actualizado para Item ID: ${item.item_id}`);
+
+        // Crear descripción para el movimiento
+        const nombreCompletoItemDesc = buildNombreCompleto(
+          item.nombre_marca,
+          item.variacion,
+          item.equivalencia_ml
+        );
+        // Usar la descripción general del evento como base para el movimiento
+        const descripcionMovimiento = `${description} (Consumo: ${nombreCompletoItemDesc})`;
+
+        // Insertar stock_movements
+        await connection.query(
+          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO_PRODUCCION', ?, ?, ?, ?, ?)`,
+          [
+            item.item_id,
+            -aDescontarEnUnidades, // Cantidad negativa porque es consumo
+            stockAnterior,
+            stockNuevoRedondeado,
+            descripcionMovimiento,
+            eventoId, // ID del evento 'PRODUCCION'
+          ]
+        );
+        console.log(`   Movimiento registrado para Item ID: ${item.item_id}`);
+
+        // Restar de consumoTotalMl
+        consumoTotalMl -= aDescontarDeEsteItemEnMl;
+        console.log(
+          `   Consumo restante para Marca ID ${
+            regla.marca_id
+          }: ${consumoTotalMl.toFixed(3)}ml`
+        );
+      } // Fin bucle itemsPriorizados
+
+      // Verificar si quedó consumo pendiente después de intentar con todos los items disponibles
+      if (consumoTotalMl > 0.01) {
+        // Tolerancia mayor aquí
+        console.error(
+          `Stock insuficiente final para Marca ID: ${regla.marca_id} (${regla.nombre_marca})`
+        );
+        throw new Error(
+          `Stock insuficiente para la marca "${
+            regla.nombre_marca
+          }" al registrar producción. Faltaron ${consumoTotalMl.toFixed(
+            2
+          )}ml por descontar.`
+        );
+      } else {
+        console.log(`Consumo completado para Marca ID: ${regla.marca_id}`);
+      }
+    } // Fin bucle reglasReceta
+
+    console.log("Intentando commit final...");
+    await connection.commit();
+    console.log("Commit final exitoso.");
+
+    res.status(200).json({
+      message:
+        "Producción registrada y stock de ingredientes descontado con éxito.",
+    });
+  } catch (error) {
+    console.error("--- ERROR en registerProduction ---:", error); // Loggear el error completo
+    if (connection) {
+      console.log("Intentando rollback...");
+      await connection.rollback();
+      console.log("Rollback realizado.");
+    }
+    // Devolver el mensaje de error específico
+    res.status(500).json({
+      message:
+        error.message ||
+        "Error interno del servidor al registrar la producción.", // Usar el mensaje del error lanzado
+      error: error.message,
+    });
+  } finally {
+    if (connection) {
+      console.log("Liberando conexión...");
+      connection.release();
+      console.log("Conexión liberada.");
+    }
+    console.log("--- Finalizando registerProduction ---");
   }
 };

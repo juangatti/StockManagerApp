@@ -2,13 +2,11 @@ import { useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useInactivityTimeout } from "./hooks/useInactivityTimeout";
-
 import MainLayout from "./layouts/MainLayout";
 import useAuthStore from "./stores/useAuthStore";
 import BarPage from "./pages/BarPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-
 import ShoppingPage from "./pages/ShoppingPage";
 import AdjustPage from "./pages/AdjustPage";
 import HistoricMovementPage from "./pages/HistoricMovementPage";

@@ -10,6 +10,7 @@ import {
   searchStockItems,
   getIceReport,
   getStockAlerts,
+  registerProduction,
 } from "../controllers/stockController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -28,5 +29,6 @@ router.post("/adjust", authorize("admin"), registerAdjustment);
 router.post("/mass-adjustment", authorize("admin"), registerMassiveAdjustment);
 router.get("/historic-movement", authorize("admin"), getStockMovements);
 router.get("/historic-movement/:id", authorize("admin"), getMovementEventById);
+router.post("/production", authorize("admin"), registerProduction);
 
 export default router;
