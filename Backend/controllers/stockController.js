@@ -783,11 +783,13 @@ export const registerProduction = async (req, res) => {
 
     // ... (Crear Prebatch con INSERT INTO prebatches) ...
     await connection.query(
-      `INSERT INTO prebatches (...) VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
+      `INSERT INTO prebatches (nombre_prebatch, fecha_produccion, fecha_vencimiento, categoria_id, cantidad_inicial_ml, cantidad_actual_ml, identificador_lote, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
       [
         prebatchName,
         productionDate,
         expiryDate || null,
+        categoryId || null,
         quantityProducedMl,
         quantityProducedMl,
         null,

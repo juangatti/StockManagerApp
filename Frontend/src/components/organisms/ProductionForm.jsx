@@ -21,8 +21,10 @@ import useStockStore from "../../stores/useStockStore";
 const generateTempId = () => Date.now() + Math.random();
 
 export default function ProductionForm() {
-  // Estados (sin cambios aquí)
+  // --- Estados Eliminados ---
+  // selectedProductId, products, loadingProducts, recipePreview, loadingPreview ya no son necesarios
 
+  // --- Estados Mantenidos/Nuevos ---
   const [prebatchName, setPrebatchName] = useState("");
   const [productionDate, setProductionDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -31,44 +33,51 @@ export default function ProductionForm() {
   const [expiryDate, setExpiryDate] = useState("");
   const [quantityProducedMl, setQuantityProducedMl] = useState("");
   const [description, setDescription] = useState("");
-  const [ingredients, setIngredients] = useState([]);
+  const [ingredients, setIngredients] = useState([]); // Ingredientes se añaden manualmente
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // Solo para error de carga de categorías
   const { fetchStock } = useStockStore();
   const ingredientRefs = useRef({});
 
-  // --- useEffect Carga Categorías (sin cambios) ---
+  // --- useEffect Carga Productos ELIMINADO ---
+  // Ya no cargamos /api/admin/products
+
+  // --- useEffect Carga Categorías (se mantiene) ---
   useEffect(() => {
     setLoadingCategories(true);
-    setError(null);
+    setError(null); // Limpiar error anterior
     api
       .get("/admin/categories/all") //
       .then((res) => {
         if (Array.isArray(res.data)) {
           setCategories(res.data);
         } else {
-          toast.error("Error al cargar lista de categorías.");
+          toast.error("Error al cargar categorías.");
           setCategories([]);
         }
       })
       .catch((err) => {
-        toast.error("No se pudieron cargar las categorías.");
+        console.error("Error fetching categories:", err);
+        toast.error("No se pudieron cargar categorías.");
         setCategories([]);
+        setError("No se pudieron cargar las categorías necesarias."); // Mostrar error si falla
       })
       .finally(() => setLoadingCategories(false));
   }, []);
 
-  // --- useEffect Limpiar ExpiryDate (sin cambios) ---
+  // --- useEffect Pre-rellenar ELIMINADO ---
+
+  // --- useEffect Limpiar ExpiryDate (se mantiene) ---
   useEffect(() => {
     if (!setExpiryManually) {
       setExpiryDate("");
     }
   }, [setExpiryManually]);
 
-  // --- Handlers Ingredientes (sin cambios) ---
+  // --- Handlers Ingredientes (se mantienen) ---
   const handleAddIngredient = () => {
     setIngredients([
       ...ingredients,
@@ -107,7 +116,7 @@ export default function ProductionForm() {
     );
   };
 
-  // --- handleSubmit (CORREGIDO: Lógica descomentada) ---
+  // --- handleSubmit (CORREGIDO: Lógica DESCOMENTADA) ---
   const handleSubmit = (e) => {
     e.preventDefault();
     // Validaciones
@@ -136,12 +145,14 @@ export default function ProductionForm() {
 
     let ingredientsPayload = [];
     try {
-      // Validar ingredientes y construir payload
+      // Validar y construir ingredientsPayload
       const validIngredients = ingredients.filter(
         (ing) => ing.itemId && ing.quantityConsumedMl
       );
-      // Validar que si hay filas de ingredientes, estén completas
-      if (validIngredients.length !== ingredients.length) {
+      if (
+        validIngredients.length !== ingredients.length &&
+        ingredients.length > 0
+      ) {
         toast.error(
           "Completa o elimina las filas de ingredientes incompletas."
         );
@@ -156,10 +167,7 @@ export default function ProductionForm() {
             }.`
           );
         }
-        return {
-          itemId: parseInt(ing.itemId),
-          quantityConsumedMl: consumedMl,
-        };
+        return { itemId: parseInt(ing.itemId), quantityConsumedMl: consumedMl };
       });
     } catch (validationError) {
       toast.error(validationError.message);
@@ -172,27 +180,24 @@ export default function ProductionForm() {
       productionDate: productionDate,
       quantityProducedMl: quantityNum,
       description: description.trim(),
-      ingredients: ingredientsPayload, // Usar array validado
+      ingredients: ingredientsPayload, // Puede ser array vacío
       expiryDate: setExpiryManually ? expiryDate : null,
       categoryId: selectedCategoryId || null,
     };
 
-    console.log("handleSubmit: Payload listo para enviar:", payload); // Log 1
+    console.log("handleSubmit: Payload listo:", payload); // Log 1
 
     try {
       // --- LÓGICA DE ENVÍO DESCOMENTADA ---
       const apiPromise = api.post("/stock/production", payload); //
-      console.log(
-        "handleSubmit: Llamada a api.post realizada, esperando toast.promise..."
-      ); // Log 2
+      console.log("handleSubmit: Llamada API..."); // Log 2
 
       toast.promise(apiPromise, {
-        loading: "Registrando producción...",
+        loading: "Registrando...",
         success: (res) => {
-          console.log("toast.promise: ÉXITO recibido", res); // Log 3
-          setIsSubmitting(false);
-          // Limpiar formulario
-
+          console.log("toast.promise: ÉXITO", res); // Log 3
+          setIsSubmitting(false); // <-- Se ejecuta al éxito
+          // Limpiar form
           setPrebatchName("");
           setProductionDate(new Date().toISOString().split("T")[0]);
           setSetExpiryManually(false);
@@ -200,88 +205,51 @@ export default function ProductionForm() {
           setQuantityProducedMl("");
           setDescription("");
           setIngredients([]);
-          setRecipePreview(null);
           setSelectedCategoryId("");
           Object.values(ingredientRefs.current).forEach((ref) => ref?.clear());
           ingredientRefs.current = {};
-          fetchStock(); //
-          console.log(
-            "toast.promise: Formulario limpiado y fetchStock llamado."
-          ); // Log 4
-          return res.data?.message || "Producción registrada.";
+          fetchStock();
+          console.log("toast.promise: Limpio y fetchStock"); // Log 4
+          return res.data?.message || "Éxito.";
         },
         error: (err) => {
-          console.error(
-            "toast.promise: ERROR recibido",
-            err.response?.data || err.message || err
-          ); // Log 5
-          setIsSubmitting(false);
-          console.error(
-            "Error al registrar producción (detalle):",
-            err.response?.data || err.message
-          );
-          return (
-            err.response?.data?.message ||
-            err.message ||
-            "Error al registrar la producción."
-          );
+          console.error("toast.promise: ERROR", err); // Log 5
+          setIsSubmitting(false); // <-- Se ejecuta al error
+          console.error("Error detalle:", err.response?.data || err.message);
+          return err.response?.data?.message || err.message || "Error.";
         },
       });
       // --- FIN LÓGICA DESCOMENTADA ---
     } catch (outerError) {
-      console.error(
-        "handleSubmit: Error INMEDIATO al llamar a api.post:",
-        outerError
-      ); // Log 6
-      toast.error("Error inesperado al intentar enviar el formulario.");
-      setIsSubmitting(false);
+      console.error("handleSubmit: Error INMEDIATO:", outerError); // Log 6
+      toast.error("Error inesperado.");
+      setIsSubmitting(false); // Asegurar reset
     }
   };
 
   const commonInputClass =
     "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50";
 
-  // --- JSX ---
+  // --- JSX (Modificado: sin selector producto base) ---
   return (
     <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
       <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
         <Hammer className="text-sky-400" />
         Registrar Producción Interna
       </h3>
-      {error && <Alert message={error} />} {/* */}
-      {/* Mostrar Spinner solo si carga categorías (carga productos ya no bloquea) */}
+      {error && <Alert message={error} />}{" "}
+      {/* Ahora solo muestra error de carga de categorías */}
+      {/* Mostrar Spinner solo si carga categorías */}
       {loadingCategories ? (
         <Spinner />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Fila 1: Producto Base (Opcional), Nombre Prebatch, Fecha Prod */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Selector Producto Base */}
-            <div>
-              <label
-                htmlFor="product-select"
-                className="block mb-2 text-sm font-medium text-slate-300"
-              >
-                Usar Receta de (Opcional)
-              </label>
-              <select
-                id="product-select"
-                value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-                className={commonInputClass}
-                disabled={isSubmitting || loadingProducts} // Deshabilitar si carga productos
-              >
-                <option value="">Selecciona para pre-rellenar...</option>
-                {/* Muestra productos (puede estar vacío si loadingProducts es true) */}
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre_producto_fudo}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Nombre Prebatch Resultante (Editable) */}
+          {/* Fila 1: Nombre Prebatch, Fecha Prod */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {" "}
+            {/* Cambiado a 2 cols */}
+            {/* --- Selector Producto Base ELIMINADO --- */}
+            {/* Nombre Prebatch Resultante */}
             <div>
               <label
                 htmlFor="prebatchName"
@@ -297,11 +265,10 @@ export default function ProductionForm() {
                 onChange={(e) => setPrebatchName(e.target.value)}
                 className={commonInputClass}
                 required
-                placeholder="Ej: Negroni Base, Syrup Simple"
                 disabled={isSubmitting}
+                placeholder="Ej: Negroni Base, Syrup Simple"
               />
             </div>
-
             {/* Fecha Producción */}
             <div>
               <label
@@ -367,9 +334,10 @@ export default function ProductionForm() {
             )}
             {/* Selector de Categoría (Opcional) */}
             <div className={!setExpiryManually ? "md:col-start-3" : ""}>
+              {/* CORRECCIÓN: Eliminada la clase 'block' redundante */}
               <label
                 htmlFor="categoryId"
-                className=" mb-2 text-sm font-medium text-slate-300 flex items-center gap-1"
+                className="mb-2 text-sm font-medium text-slate-300 flex items-center gap-1"
               >
                 <Tag className="h-4 w-4" /> Categoría (Opcional)
               </label>
@@ -397,13 +365,11 @@ export default function ProductionForm() {
             <h4 className="text-lg font-semibold text-white flex items-center gap-2">
               <ListTree className="h-5 w-5 text-slate-400" />
               Ingredientes Consumidos (Opcional)
-              {loadingPreview && (
-                <RefreshCw className="h-4 w-4 animate-spin text-sky-400" />
-              )}
+              {/* Ya no hay loadingPreview */}
             </h4>
-            {ingredients.length === 0 && (
+            {ingredients.length === 0 && ( // Mensaje si no hay ingredientes
               <p className="text-sm text-slate-500 italic">
-                Añade ingredientes manualmente o selecciona una receta base.
+                Añade ingredientes manualmente si esta producción consume stock.
               </p>
             )}
             {ingredients.map((ing, index) => (
@@ -420,8 +386,7 @@ export default function ProductionForm() {
                     onItemSelected={(item) =>
                       handleIngredientSelection(ing.tempId, item)
                     }
-                    initialItemId={ing.itemId}
-                    initialItemName={ing.itemName}
+                    // Ya no hay initialItemId/Name porque no pre-rellenamos
                   />{" "}
                   {/* */}
                 </div>
@@ -433,7 +398,7 @@ export default function ProductionForm() {
                       index !== 0 ? "md:hidden" : ""
                     }`}
                   >
-                    Consumo (ml o g) (*) {/* Label actualizado */}
+                    Consumo (ml o g) (*)
                   </label>
                   <input
                     type="number"
@@ -446,7 +411,7 @@ export default function ProductionForm() {
                         e.target.value
                       )
                     }
-                    placeholder="ml o g" // Placeholder actualizado
+                    placeholder="ml o g"
                     min="0.01"
                     step="any"
                     required
@@ -501,7 +466,7 @@ export default function ProductionForm() {
             />
           </div>
 
-          {/* Descripción (DESCOMENTADO) */}
+          {/* Descripción */}
           <div>
             <label
               htmlFor="description"
@@ -522,13 +487,13 @@ export default function ProductionForm() {
             />
           </div>
 
-          {/* Botón Submit (DESCOMENTADO) */}
+          {/* Botón Submit */}
           <div className="flex justify-end pt-4">
             <button
               type="submit"
               disabled={
                 isSubmitting ||
-                loadingCategories || // Deshabilitar si categorías (necesarias) están cargando
+                loadingCategories || // Deshabilitar si categorías aún cargan
                 !prebatchName.trim() ||
                 !productionDate ||
                 !quantityProducedMl ||
