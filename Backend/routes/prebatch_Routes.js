@@ -7,6 +7,7 @@ import {
   updatePrebatch,
   deletePrebatch,
   getPrebatchNames,
+  findPrebatchByName,
 } from "../controllers/prebatchController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -24,5 +25,5 @@ router
   .route("/:id")
   .put(protect, authorize("admin"), updatePrebatch)
   .delete(protect, authorize("admin"), deletePrebatch);
-
+router.get("/find", protect, authorize("admin"), findPrebatchByName);
 export default router;

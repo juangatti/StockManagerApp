@@ -1,165 +1,387 @@
-import pool from "../config/db.js"; //
+// Backend/controllers/salesController.js
+import pool from "../config/db.js";
 import xlsx from "xlsx";
-import { buildNombreCompleto } from "../utils/helpers.js"; //
-// --- Función Helper (igual que en otros controllers) ---
+// Asumiendo que moviste buildNombreCompleto a un archivo helper
+// import { buildNombreCompleto } from "../utils/helpers.js";
+// Si no, descomenta la función aquí:
+const buildNombreCompleto = (nombreMarca, variacion, cantidad, unidad) => {
+  let parts = [nombreMarca];
+  if (variacion && variacion.trim() !== "") parts.push(variacion.trim());
+  const formattedCantidad = parseFloat(cantidad).toString();
+  parts.push(`${formattedCantidad}${unidad}`);
+  return parts.join(" ");
+};
+// ---
 
 export const processSalesFile = async (req, res) => {
-  // ... (lectura de archivo y inicio transacción sin cambios) ...
+  console.log("--- Iniciando processSalesFile ---"); // Log inicio
+
   if (!req.file) {
-    /* ... */
+    console.error("Error: No se subió ningún archivo.");
+    return res.status(400).json({ message: "No se subió ningún archivo." });
   }
-  const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-  // ...
+
+  console.log(
+    `Archivo recibido: ${req.file.originalname}, Tamaño: ${req.file.size}`
+  );
+
+  // --- Leer y parsear el archivo Excel ---
+  let ventas;
+  try {
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    ventas = xlsx.utils.sheet_to_json(worksheet);
+    console.log(`Archivo parseado. ${ventas.length} filas encontradas.`);
+    if (ventas.length === 0) {
+      console.warn(
+        "Advertencia: El archivo Excel está vacío o no tiene datos en la primera hoja."
+      );
+      return res
+        .status(400)
+        .json({ message: "El archivo Excel está vacío o mal formateado." });
+    }
+    // Verificar columnas necesarias
+    if (
+      !ventas[0] ||
+      ventas[0].Producto === undefined ||
+      ventas[0].Cantidad === undefined
+    ) {
+      console.error(
+        "Error: Faltan las columnas 'Producto' o 'Cantidad' en el archivo Excel."
+      );
+      return res.status(400).json({
+        message:
+          "Faltan las columnas 'Producto' o 'Cantidad' en el archivo Excel.",
+      });
+    }
+  } catch (parseError) {
+    console.error("Error al parsear el archivo Excel:", parseError);
+    return res.status(400).json({
+      message: "Error al leer el archivo Excel.",
+      error: parseError.message,
+    });
+  }
+  // --- Fin Lectura Excel ---
+
   let connection;
   try {
-    connection = await pool.getConnection(); //
+    console.log("Intentando obtener conexión de la base de datos...");
+    connection = await pool.getConnection();
+    // *** VERIFICACIÓN EXPLÍCITA ***
+    if (!connection || typeof connection.query !== "function") {
+      console.error(
+        "Error Crítico: pool.getConnection() no devolvió una conexión válida.",
+        connection
+      );
+      throw new Error(
+        "No se pudo obtener una conexión de base de datos válida."
+      );
+    }
+    console.log("Conexión obtenida correctamente.");
+
+    console.log("Intentando iniciar transacción...");
     await connection.beginTransaction();
-    // ... (Crear evento VENTA) ...
-    const [eventoResult] = await connection.query(/* ... */);
+    console.log("Transacción iniciada correctamente.");
+
+    // Crear evento VENTA
+    const description = `Procesamiento de ventas desde archivo: ${
+      req.file?.originalname || "archivo subido"
+    }`;
+    console.log(
+      `Intentando crear evento VENTA con descripción: "${description}"`
+    );
+
+    // *** VERIFICACIÓN ANTES DEL QUERY PROBLEMÁTICO ***
+    if (!connection || typeof connection.query !== "function") {
+      console.error(
+        "Error Crítico: El objeto 'connection' se invalidó ANTES del INSERT del evento."
+      );
+      throw new Error("La conexión se perdió antes de registrar el evento.");
+    }
+    console.log(
+      "Objeto 'connection' verificado OK antes del INSERT del evento."
+    );
+
+    // --- Línea 18 del error original ---
+    const [eventoResult] = await connection.query(
+      "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('VENTA', ?)",
+      [description]
+    );
+    // ------------------------------------
+
     const eventoId = eventoResult.insertId;
+    console.log(`Evento VENTA creado con ID: ${eventoId}`);
 
+    // --- Lógica de Descuento (Asegúrate que esta parte esté implementada de la Fase 4) ---
+    console.log(`Iniciando procesamiento de ${ventas.length} ventas...`);
     for (const venta of ventas) {
-      const productoVendido = venta.Producto;
       const cantidadVendida = venta.Cantidad;
-      // ... (Validar cantidad, buscar productoId) ...
-      if (isNaN(cantidadVendida) || cantidadVendida <= 0) continue;
-      const [productoRows] = await connection.query(/* ... */);
-      if (productoRows.length === 0) continue;
-      const productoId = productoRows[0].id;
+      const productoVendido = venta.Producto;
 
-      // Obtener reglas de receta (sin cambios aquí)
+      if (isNaN(cantidadVendida) || cantidadVendida <= 0) {
+        console.warn(
+          `   Venta ignorada: Cantidad inválida (${cantidadVendida}) para producto "${productoVendido}"`
+        );
+        continue;
+      }
+
+      const [productoRows] = await connection.query(
+        "SELECT id FROM productos WHERE nombre_producto_fudo = ? AND is_active = TRUE",
+        [productoVendido]
+      );
+
+      if (productoRows.length === 0) {
+        console.warn(
+          `   Venta ignorada: Producto "${productoVendido}" no encontrado o inactivo.`
+        );
+        continue;
+      }
+      const productId = productoRows[0].id;
+      console.log(
+        `   Procesando venta: ${cantidadVendida}x "${productoVendido}" (Producto ID: ${productId})`
+      );
+
+      // Obtener reglas (incluyendo type, ids, nombres)
       const [reglasReceta] = await connection.query(
-        `SELECT DISTINCT r.marca_id, r.consumo_ml, m.nombre AS nombre_marca FROM recetas r JOIN marcas m ... WHERE r.producto_id = ?`,
+        `SELECT
+              r.ingredient_type, r.item_id, r.prebatch_id, r.consumo_ml, r.prioridad_item,
+              CASE WHEN r.ingredient_type = 'PREBATCH' THEN pb.nombre_prebatch ELSE NULL END as nombre_prebatch_regla,
+              CASE WHEN r.ingredient_type = 'ITEM' THEN si.marca_id ELSE NULL END as marca_id_item,
+              CASE WHEN r.ingredient_type = 'ITEM' THEN m.nombre ELSE NULL END as nombre_marca_item
+            FROM recetas r
+            LEFT JOIN prebatches pb ON r.ingredient_type = 'PREBATCH' AND r.prebatch_id = pb.id
+            LEFT JOIN stock_items si ON r.ingredient_type = 'ITEM' AND r.item_id = si.id
+            LEFT JOIN marcas m ON si.marca_id = m.id
+            WHERE r.producto_id = ?`,
         [productId]
       );
-      if (reglasReceta.length === 0) continue;
 
-      for (const regla of reglasReceta) {
-        let consumoTotalMl = regla.consumo_ml * cantidadVendida; // Consumo requerido en ML
-
-        if (consumoTotalMl <= 0) continue;
-
-        // Obtener items priorizados (incluyendo unidad_medida y cantidad_por_envase)
-        const [itemsPriorizados] = await connection.query(
-          `SELECT
-             r.item_id,
-             si.stock_unidades,
-             si.variacion,
-             si.cantidad_por_envase, -- <-- Nueva
-             si.unidad_medida,       -- <-- Nueva
-             m.nombre as nombre_marca
-           FROM recetas r
-           JOIN stock_items si ON r.item_id = si.id
-           JOIN marcas m ON si.marca_id = m.id
-           WHERE r.producto_id = ? AND r.marca_id = ? AND si.stock_unidades > 0 AND si.is_active = TRUE
-           ORDER BY r.prioridad_item ASC`,
-          [productId, regla.marca_id]
+      if (reglasReceta.length === 0) {
+        console.warn(
+          `     Venta ignorada: No se encontraron reglas de receta para el producto ID ${productId}.`
         );
+        continue;
+      }
 
-        for (const item of itemsPriorizados) {
-          if (consumoTotalMl <= 0.001) break;
+      // --- Iterar Reglas y Descontar ---
+      for (const regla of reglasReceta) {
+        console.log(
+          `     Aplicando regla: Tipo=${regla.ingredient_type}, Consumo=${regla.consumo_ml}ml`
+        );
+        let consumoTotalMl = regla.consumo_ml * cantidadVendida;
 
-          const nombreCompletoItem = buildNombreCompleto(
-            item.nombre_marca,
-            item.variacion,
-            item.cantidad_por_envase,
-            item.unidad_medida
-          ); // Construir nombre
+        if (consumoTotalMl <= 0.001) continue;
 
-          // Verificar cantidad_por_envase
-          if (item.cantidad_por_envase <= 0) {
-            console.warn(
-              `Advertencia: Cantidad por envase inválida para ${nombreCompletoItem} (ID: ${item.item_id}). Saltando.`
+        if (regla.ingredient_type === "ITEM") {
+          if (!regla.item_id || !regla.marca_id_item) {
+            console.error(
+              `       Error Crítico: Regla ITEM incompleta (item_id: ${regla.item_id}, marca_id: ${regla.marca_id_item}). Saltando.`
             );
             continue;
           }
-
-          // --- Calcular unidades a descontar (Ajuste 1:1 para sólidos) ---
-          let cantidadConsumidaEnUnidadBase = consumoTotalMl; // Asumir ml
-          if (item.unidad_medida === "g") {
-            // TODO: Implementar conversión con densidad si es necesaria. Asumiendo 1ml = 1g.
-            console.log(
-              `   INFO: Venta - Asumiendo 1ml = 1g para item sólido ${nombreCompletoItem}`
-            );
-            // cantidadConsumidaEnUnidadBase = consumoTotalMl; // Sigue siendo el mismo número
-          }
-
-          // Calcular cuánto de la unidad base (ml o g) hay disponible en stock
-          const stockDisponibleEnUnidadBase =
-            item.stock_unidades * item.cantidad_por_envase;
-
-          // Determinar cuánto consumir de este item (en la unidad base del item)
-          const aDescontarDeEsteItemEnUnidadBase = Math.min(
-            cantidadConsumidaEnUnidadBase, // Lo que necesitamos (ya sea ml o g asumido)
-            stockDisponibleEnUnidadBase // Lo que hay disponible
+          console.log(
+            `       Tipo ITEM. Buscando items priorizados para marca ID ${regla.marca_id_item} (${regla.nombre_marca_item})`
           );
 
-          // Calcular unidades de envase a descontar
-          const aDescontarEnUnidades =
-            aDescontarDeEsteItemEnUnidadBase / item.cantidad_por_envase;
-          // --- Fin cálculo ---
-
-          // ... (Obtener stock actual FOR UPDATE) ...
-          const [stockActualRows] = await connection.query(
-            "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
-            [item.item_id]
+          // Buscar Items Priorizados
+          const [itemsPriorizados] = await connection.query(
+            `SELECT
+                      si.id as item_id, si.stock_unidades, si.variacion, si.cantidad_por_envase, si.unidad_medida, m.nombre as nombre_marca
+                    FROM stock_items si
+                    JOIN marcas m ON si.marca_id = m.id
+                    JOIN recetas r ON r.item_id = si.id -- Unir con recetas para obtener prioridad
+                    WHERE r.producto_id = ? AND r.ingredient_type = 'ITEM' AND si.marca_id = ? AND si.stock_unidades > 0.001 AND si.is_active = TRUE
+                    ORDER BY r.prioridad_item ASC`,
+            [productId, regla.marca_id_item]
           );
-          if (stockActualRows.length === 0)
-            throw new Error(`Item ID ${item.item_id} no encontrado...`);
-          const stockAnterior = stockActualRows[0].stock_unidades;
-          const stockNuevo = stockAnterior - aDescontarEnUnidades;
 
-          // ... (Verificar stock < -0.001, Redondear, UPDATE stock_items) ...
-          if (stockNuevo < -0.001) {
+          if (itemsPriorizados.length === 0) {
             throw new Error(
-              `Stock insuficiente para "${nombreCompletoItem}"...`
+              `Stock insuficiente o items no configurados para "${regla.nombre_marca_item}" en la receta de "${productoVendido}".`
             );
           }
-          const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
-          await connection.query(
-            "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-            [stockNuevoRedondeado, item.item_id]
+
+          // Descontar Items
+          for (const item of itemsPriorizados) {
+            if (consumoTotalMl <= 0.001) break;
+            // ... (lógica de cálculo: aDescontarEnUnidades, stockNuevoRedondeado) ...
+            const nombreCompletoItem = buildNombreCompleto(
+              item.nombre_marca,
+              item.variacion,
+              item.cantidad_por_envase,
+              item.unidad_medida
+            );
+            if (!item.cantidad_por_envase || item.cantidad_por_envase <= 0) {
+              console.warn(
+                `       Advertencia: Cantidad por envase inválida para ${nombreCompletoItem} (ID: ${item.item_id}). Saltando.`
+              );
+              continue;
+            }
+            let cantidadConsumidaEnUnidadBase = consumoTotalMl;
+            if (item.unidad_medida === "g") {
+              console.log(
+                `         INFO: Asumiendo 1ml=1g para ${nombreCompletoItem}`
+              );
+            }
+            const stockDisponibleEnUnidadBase =
+              item.stock_unidades * item.cantidad_por_envase;
+            const aDescontarDeEsteItemEnUnidadBase = Math.min(
+              cantidadConsumidaEnUnidadBase,
+              stockDisponibleEnUnidadBase
+            );
+            const aDescontarEnUnidades =
+              aDescontarDeEsteItemEnUnidadBase / item.cantidad_por_envase;
+            const [stockActualRows] = await connection.query(
+              "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
+              [item.item_id]
+            );
+            if (stockActualRows.length === 0)
+              throw new Error(`Item ID ${item.item_id} no encontrado.`);
+            const stockAnterior = stockActualRows[0].stock_unidades;
+            const stockNuevo = stockAnterior - aDescontarEnUnidades;
+            if (stockNuevo < -0.001)
+              throw new Error(
+                `Stock insuficiente detectado para "${nombreCompletoItem}".`
+              );
+            const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
+
+            await connection.query(
+              "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
+              [stockNuevoRedondeado, item.item_id]
+            );
+            console.log(
+              `         Stock item ${
+                item.item_id
+              } (${nombreCompletoItem}) actualizado: ${stockAnterior.toFixed(
+                3
+              )} -> ${stockNuevoRedondeado.toFixed(3)}`
+            );
+            const descMovimientoItem = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItem})`;
+            await connection.query(
+              `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
+                        VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?, NULL)`,
+              [
+                item.item_id,
+                -aDescontarEnUnidades,
+                stockAnterior,
+                stockNuevoRedondeado,
+                descMovimientoItem,
+                eventoId,
+              ]
+            );
+            console.log(
+              `         Movimiento registrado para item ${item.item_id}`
+            );
+            consumoTotalMl -= aDescontarDeEsteItemEnUnidadBase;
+          } // Fin for itemsPriorizados
+
+          if (consumoTotalMl > 0.01) {
+            throw new Error(
+              `Stock insuficiente para ${consumoTotalMl.toFixed(1)}ml de "${
+                regla.nombre_marca_item
+              }" en venta de "${productoVendido}".`
+            );
+          }
+        } else if (regla.ingredient_type === "PREBATCH") {
+          if (!regla.prebatch_id || !regla.nombre_prebatch_regla) {
+            console.error(
+              `       Error Crítico: Regla PREBATCH incompleta (prebatch_id: ${regla.prebatch_id}, nombre: ${regla.nombre_prebatch_regla}). Saltando.`
+            );
+            continue;
+          }
+          console.log(
+            `       Tipo PREBATCH. Buscando lotes para "${regla.nombre_prebatch_regla}" (ID Regla: ${regla.prebatch_id})`
           );
 
-          // ... (INSERT stock_movements) ...
-          const descripcionMovimiento = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItem})`;
-          await connection.query(
-            `INSERT INTO stock_movements (...) VALUES (?, 'VENTA', ?, ?, ?, ?, ?)`,
-            [
-              item.item_id,
-              -aDescontarEnUnidades,
-              stockAnterior,
-              stockNuevoRedondeado,
-              descripcionMovimiento,
-              eventoId,
-            ]
+          // Buscar Lotes
+          const [lotesPrebatch] = await connection.query(
+            `SELECT id, cantidad_actual_ml FROM prebatches WHERE nombre_prebatch = ? AND is_active = TRUE AND cantidad_actual_ml > 0.001 ORDER BY fecha_produccion ASC FOR UPDATE`,
+            [regla.nombre_prebatch_regla]
           );
 
-          // Restar lo consumido (en ML, porque consumoTotalMl está en ML)
-          consumoTotalMl -= aDescontarDeEsteItemEnUnidadBase; // Restamos la cantidad en la unidad base (ml o g asumido)
-        } // Fin bucle itemsPriorizados
+          if (lotesPrebatch.length === 0) {
+            throw new Error(
+              `Stock insuficiente: No hay lotes activos/con cantidad para "${regla.nombre_prebatch_regla}" en venta de "${productoVendido}".`
+            );
+          }
 
-        // ... (Verificar si consumoTotalMl > 0.01 y lanzar error) ...
-        if (consumoTotalMl > 0.01) {
-          throw new Error(
-            `Stock insuficiente para la marca "${regla.nombre_marca}"...`
-          );
-        }
+          // Descontar Lotes
+          for (const lote of lotesPrebatch) {
+            if (consumoTotalMl <= 0.001) break;
+            // ... (lógica de cálculo: aDescontarDeEsteLote, nuevaCantidadLoteRedondeada) ...
+            const cantidadEnLote = lote.cantidad_actual_ml;
+            const aDescontarDeEsteLote = Math.min(
+              consumoTotalMl,
+              cantidadEnLote
+            );
+            const nuevaCantidadLote = cantidadEnLote - aDescontarDeEsteLote;
+            const nuevaCantidadLoteRedondeada = parseFloat(
+              nuevaCantidadLote.toFixed(5)
+            );
+
+            await connection.query(
+              "UPDATE prebatches SET cantidad_actual_ml = ? WHERE id = ?",
+              [nuevaCantidadLoteRedondeada, lote.id]
+            );
+            console.log(
+              `         Stock prebatch Lote ID ${lote.id} (${
+                regla.nombre_prebatch_regla
+              }) actualizado: ${cantidadEnLote.toFixed(
+                3
+              )}ml -> ${nuevaCantidadLoteRedondeada.toFixed(3)}ml`
+            );
+
+            consumoTotalMl -= aDescontarDeEsteLote;
+          } // Fin for lotesPrebatch
+
+          if (consumoTotalMl > 0.01) {
+            throw new Error(
+              `Stock insuficiente para ${consumoTotalMl.toFixed(
+                1
+              )}ml de prebatch "${
+                regla.nombre_prebatch_regla
+              }" en venta de "${productoVendido}".`
+            );
+          }
+        } // Fin if/else ingredient_type
       } // Fin bucle reglasReceta
     } // Fin bucle ventas
+    // --- Fin Lógica Descuento ---
 
+    console.log("Proceso de descuento finalizado. Intentando commit...");
     await connection.commit();
-    res.status(200).json({ message: "Ventas procesadas con éxito." });
+    console.log("Commit realizado con éxito.");
+    res
+      .status(200)
+      .json({ message: "Ventas procesadas y stock actualizado con éxito." });
   } catch (error) {
-    /* ... (rollback, manejo de error) ... */
-    await connection.rollback();
-    console.error("Error durante el procesamiento de ventas:", error);
+    console.error("Error durante el procesamiento de ventas:", error); // Log del error completo
+    if (connection) {
+      console.log("Intentando rollback...");
+      try {
+        // Añadir try/catch al rollback por si acaso
+        await connection.rollback();
+        console.log("Rollback realizado.");
+      } catch (rollbackError) {
+        console.error("Error durante el rollback:", rollbackError);
+      }
+    }
     res.status(500).json({
-      message: error.message || "Error al procesar...",
+      message: error.message || "Error al procesar el archivo de ventas.",
       error: error.message,
     });
   } finally {
-    /* ... (release connection) ... */
-    if (connection) connection.release();
+    if (connection) {
+      console.log("Liberando conexión...");
+      try {
+        // Añadir try/catch al release
+        connection.release();
+        console.log("Conexión liberada.");
+      } catch (releaseError) {
+        console.error("Error al liberar la conexión:", releaseError);
+      }
+    }
+    console.log("--- Finalizando processSalesFile ---"); // Log fin
   }
 };

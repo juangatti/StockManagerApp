@@ -193,3 +193,25 @@ export const deletePrebatch = async (req, res) => {
     res.status(500).json({ message: "Error al desactivar el prebatch." });
   }
 };
+
+export const findPrebatchByName = async (req, res) => {
+  const { name } = req.query;
+  if (!name) {
+    return res
+      .status(400)
+      .json({ message: "Se requiere el parámetro 'name'." });
+  }
+  try {
+    const query =
+      "SELECT id, nombre_prebatch FROM prebatches WHERE nombre_prebatch = ? AND is_active = TRUE LIMIT 1";
+    const [rows] = await pool.query(query, [name]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.json(null); // O res.status(404).json({ message: 'No encontrado' }); según prefieras
+    }
+  } catch (error) {
+    console.error("Error finding prebatch by name:", error);
+    res.status(500).json({ message: "Error al buscar prebatch." });
+  }
+};
