@@ -416,57 +416,61 @@ export const registerMassiveAdjustment = async (req, res) => {
 export const getStockMovements = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20; // 20 eventos por página
+    const limit = parseInt(req.query.limit) || 20;
     const searchQuery = req.query.search || "";
     const offset = (page - 1) * limit;
 
-    let whereClause = "WHERE sm.id IS NOT NULL";
+    // 1. MODIFICACIÓN: WhereClause ahora solo filtra por descripción si hay búsqueda
+    let whereClause = ""; // Inicia vacío
     const queryParams = [];
 
     if (searchQuery) {
-      whereClause += " AND e.descripcion LIKE ?";
+      whereClause = "WHERE e.descripcion LIKE ?"; // Añadir WHERE solo si hay búsqueda
       queryParams.push(`%${searchQuery}%`);
     }
 
-    // 1. Consulta para obtener el CONTEO TOTAL de eventos
+    // 2. MODIFICACIÓN: Consulta de Conteo - Simplificada
+    //    Ahora cuenta directamente de eventos_stock aplicando solo el filtro de búsqueda.
     const countQuery = `
-      SELECT COUNT(DISTINCT e.id) AS totalEventos
+      SELECT COUNT(e.id) AS totalEventos
       FROM eventos_stock AS e
-      LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
       ${whereClause};
     `;
 
+    // Pasamos solo los parámetros de búsqueda si existen
     const [countRows] = await pool.query(countQuery, queryParams);
     const totalEventos = countRows[0].totalEventos;
     const totalPages = Math.ceil(totalEventos / limit);
 
-    // 2. Consulta para obtener los EVENTOS PAGINADOS
+    // 3. MODIFICACIÓN: Consulta de Datos - Eliminado `sm.id IS NOT NULL`
+    //    Mantenemos el LEFT JOIN para contar items_afectados correctamente.
     const dataQuery = `
-      SELECT 
+      SELECT
         e.id AS evento_id,
         e.tipo_evento,
         e.descripcion AS evento_descripcion,
         e.fecha_evento,
-        COUNT(sm.id) AS items_afectados
+        COUNT(sm.id) AS items_afectados -- Contar movimientos asociados (será 0 si no hay)
       FROM eventos_stock AS e
       LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
-      ${whereClause}
-      GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento
+      ${whereClause} -- Aplicar filtro de búsqueda si existe
+      GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento -- Agrupar por todos los campos de evento
       ORDER BY e.fecha_evento DESC
       LIMIT ?
       OFFSET ?;
     `;
 
+    // Añadir parámetros de paginación
     const dataParams = [...queryParams, limit, offset];
     const [eventos] = await pool.query(dataQuery, dataParams);
 
-    // 3. Devolver la respuesta estructurada
+    // 4. Respuesta (sin cambios)
     res.json({
       eventos,
       pagination: {
         currentPage: page,
         totalPages,
-        totalEventos,
+        totalEventos, // Usamos el nuevo conteo
         limit,
       },
     });
@@ -837,7 +841,7 @@ export const registerProduction = async (req, res) => {
 
         // Insertar stock_movements
         await connection.query(
-          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO_PRODUCCION', ?, ?, ?, ?, ?)`,
+          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?)`,
           [
             itemId,
             -aDescontarEnUnidades, // Negativo

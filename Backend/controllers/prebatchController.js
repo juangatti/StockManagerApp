@@ -139,27 +139,44 @@ export const createPrebatch = async (req, res) => {
 // PUT /api/prebatches/:id
 export const updatePrebatch = async (req, res) => {
   const { id } = req.params;
+  // 1. Extraer categoria_id del body
   const {
     nombre_prebatch,
     fecha_produccion,
     cantidad_inicial_ml,
     identificador_lote,
+    categoria_id, // <-- Nuevo campo extraído
   } = req.body;
+
+  // Validación básica (puedes añadir más si es necesario)
+  if (!nombre_prebatch || !fecha_produccion || !cantidad_inicial_ml) {
+    return res
+      .status(400)
+      .json({ message: "Nombre, fecha y cantidad inicial son obligatorios." });
+  }
+
   try {
-    // Nota: Al editar, decidimos no cambiar la cantidad actual para no perder el tracking.
-    // Si se necesita reajustar, se debe hacer desde la sección de Ajustes.
+    // 2. Modificar la consulta UPDATE para incluir categoria_id
     await pool.query(
-      "UPDATE prebatches SET nombre_prebatch = ?, fecha_produccion = ?, cantidad_inicial_ml = ?, identificador_lote = ? WHERE id = ?",
+      `UPDATE prebatches SET
+        nombre_prebatch = ?,
+        fecha_produccion = ?,
+        cantidad_inicial_ml = ?,
+        identificador_lote = ?,
+        categoria_id = ?
+       WHERE id = ?`,
       [
         nombre_prebatch,
         fecha_produccion,
         cantidad_inicial_ml,
         identificador_lote || null,
+        categoria_id || null, // <-- Usar el valor o null si no viene
         id,
       ]
     );
     res.status(200).json({ message: "Prebatch actualizado con éxito." });
   } catch (error) {
+    console.error("Error updating prebatch:", error); // Añadir log
     res.status(500).json({ message: "Error al actualizar el prebatch." });
   }
 };
