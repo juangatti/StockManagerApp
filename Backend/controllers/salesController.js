@@ -1,15 +1,7 @@
 import pool from "../config/db.js"; //
 import xlsx from "xlsx";
-
+import { buildNombreCompleto } from "../utils/helpers.js"; //
 // --- Función Helper (igual que en otros controllers) ---
-const buildNombreCompleto = (nombreMarca, variacion, equivalenciaMl) => {
-  let parts = [nombreMarca];
-  if (variacion && variacion.trim() !== "") {
-    parts.push(variacion.trim());
-  }
-  parts.push(`${equivalenciaMl}ml`);
-  return parts.join(" ");
-};
 
 export const processSalesFile = async (req, res) => {
   // ... (lectura de archivo y inicio transacción sin cambios) ...

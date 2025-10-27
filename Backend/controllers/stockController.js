@@ -1,18 +1,7 @@
 // Importamos el pool de la base de datos que crearemos en /config/db.js
 import pool from "../config/db.js";
+import { buildNombreCompleto } from "../utils/helpers.js";
 
-// Función auxiliar para construir el nombre completo del item
-const buildNombreCompleto = (nombreMarca, variacion, equivalenciaMl) => {
-  let parts = [nombreMarca];
-  if (variacion && variacion.trim() !== "") {
-    parts.push(variacion.trim());
-  }
-  // Solo añadir equivalencia si es un número válido y mayor a 0, útil si se usa para ingredientes sin ml
-  if (typeof equivalenciaMl === "number" && equivalenciaMl > 0) {
-    parts.push(`${equivalenciaMl}ml`);
-  }
-  return parts.join(" ");
-};
 // Controlador para GET /api/stock
 export const getStock = async (req, res) => {
   try {
@@ -663,6 +652,7 @@ export const getStockAlerts = async (req, res) => {
 };
 
 export const registerProduction = async (req, res) => {
+  // 👇 CORRECCIÓN: Añadir categoryId a la desestructuración 👇
   const {
     prebatchName,
     productionDate,
@@ -670,50 +660,117 @@ export const registerProduction = async (req, res) => {
     description,
     ingredients,
     expiryDate,
+    categoryId,
   } = req.body;
-  // ... (Validaciones iniciales) ...
+
+  // 1. Validaciones (Robustecidas un poco)
+  if (!prebatchName || !productionDate || !quantityProducedMl || !description) {
+    console.error(
+      "Error Validación registerProduction: Faltan datos básicos",
+      req.body
+    );
+    return res.status(400).json({
+      message:
+        "Faltan datos obligatorios (Nombre, Fecha Prod., Cantidad Prod., Descripción).",
+    });
+  }
   if (
-    !prebatchName ||
-    !productionDate ||
-    !quantityProducedMl ||
-    !description ||
-    quantityProducedMl <= 0
+    isNaN(parseFloat(quantityProducedMl)) ||
+    parseFloat(quantityProducedMl) <= 0
   ) {
-    /* ... */
+    console.error(
+      "Error Validación registerProduction: Cantidad inválida",
+      req.body.quantityProducedMl
+    );
+    return res
+      .status(400)
+      .json({ message: "La cantidad producida debe ser un número positivo." });
   }
   if (ingredients && !Array.isArray(ingredients)) {
-    /* ... */
+    console.error(
+      "Error Validación registerProduction: Formato ingredientes inválido",
+      req.body.ingredients
+    );
+    return res.status(400).json({
+      message:
+        "El formato de los ingredientes es inválido (debe ser un array).",
+    });
+  }
+  // Validar formato fechas si vienen
+  if (productionDate && isNaN(Date.parse(productionDate))) {
+    return res
+      .status(400)
+      .json({ message: "Formato de fecha de producción inválido." });
+  }
+  if (expiryDate && isNaN(Date.parse(expiryDate))) {
+    return res
+      .status(400)
+      .json({ message: "Formato de fecha de vencimiento inválido." });
   }
 
   let connection;
   try {
-    connection = await pool.getConnection(); //
+    console.log(
+      `Iniciando registro de producción para Prebatch: ${prebatchName}, Cantidad: ${quantityProducedMl}ml`
+    );
+    connection = await pool.getConnection();
     await connection.beginTransaction();
-    // ... (Crear evento PRODUCCION) ...
+    console.log("Transacción iniciada.");
+
+    // 2. Crear evento de PRODUCCION
+    console.log(`Creando evento PRODUCCION con descripción: "${description}"`);
     const [eventoResult] = await connection.query(
       "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('PRODUCCION', ?)",
       [description]
     );
     const eventoId = eventoResult.insertId;
+    console.log(`Evento PRODUCCION creado con ID: ${eventoId}`);
 
+    // 3. Procesar ingredientes (si existen)
     if (ingredients && ingredients.length > 0) {
+      console.log(`Procesando ${ingredients.length} ingrediente(s)...`);
       for (const ingredient of ingredients) {
         const { itemId, quantityConsumedMl } = ingredient;
-        // ... (Validar ingrediente) ...
-        if (!itemId || !quantityConsumedMl || quantityConsumedMl <= 0) {
-          /* ... */
-        }
 
-        // Obtener info del item (incluyendo unidad_medida)
+        // Validar datos del ingrediente
+        if (
+          !itemId ||
+          !quantityConsumedMl ||
+          isNaN(parseFloat(quantityConsumedMl)) ||
+          parseFloat(quantityConsumedMl) <= 0
+        ) {
+          throw new Error(
+            `Ingrediente inválido encontrado en la lista: ID=${itemId}, Consumo=${quantityConsumedMl}`
+          );
+        }
+        const consumedMl = parseFloat(quantityConsumedMl); // Usar número
+        console.log(
+          `  Procesando Ingrediente Item ID: ${itemId}, Consumo Requerido: ${consumedMl}ml`
+        );
+
+        // Obtener info y stock actual del item con bloqueo
         const [itemInfoRows] = await connection.query(
           `SELECT si.stock_unidades, si.variacion, si.cantidad_por_envase, si.unidad_medida, m.nombre as nombre_marca
             FROM stock_items si
             JOIN marcas m ON si.marca_id = m.id
-            WHERE si.id = ? AND si.is_active = TRUE FOR UPDATE`,
+            WHERE si.id = ? AND si.is_active = TRUE FOR UPDATE`, // Bloquear y asegurar activo
           [itemId]
         );
+
         if (itemInfoRows.length === 0) {
-          /* ... lanzar error item no encontrado ... */
+          // Intentar obtener el nombre aunque no esté activo/no tenga stock para un mejor mensaje
+          const [inactiveItem] = await connection.query(
+            `SELECT CONCAT(m.nombre, ' ', COALESCE(si.variacion,''), ' ', si.cantidad_por_envase, si.unidad_medida) as nombre
+             FROM stock_items si JOIN marcas m ON si.marca_id = m.id WHERE si.id = ?`,
+            [itemId]
+          );
+          const itemName =
+            inactiveItem.length > 0
+              ? `"${inactiveItem[0].nombre}" (ID: ${itemId})`
+              : `ID ${itemId}`;
+          throw new Error(
+            `Ingrediente ${itemName} no encontrado, no está activo o no tiene stock.`
+          );
         }
         const itemInfo = itemInfoRows[0];
         const stockAnterior = itemInfo.stock_unidades;
@@ -722,29 +779,27 @@ export const registerProduction = async (req, res) => {
           itemInfo.variacion,
           itemInfo.cantidad_por_envase,
           itemInfo.unidad_medida
-        ); // Usar helper con unidad
+        );
 
-        // Verificar cantidad_por_envase
+        // Verificar cantidad_por_envase válida
         if (itemInfo.cantidad_por_envase <= 0) {
           console.warn(
-            `Advertencia: Cantidad por envase inválida (${itemInfo.cantidad_por_envase}) para item ${nombreCompletoItem} (ID: ${itemId}). Saltando.`
+            `Advertencia: Cantidad por envase inválida (${itemInfo.cantidad_por_envase}) para item ${nombreCompletoItem} (ID: ${itemId}). Saltando este ingrediente.`
           );
-          continue;
+          continue; // Saltar ingrediente si no se puede calcular unidades
         }
 
-        // --- Calcular unidades a descontar (Ajuste 1:1 para sólidos) ---
-        let cantidadConsumidaEnUnidadBase = quantityConsumedMl; // Asumir ml por defecto
+        // Calcular unidades a descontar (Asunción 1:1 para sólidos)
+        let cantidadConsumidaEnUnidadBase = consumedMl; // Asumir ml por defecto
         if (itemInfo.unidad_medida === "g") {
-          // TODO: Implementar conversión con densidad si es necesaria en el futuro.
-          // Por ahora, asumimos 1ml = 1g para la cantidad consumida.
+          // TODO: Implementar conversión con densidad si es necesaria. Asumiendo 1ml = 1g.
           console.log(
             `   INFO: Asumiendo 1ml = 1g para item sólido ${nombreCompletoItem}`
           );
-          // cantidadConsumidaEnUnidadBase = quantityConsumedMl; // Sigue siendo el mismo número
+          // cantidadConsumidaEnUnidadBase = consumedMl; // Sigue siendo el mismo número
         }
         const aDescontarEnUnidades =
           cantidadConsumidaEnUnidadBase / itemInfo.cantidad_por_envase;
-        // --- Fin cálculo ---
 
         const stockNuevo = stockAnterior - aDescontarEnUnidades;
         console.log(
@@ -757,31 +812,56 @@ export const registerProduction = async (req, res) => {
           }), Stock Nuevo (calc): ${stockNuevo.toFixed(3)}`
         );
 
-        // ... (Verificar stock < -0.001, Redondear, UPDATE stock_items, INSERT stock_movements) ...
+        // Verificar stock suficiente
         if (stockNuevo < -0.001) {
-          throw new Error(`Stock insuficiente para "${nombreCompletoItem}"...`);
+          // Usar tolerancia
+          throw new Error(
+            `Stock insuficiente para "${nombreCompletoItem}" (ID: ${itemId}). Necesita consumir: ${aDescontarEnUnidades.toFixed(
+              3
+            )} unid. (${cantidadConsumidaEnUnidadBase}${
+              itemInfo.unidad_medida
+            }), Disponible: ${stockAnterior.toFixed(3)} unid.`
+          );
         }
-        const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
+        const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5)); // Redondear
+
+        // Actualizar stock_items
         await connection.query(
           "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
           [stockNuevoRedondeado, itemId]
         );
+        console.log(`    Stock actualizado para Item ID: ${itemId}`);
+
+        // Crear descripción para el movimiento
         const descripcionMovimiento = `${description} (Consumo: ${nombreCompletoItem})`;
+
+        // Insertar stock_movements
         await connection.query(
-          `INSERT INTO stock_movements (...) VALUES (?, 'CONSUMO_PRODUCCION', ?, ?, ?, ?, ?)`,
+          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO_PRODUCCION', ?, ?, ?, ?, ?)`,
           [
             itemId,
-            -aDescontarEnUnidades,
+            -aDescontarEnUnidades, // Negativo
             stockAnterior,
             stockNuevoRedondeado,
             descripcionMovimiento,
             eventoId,
           ]
         );
+        console.log(`    Movimiento registrado para Item ID: ${itemId}`);
       } // Fin bucle ingredients
-    } // Fin if ingredients
+      console.log("Procesamiento de ingredientes completado.");
+    } else {
+      console.log("No se especificaron ingredientes para descontar.");
+    }
 
-    // ... (Crear Prebatch con INSERT INTO prebatches) ...
+    // 4. Crear Prebatch (CORREGIDO - usa categoryId)
+    console.log(
+      `Creando prebatch con nombre: ${prebatchName}, Categoria ID: ${
+        categoryId || "Ninguna"
+      }, Fecha Prod: ${productionDate}, Vencimiento: ${
+        expiryDate || "No especificado"
+      }, Cantidad: ${quantityProducedMl}ml`
+    );
     await connection.query(
       `INSERT INTO prebatches (nombre_prebatch, fecha_produccion, fecha_vencimiento, categoria_id, cantidad_inicial_ml, cantidad_actual_ml, identificador_lote, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
@@ -789,25 +869,43 @@ export const registerProduction = async (req, res) => {
         prebatchName,
         productionDate,
         expiryDate || null,
-        categoryId || null,
+        categoryId || null, // <-- Usa la variable 'categoryId' extraída
         quantityProducedMl,
         quantityProducedMl,
-        null,
+        null, // Identificador lote
       ]
     );
+    console.log("Prebatch creado/insertado en la tabla prebatches.");
 
+    console.log("Intentando commit final...");
     await connection.commit();
-    res.status(200).json({ message: "Producción registrada..." });
+    console.log("Commit final exitoso.");
+
+    // Enviar respuesta de éxito
+    res.status(200).json({
+      message:
+        "Producción registrada y stock de ingredientes descontado con éxito.",
+    });
   } catch (error) {
-    /* ... (rollback, manejo de error) ... */
-    console.error("--- ERROR en registerProduction ---:", error);
-    if (connection) await connection.rollback();
+    console.error("--- ERROR en registerProduction ---:", error); // Loggear el error completo
+    if (connection) {
+      console.log("Intentando rollback...");
+      await connection.rollback();
+      console.log("Rollback realizado.");
+    }
+    // Enviar respuesta de error 500 con el mensaje específico
     res.status(500).json({
-      message: error.message || "Error interno...",
-      error: error.message,
+      message:
+        error.message ||
+        "Error interno del servidor al registrar la producción.",
+      error: error.message, // Incluir el mensaje de error también en el campo 'error'
     });
   } finally {
-    /* ... (release connection) ... */
-    if (connection) connection.release();
+    if (connection) {
+      console.log("Liberando conexión...");
+      connection.release();
+      console.log("Conexión liberada.");
+    }
+    console.log("--- Finalizando registerProduction ---");
   }
 };

@@ -1,15 +1,5 @@
 import pool from "../config/db.js";
-
-const buildNombreCompleto = (nombreMarca, variacion, cantidad, unidad) => {
-  let parts = [nombreMarca];
-  if (variacion && variacion.trim() !== "") {
-    parts.push(variacion.trim());
-  }
-  // Formatear cantidad (ej: quitar decimales innecesarios si es posible)
-  const formattedCantidad = parseFloat(cantidad).toString();
-  parts.push(`${formattedCantidad}${unidad}`); // Usar unidad directamente
-  return parts.join(" ");
-};
+import { buildNombreCompleto } from "../utils/helpers.js"; //
 
 // --- GESTIÓN DE CATEGORÍAS ---
 export const getCategories = async (req, res) => {

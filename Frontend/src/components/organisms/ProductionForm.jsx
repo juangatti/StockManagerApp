@@ -41,9 +41,8 @@ export default function ProductionForm() {
   const [error, setError] = useState(null); // Solo para error de carga de categorías
   const { fetchStock } = useStockStore();
   const ingredientRefs = useRef({});
-
-  // --- useEffect Carga Productos ELIMINADO ---
-  // Ya no cargamos /api/admin/products
+  const [existingNames, setExistingNames] = useState([]);
+  const [loadingNames, setLoadingNames] = useState(true);
 
   // --- useEffect Carga Categorías (se mantiene) ---
   useEffect(() => {
@@ -68,7 +67,28 @@ export default function ProductionForm() {
       .finally(() => setLoadingCategories(false));
   }, []);
 
-  // --- useEffect Pre-rellenar ELIMINADO ---
+  useEffect(() => {
+    setLoadingNames(true);
+    api
+      .get("/prebatches/names") // Llama al nuevo endpoint
+      .then((res) => {
+        if (Array.isArray(res.data)) {
+          setExistingNames(res.data);
+        } else {
+          console.error(
+            "Respuesta inesperada para /prebatches/names:",
+            res.data
+          );
+          setExistingNames([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching existing prebatch names:", err);
+        // No es crítico, el input funcionará sin sugerencias
+        setExistingNames([]);
+      })
+      .finally(() => setLoadingNames(false));
+  }, []);
 
   // --- useEffect Limpiar ExpiryDate (se mantiene) ---
   useEffect(() => {
@@ -240,15 +260,13 @@ export default function ProductionForm() {
       {error && <Alert message={error} />}{" "}
       {/* Ahora solo muestra error de carga de categorías */}
       {/* Mostrar Spinner solo si carga categorías */}
-      {loadingCategories ? (
+      {loadingCategories || loadingNames ? (
         <Spinner />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Fila 1: Nombre Prebatch, Fecha Prod */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {" "}
-            {/* Cambiado a 2 cols */}
-            {/* --- Selector Producto Base ELIMINADO --- */}
             {/* Nombre Prebatch Resultante */}
             <div>
               <label
@@ -268,6 +286,11 @@ export default function ProductionForm() {
                 disabled={isSubmitting}
                 placeholder="Ej: Negroni Base, Syrup Simple"
               />
+              <datalist id="prebatch-names">
+                {existingNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
             </div>
             {/* Fecha Producción */}
             <div>

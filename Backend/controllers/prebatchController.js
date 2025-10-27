@@ -1,5 +1,6 @@
 // Backend/controllers/prebatchController.js
 import pool from "../config/db.js";
+import { buildNombreCompleto } from "../utils/helpers.js"; //
 
 // GET /api/prebatches
 export const getAllPrebatches = async (req, res) => {
