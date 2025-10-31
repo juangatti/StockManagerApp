@@ -486,43 +486,59 @@ export const getStockMovements = async (req, res) => {
 export const getMovementEventById = async (req, res) => {
   const { id } = req.params;
   try {
+    // 1. MODIFICACIÓN: Consulta actualizada
     const query = `
       SELECT
-        e.id AS evento_id, /* ... otros campos del evento ... */
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            'id', sm.id,
-            -- Construcción dinámica del nombre del item afectado con unidad
-            'nombre_item', CONCAT(
-                m.nombre,
-                CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
-                ' ',
-                FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
-                si.unidad_medida
-            ),
-            /* ... otros campos del movimiento ... */
-             'cantidad_movida', sm.cantidad_unidades_movidas,
-            'stock_anterior', sm.stock_anterior,
-            'stock_nuevo', sm.stock_nuevo,
-            'descripcion_movimiento', sm.descripcion
+        e.id AS evento_id,
+        e.tipo_evento,
+        e.descripcion AS evento_descripcion,
+        e.fecha_evento,
+        
+        -- Usamos IF(COUNT(sm.id) = 0, ...) para devolver un array vacío '[]' si no hay movimientos,
+        -- en lugar de un array con un solo item nulo '[null]'
+        IF(COUNT(sm.id) = 0, 
+          JSON_ARRAY(), 
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', sm.id,
+              'nombre_item', CONCAT(
+                  m.nombre,
+                  CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+                  ' ',
+                  FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
+                  si.unidad_medida
+              ),
+              'cantidad_movida', sm.cantidad_unidades_movidas,
+              'stock_anterior', sm.stock_anterior,
+              'stock_nuevo', sm.stock_nuevo,
+              'descripcion_movimiento', sm.descripcion
+            )
           )
         ) AS movimientos
       FROM eventos_stock AS e
+      
+      -- 2. MODIFICACIÓN: Usamos LEFT JOIN en lugar de INNER JOIN (implícito en el WHERE)
       LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
       LEFT JOIN stock_items AS si ON sm.item_id = si.id
       LEFT JOIN marcas AS m ON si.marca_id = m.id
-      WHERE e.id = ? AND sm.id IS NOT NULL
-      GROUP BY e.id /* ... agrupar por todos los campos del evento ... */;
+      
+      WHERE e.id = ? 
+      
+      -- 3. MODIFICACIÓN: Agrupamos por todos los campos del evento
+      GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento;
     `;
-    const [rows] = await pool.query(query, [id]); //
-    // ... (manejo de evento no encontrado o sin movimientos) ...
+
+    const [rows] = await pool.query(query, [id]);
+
+    // 4. MODIFICACIÓN: Manejo de "no encontrado"
     if (rows.length === 0) {
-      /* ... buscar evento solo ... */
+      // Esto significa que el ID del evento no existe en 'eventos_stock'
+      return res.status(404).json({ message: "Evento no encontrado." });
     } else {
+      // El evento existe (con o sin movimientos), lo enviamos
       res.json(rows[0]);
     }
   } catch (error) {
-    /* ... (manejo de error) ... */
     console.error("Error al consultar detalle del evento:", error);
     res.status(500).json({
       message: "Error al consultar detalle del evento.",

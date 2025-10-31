@@ -812,16 +812,16 @@ export const getInactiveProducts = async (req, res) => {
 };
 
 export const createRecipe = async (req, res) => {
-  // Esperamos que el frontend envíe ingredient_type y prebatch_id/item_id según corresponda
+  // Ahora esperamos recipe_variant en las reglas
   const { nombre_producto_fudo, reglas } = req.body;
   if (
     !nombre_producto_fudo ||
     !reglas ||
-    !Array.isArray(reglas) ||
-    reglas.length === 0
+    !Array.isArray(reglas) // Permitimos crear producto sin reglas inicialmente
+    // || reglas.length === 0 // Quitamos esta validación por ahora
   ) {
     return res.status(400).json({
-      message: "El nombre del producto y las reglas son obligatorios.",
+      message: "El nombre del producto es obligatorio.",
     });
   }
 
@@ -829,80 +829,88 @@ export const createRecipe = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Crear el producto (sin cambios)
     const [productResult] = await connection.query(
       "INSERT INTO productos (nombre_producto_fudo) VALUES (?)",
       [nombre_producto_fudo]
     );
     const newProductId = productResult.insertId;
 
-    // Insertar las reglas (modificado)
-    for (const regla of reglas) {
-      // Validar campos comunes
-      const {
-        ingredient_type, // 'ITEM' o 'PREBATCH'
-        item_id, // ID si es ITEM
-        prebatch_id, // ID si es PREBATCH
-        consumo_ml,
-        prioridad_item,
-        // marca_id ya no es necesaria si la eliminaste de la BD,
-        // si la mantuviste, podrías necesitarla aquí aún.
-      } = regla;
-
-      if (
-        !ingredient_type ||
-        !consumo_ml ||
-        !prioridad_item ||
-        (ingredient_type !== "ITEM" && ingredient_type !== "PREBATCH")
-      ) {
-        throw new Error(
-          "Una regla de la receta está incompleta o tiene tipo inválido."
-        );
-      }
-      if (ingredient_type === "ITEM" && !item_id) {
-        throw new Error("Una regla de tipo 'ITEM' requiere un item_id.");
-      }
-      if (ingredient_type === "PREBATCH" && !prebatch_id) {
-        throw new Error(
-          "Una regla de tipo 'PREBATCH' requiere un prebatch_id."
-        );
-      }
-
-      // Sentencia INSERT actualizada
-      await connection.query(
-        `INSERT INTO recetas (
-           producto_id,
-           ingredient_type,
-           item_id,
-           prebatch_id,
-           consumo_ml,
-           prioridad_item
-           -- , marca_id -- Descomenta si mantuviste marca_id
-         ) VALUES (?, ?, ?, ?, ?, ?) -- Ajusta el número de '?' si mantienes marca_id`,
-        [
-          newProductId,
+    // Insertar las reglas (si existen)
+    if (reglas.length > 0) {
+      for (const regla of reglas) {
+        const {
           ingredient_type,
-          ingredient_type === "ITEM" ? item_id : null, // Guarda item_id o null
-          ingredient_type === "PREBATCH" ? prebatch_id : null, // Guarda prebatch_id o null
+          item_id,
+          prebatch_id,
           consumo_ml,
           prioridad_item,
-          // , marca_id -- Descomenta si mantuviste marca_id
-        ]
-      );
-    }
+          recipe_variant, // <-- Nuevo campo esperado
+        } = regla;
+
+        // Validaciones (incluyendo recipe_variant)
+        if (
+          !ingredient_type ||
+          !consumo_ml ||
+          !prioridad_item ||
+          !recipe_variant ||
+          (ingredient_type !== "ITEM" && ingredient_type !== "PREBATCH")
+        ) {
+          throw new Error(
+            "Una regla de la receta está incompleta o tiene tipo/variante inválido."
+          );
+        }
+        if (ingredient_type === "ITEM" && !item_id) {
+          throw new Error("Una regla de tipo 'ITEM' requiere un item_id.");
+        }
+        if (ingredient_type === "PREBATCH" && !prebatch_id) {
+          throw new Error(
+            "Una regla de tipo 'PREBATCH' requiere un prebatch_id."
+          );
+        }
+        if (isNaN(parseInt(recipe_variant)) || parseInt(recipe_variant) <= 0) {
+          throw new Error(
+            "La Prioridad de Variante debe ser un número positivo."
+          );
+        }
+
+        // Sentencia INSERT actualizada con recipe_variant
+        await connection.query(
+          `INSERT INTO recetas (
+               producto_id,
+               recipe_variant, -- <-- Nueva columna
+               ingredient_type,
+               item_id,
+               prebatch_id,
+               consumo_ml,
+               prioridad_item
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)`, // <-- 7 placeholders
+          [
+            newProductId,
+            parseInt(recipe_variant), // <-- Guardar variante
+            ingredient_type,
+            ingredient_type === "ITEM" ? item_id : null,
+            ingredient_type === "PREBATCH" ? prebatch_id : null,
+            consumo_ml,
+            prioridad_item,
+          ]
+        );
+      }
+    } // Fin if (reglas.length > 0)
 
     await connection.commit();
     res.status(201).json({ message: "Producto y receta creados con éxito." });
   } catch (error) {
     await connection.rollback();
-    console.error("Error creating recipe:", error); // Log detallado
+    console.error("Error creating recipe:", error);
     if (error.code === "ER_DUP_ENTRY") {
       return res
         .status(409)
         .json({ message: `El producto "${nombre_producto_fudo}" ya existe.` });
     }
-    // Devolver mensaje de error específico si es una validación nuestra
-    if (error.message.startsWith("Una regla")) {
+    if (
+      error.message.startsWith("Una regla") ||
+      error.message.includes("Prioridad de Variante")
+    ) {
       return res.status(400).json({ message: error.message });
     }
     res
@@ -914,7 +922,7 @@ export const createRecipe = async (req, res) => {
 };
 
 export const getRecipeById = async (req, res) => {
-  const { id } = req.params; // id del producto
+  const { id } = req.params;
   try {
     const [productRows] = await pool.query(
       "SELECT * FROM productos WHERE id = ?",
@@ -923,51 +931,35 @@ export const getRecipeById = async (req, res) => {
     if (productRows.length === 0)
       return res.status(404).json({ message: "Producto no encontrado." });
 
-    // Consulta modificada para obtener nuevos campos y nombre del prebatch
+    // Consulta modificada para incluir recipe_variant y ordenar por ella
     const [recipeRows] = await pool.query(
       `SELECT
-        r.*,
-        -- Obtener nombre completo del item si es de tipo ITEM
+        r.*, -- Selecciona todas las columnas de recetas (incluyendo recipe_variant)
         CASE
           WHEN r.ingredient_type = 'ITEM' THEN (
-            SELECT CONCAT(
-              m.nombre,
-              CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
-              ' ',
-              FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
-              si.unidad_medida
-            )
-            FROM stock_items si
-            JOIN marcas m ON si.marca_id = m.id
-            WHERE si.id = r.item_id
-          )
-          ELSE NULL
+            SELECT CONCAT(m.nombre, CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END, ' ', FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)), si.unidad_medida)
+            FROM stock_items si JOIN marcas m ON si.marca_id = m.id WHERE si.id = r.item_id
+          ) ELSE NULL
         END AS item_nombre_completo,
-        -- Obtener nombre del prebatch si es de tipo PREBATCH
         CASE
-          WHEN r.ingredient_type = 'PREBATCH' THEN (
-            SELECT pb.nombre_prebatch
-            FROM prebatches pb
-            WHERE pb.id = r.prebatch_id
-          )
+          WHEN r.ingredient_type = 'PREBATCH' THEN (SELECT pb.nombre_prebatch FROM prebatches pb WHERE pb.id = r.prebatch_id)
           ELSE NULL
         END AS prebatch_nombre
       FROM recetas r
-      WHERE r.producto_id = ?`,
+      WHERE r.producto_id = ?
+      ORDER BY r.recipe_variant ASC, r.id ASC`, // <-- Ordenar por variante
       [id]
     );
 
-    // Formatear respuesta para el frontend si es necesario
     const formattedReglas = recipeRows.map((regla) => ({
       ...regla,
-      // Crear un nombre de display unificado para el frontend
       display_name:
         regla.ingredient_type === "ITEM"
           ? regla.item_nombre_completo
           : regla.prebatch_nombre,
     }));
 
-    res.json({ product: productRows[0], reglas: formattedReglas }); // Enviar reglas formateadas
+    res.json({ product: productRows[0], reglas: formattedReglas });
   } catch (error) {
     console.error("Error fetching recipe by id:", error);
     res.status(500).json({ message: "Error al obtener la receta." });
@@ -975,17 +967,13 @@ export const getRecipeById = async (req, res) => {
 };
 
 export const updateRecipe = async (req, res) => {
-  const { id } = req.params; // id del producto
+  const { id } = req.params;
   const { nombre_producto_fudo, reglas } = req.body;
 
-  if (
-    !nombre_producto_fudo ||
-    !reglas ||
-    !Array.isArray(reglas) ||
-    reglas.length === 0 // Permitimos guardar sin reglas para poder "vaciar" una receta
-  ) {
+  if (!nombre_producto_fudo || !Array.isArray(reglas)) {
+    // Validar que reglas sea array
     return res.status(400).json({
-      message: "El nombre del producto es obligatorio.",
+      message: "El nombre del producto y un array de reglas son obligatorios.",
     });
   }
 
@@ -993,78 +981,77 @@ export const updateRecipe = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Actualizar nombre producto (sin cambios)
     await connection.query(
       "UPDATE productos SET nombre_producto_fudo = ? WHERE id = ?",
       [nombre_producto_fudo, id]
     );
-
-    // Borrar reglas antiguas (sin cambios)
     await connection.query("DELETE FROM recetas WHERE producto_id = ?", [id]);
 
-    // Insertar nuevas reglas (modificado)
-    for (const regla of reglas) {
-      const {
-        ingredient_type,
-        item_id,
-        prebatch_id,
-        consumo_ml,
-        prioridad_item,
-        // marca_id si la mantuviste
-      } = regla;
-
-      // Re-validar campos aquí también
-      if (
-        !ingredient_type ||
-        !consumo_ml ||
-        !prioridad_item ||
-        (ingredient_type !== "ITEM" && ingredient_type !== "PREBATCH")
-      ) {
-        throw new Error(
-          "Una regla de la receta está incompleta o tiene tipo inválido."
-        );
-      }
-      if (ingredient_type === "ITEM" && !item_id) {
-        throw new Error("Una regla de tipo 'ITEM' requiere un item_id.");
-      }
-      if (ingredient_type === "PREBATCH" && !prebatch_id) {
-        throw new Error(
-          "Una regla de tipo 'PREBATCH' requiere un prebatch_id."
-        );
-      }
-
-      // Sentencia INSERT actualizada (igual que en createRecipe)
-      await connection.query(
-        `INSERT INTO recetas (
-           producto_id,
-           ingredient_type,
-           item_id,
-           prebatch_id,
-           consumo_ml,
-           prioridad_item
-           -- , marca_id
-         ) VALUES (?, ?, ?, ?, ?, ?)`, // Ajusta '?'
-        [
-          id, // Usar el ID del producto existente
+    // Insertar nuevas reglas (si existen)
+    if (reglas.length > 0) {
+      for (const regla of reglas) {
+        const {
           ingredient_type,
-          ingredient_type === "ITEM" ? item_id : null,
-          ingredient_type === "PREBATCH" ? prebatch_id : null,
+          item_id,
+          prebatch_id,
           consumo_ml,
           prioridad_item,
-          // , marca_id
-        ]
-      );
-    }
+          recipe_variant, // <-- Incluir variante
+        } = regla;
+
+        // Validaciones (incluyendo recipe_variant)
+        if (
+          !ingredient_type ||
+          !consumo_ml ||
+          !prioridad_item ||
+          !recipe_variant ||
+          (ingredient_type !== "ITEM" && ingredient_type !== "PREBATCH")
+        ) {
+          throw new Error(
+            "Una regla de la receta está incompleta o tiene tipo/variante inválido."
+          );
+        }
+        if (ingredient_type === "ITEM" && !item_id) {
+          throw new Error("Una regla 'ITEM' requiere item_id.");
+        }
+        if (ingredient_type === "PREBATCH" && !prebatch_id) {
+          throw new Error("Una regla 'PREBATCH' requiere prebatch_id.");
+        }
+        if (isNaN(parseInt(recipe_variant)) || parseInt(recipe_variant) <= 0) {
+          throw new Error(
+            "La Prioridad de Variante debe ser un número positivo."
+          );
+        }
+
+        // Sentencia INSERT actualizada con recipe_variant
+        await connection.query(
+          `INSERT INTO recetas (
+               producto_id, recipe_variant, ingredient_type, item_id, prebatch_id, consumo_ml, prioridad_item
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id, // Usar ID existente
+            parseInt(recipe_variant), // <-- Guardar variante
+            ingredient_type,
+            ingredient_type === "ITEM" ? item_id : null,
+            ingredient_type === "PREBATCH" ? prebatch_id : null,
+            consumo_ml,
+            prioridad_item,
+          ]
+        );
+      }
+    } // Fin if (reglas.length > 0)
+
     await connection.commit();
     res.status(200).json({ message: "Receta actualizada con éxito." });
   } catch (error) {
     await connection.rollback();
-    console.error("Error updating recipe:", error); // Log detallado
-    // Devolver mensaje de error específico si es una validación nuestra
-    if (error.message.startsWith("Una regla")) {
+    console.error("Error updating recipe:", error);
+    if (
+      error.message.startsWith("Una regla") ||
+      error.message.includes("Prioridad de Variante")
+    ) {
       return res.status(400).json({ message: error.message });
     }
-    // Manejar duplicados en nombre de producto si es necesario (puede que necesites verificar antes del UPDATE)
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         message: `Ya existe otro producto con el nombre "${nombre_producto_fudo}".`,
