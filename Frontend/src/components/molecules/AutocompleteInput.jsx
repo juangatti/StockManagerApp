@@ -37,8 +37,21 @@ const AutocompleteInput = forwardRef(
     const inputRef = useRef(null);
     const listRef = useRef(null);
 
-    // ... (useEffect para buscar, handleInputChange, handleSelectSuggestion SIN CAMBIOS) ...
-    // Efecto para buscar sugerencias cuando el término debounced cambia
+    // 1. --- MODIFICACIÓN: Generar un ID único y estable ---
+    // Usamos useRef para que el ID aleatorio no cambie en cada render
+    const uniqueId = useRef(
+      `autocomplete-${Math.random().toString(36).substr(2, 9)}`
+    );
+
+    // Comprobar si 'label' es un string antes de usar .replace()
+    // Si no es un string (es JSX o undefined), usamos el ID único estable
+    const labelId =
+      label && typeof label === "string"
+        ? label.replace(/\s+/g, "-").toLowerCase()
+        : uniqueId.current;
+    // --- FIN MODIFICACIÓN ---
+
+    // ... (useEffect para buscar, SIN CAMBIOS) ...
     useEffect(() => {
       if (
         selectedItem &&
@@ -73,6 +86,7 @@ const AutocompleteInput = forwardRef(
       fetchSuggestions();
     }, [debouncedSearchTerm, selectedItem]);
 
+    // ... (handleInputChange, handleSelectSuggestion, clearInputAndSelection, useImperativeHandle, SIN CAMBIOS) ...
     const handleInputChange = (e) => {
       const newSearchTerm = e.target.value;
       setSearchTerm(newSearchTerm);
@@ -99,16 +113,14 @@ const AutocompleteInput = forwardRef(
       }
     };
 
-    // Función para limpiar (ahora usada internamente y expuesta)
     const clearInputAndSelection = useCallback(() => {
       setSearchTerm("");
       setSelectedItem(null);
       setSuggestions([]);
       setIsListVisible(false);
       onItemSelected(null);
-    }, [onItemSelected]); // Dependencia onItemSelected
+    }, [onItemSelected]);
 
-    // Llamar a clearInputAndSelection desde el botón X
     const handleClearSelection = () => {
       clearInputAndSelection();
       if (inputRef.current) {
@@ -116,18 +128,12 @@ const AutocompleteInput = forwardRef(
       }
     };
 
-    // Exponer la función `clear` al componente padre usando la ref
     useImperativeHandle(ref, () => ({
       clear: () => {
         clearInputAndSelection();
-        // Opcionalmente, también podrías poner el foco aquí si lo necesitas
-        // if (inputRef.current) {
-        //   inputRef.current.focus();
-        // }
       },
     }));
 
-    // Cerrar la lista si se hace clic fuera
     useEffect(() => {
       const handleClickOutside = (event) => {
         if (
@@ -149,10 +155,11 @@ const AutocompleteInput = forwardRef(
       <div className="relative w-full">
         {label && (
           <label
-            htmlFor={label.replace(/\s+/g, "-").toLowerCase()}
+            // 2. --- MODIFICACIÓN: Usar el labelId seguro ---
+            htmlFor={labelId}
             className="block mb-2 text-sm font-medium text-slate-300"
           >
-            {label}
+            {label} {/* Esto renderiza el string O el JSX que recibimos */}
           </label>
         )}
         <div className="relative">
@@ -162,7 +169,8 @@ const AutocompleteInput = forwardRef(
           <input
             type="text"
             ref={inputRef}
-            id={label ? label.replace(/\s+/g, "-").toLowerCase() : undefined}
+            // 3. --- MODIFICACIÓN: Usar el labelId seguro ---
+            id={labelId}
             value={searchTerm}
             onChange={handleInputChange}
             onFocus={() =>
@@ -209,9 +217,8 @@ const AutocompleteInput = forwardRef(
       </div>
     );
   }
-); // Cerrar forwardRef
+);
 
-// Añadir displayName para DevTools
 AutocompleteInput.displayName = "AutocompleteInput";
 
 export default AutocompleteInput;
