@@ -485,8 +485,9 @@ export const getStockMovements = async (req, res) => {
 
 export const getMovementEventById = async (req, res) => {
   const { id } = req.params;
+  const PREBATCH_ENVASE_SIZE = 5000.0; // <-- Definimos tu estándar de 5L aquí
+
   try {
-    // 1. MODIFICACIÓN: Consulta actualizada
     const query = `
       SELECT
         e.id AS evento_id,
@@ -494,48 +495,82 @@ export const getMovementEventById = async (req, res) => {
         e.descripcion AS evento_descripcion,
         e.fecha_evento,
         
-        -- Usamos IF(COUNT(sm.id) = 0, ...) para devolver un array vacío '[]' si no hay movimientos,
-        -- en lugar de un array con un solo item nulo '[null]'
         IF(COUNT(sm.id) = 0, 
           JSON_ARRAY(), 
           JSON_ARRAYAGG(
             JSON_OBJECT(
               'id', sm.id,
-              'nombre_item', CONCAT(
-                  m.nombre,
-                  CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
-                  ' ',
-                  FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
-                  si.unidad_medida
+              
+              'nombre_item', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  (SELECT CONCAT(pb.nombre_prebatch, ' (Lote ID: ', pb.id, ')') FROM prebatches pb WHERE pb.id = sm.prebatch_id_afectado), 
+                  CONCAT(
+                      m.nombre,
+                      CASE WHEN si.variacion IS NOT NULL AND si.variacion != '' THEN CONCAT(' ', si.variacion) ELSE '' END,
+                      ' ',
+                      FORMAT(si.cantidad_por_envase, IF(si.cantidad_por_envase = FLOOR(si.cantidad_por_envase), 0, 2)),
+                      si.unidad_medida
+                  )
               ),
-              'cantidad_movida', sm.cantidad_unidades_movidas,
-              'stock_anterior', sm.stock_anterior,
-              'stock_nuevo', sm.stock_nuevo,
+              
+              'tipo_ingrediente', IF(sm.prebatch_id_afectado IS NOT NULL, 'PREBATCH', 'ITEM'),
+
+              -- --- INICIO DE LA MODIFICACIÓN ---
+              -- Valores en "Unidades" (Calculados para items Y prebatches)
+              'cantidad_movida_unid', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  sm.cantidad_unidades_movidas / ${PREBATCH_ENVASE_SIZE}, -- <-- ¡CALCULADO!
+                  sm.cantidad_unidades_movidas 
+              ),
+              'stock_anterior_unid', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  sm.stock_anterior / ${PREBATCH_ENVASE_SIZE}, -- <-- ¡CALCULADO!
+                  sm.stock_anterior
+              ),
+              'stock_nuevo_unid', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  sm.stock_nuevo / ${PREBATCH_ENVASE_SIZE}, -- <-- ¡CALCULADO!
+                  sm.stock_nuevo
+              ),
+
+              -- Valores en "ml" (Calculados para items, directos para prebatches)
+              'cantidad_movida_ml', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  sm.cantidad_unidades_movidas, 
+                  sm.cantidad_unidades_movidas * si.cantidad_por_envase 
+              ),
+              'stock_anterior_ml', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  sm.stock_anterior, 
+                  sm.stock_anterior * si.cantidad_por_envase 
+              ),
+              'stock_nuevo_ml', IF(
+                  sm.prebatch_id_afectado IS NOT NULL, 
+                  sm.stock_nuevo, 
+                  sm.stock_nuevo * si.cantidad_por_envase 
+              ),
+              -- --- FIN DE LA MODIFICACIÓN ---
+              
               'descripcion_movimiento', sm.descripcion
             )
           )
         ) AS movimientos
       FROM eventos_stock AS e
       
-      -- 2. MODIFICACIÓN: Usamos LEFT JOIN en lugar de INNER JOIN (implícito en el WHERE)
       LEFT JOIN stock_movements AS sm ON e.id = sm.evento_id
       LEFT JOIN stock_items AS si ON sm.item_id = si.id
       LEFT JOIN marcas AS m ON si.marca_id = m.id
       
       WHERE e.id = ? 
       
-      -- 3. MODIFICACIÓN: Agrupamos por todos los campos del evento
       GROUP BY e.id, e.tipo_evento, e.descripcion, e.fecha_evento;
     `;
 
     const [rows] = await pool.query(query, [id]);
 
-    // 4. MODIFICACIÓN: Manejo de "no encontrado"
     if (rows.length === 0) {
-      // Esto significa que el ID del evento no existe en 'eventos_stock'
       return res.status(404).json({ message: "Evento no encontrado." });
     } else {
-      // El evento existe (con o sin movimientos), lo enviamos
       res.json(rows[0]);
     }
   } catch (error) {

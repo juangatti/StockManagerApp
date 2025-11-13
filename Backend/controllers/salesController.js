@@ -1,7 +1,19 @@
 import pool from "../config/db.js";
 import xlsx from "xlsx";
-// Importar la función helper (si la moviste) o definirla aquí
-import { buildNombreCompleto } from "../utils/helpers.js";
+
+// 1. AÑADIMOS LA FUNCIÓN HELPER (ya que no está importada en este archivo)
+//    (Asegúrate que esta sea la versión correcta que usas en otros archivos)
+const buildNombreCompleto = (nombreMarca, variacion, cantidad, unidad) => {
+  let parts = [nombreMarca];
+  if (variacion && variacion.trim() !== "") {
+    parts.push(variacion.trim());
+  }
+  // Formatear cantidad (ej: quitar decimales innecesarios si es posible)
+  const formattedCantidad = parseFloat(cantidad).toString();
+  parts.push(`${formattedCantidad}${unidad}`); // Usar unidad directamente
+  return parts.join(" ");
+};
+// ---
 
 export const processSalesFile = async (req, res) => {
   console.log("--- Iniciando processSalesFile (Versión con Variantes) ---");
@@ -10,6 +22,7 @@ export const processSalesFile = async (req, res) => {
     return res.status(400).json({ message: "No se subió ningún archivo." });
   }
 
+  // --- 1. Parseo de Excel (Sin cambios, pero con validación) ---
   let ventas;
   try {
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
@@ -29,6 +42,7 @@ export const processSalesFile = async (req, res) => {
     console.error("Error al parsear el archivo Excel:", parseError);
     return res.status(400).json({ message: "Error al leer el archivo Excel." });
   }
+  // --- Fin Parseo ---
 
   let connection;
   try {
@@ -45,7 +59,7 @@ export const processSalesFile = async (req, res) => {
     const eventoId = eventoResult.insertId;
     console.log(`Evento VENTA creado con ID: ${eventoId}`);
 
-    // --- Inicio Bucle de Ventas ---
+    // --- Bucle Principal de Ventas ---
     for (const venta of ventas) {
       const cantidadVendida = venta.Cantidad;
       const productoVendido = venta.Producto;
@@ -64,16 +78,18 @@ export const processSalesFile = async (req, res) => {
 
       if (productoRows.length === 0) {
         console.warn(
-          `Venta ignorada: Producto "${productoVendido}" no encontrado o inactivo.`
+          `   Venta ignorada: Producto "${productoVendido}" no encontrado o inactivo.`
         );
         continue;
       }
       const productId = productoRows[0].id;
       console.log(
-        `Procesando venta: ${cantidadVendida}x "${productoVendido}" (Producto ID: ${productId})`
+        `   Procesando venta: ${cantidadVendida}x "${productoVendido}" (Producto ID: ${productId})`
       );
 
-      // 1. OBTENER REGLAS ORDENADAS POR VARIANTE
+      // --- 2. LÓGICA DE VARIANTES ---
+
+      // 2.1. Obtener Reglas ORDENADAS POR VARIANTE
       const [reglasReceta] = await connection.query(
         `SELECT
            r.recipe_variant, r.ingredient_type, r.item_id, r.prebatch_id, 
@@ -92,49 +108,46 @@ export const processSalesFile = async (req, res) => {
 
       if (reglasReceta.length === 0) {
         console.warn(
-          `Venta ignorada: No se encontraron reglas de receta para ID ${productId}.`
+          `     Venta ignorada: No se encontraron reglas de receta para ID ${productId}.`
         );
         continue;
       }
 
-      // 2. AGRUPAR REGLAS POR VARIANTE
+      // 2.2. Agrupar Reglas por Variante
       const variantes = reglasReceta.reduce((acc, regla) => {
         const variantKey = regla.recipe_variant;
-        if (!acc[variantKey]) {
-          acc[variantKey] = [];
-        }
+        if (!acc[variantKey]) acc[variantKey] = [];
         acc[variantKey].push(regla);
         return acc;
       }, {});
       console.log(
-        `   Producto ID ${productId} tiene ${
+        `     Producto ID ${productId} tiene ${
           Object.keys(variantes).length
         } variante(s)`
       );
 
-      // 3. ITERAR VARIANTES E INTENTAR CONSUMIR
+      // 2.3. Iterar Variantes por Prioridad
       let varianteConsumida = false;
-      // Iteramos sobre las keys (ej. [1, 2]) ya ordenadas por la consulta SQL
+      // Object.keys(variantes) ya está ordenado (ej. ['1', '2']) gracias al ORDER BY
       for (const variantPriority in variantes) {
         const reglasVariante = variantes[variantPriority];
-        console.log(`   Intentando Variante ${variantPriority}...`);
-
-        const savepointName = `variante_${variantPriority}`;
+        const savepointName = `variante_${productId}_${variantPriority}`;
+        console.log(`     Intentando Variante ${variantPriority}...`);
 
         try {
-          // 4. CREAR SAVEPOINT
+          // 2.4. Crear SAVEPOINT
           await connection.query(`SAVEPOINT ${savepointName}`);
 
-          // 5. INTENTAR CONSUMIR TODOS LOS INGREDIENTES DE ESTA VARIANTE
+          // 2.5. Intentar consumir TODOS los ingredientes de ESTA variante
           for (const regla of reglasVariante) {
             console.log(
-              `     Aplicando regla: Tipo=${regla.ingredient_type}, Consumo=${regla.consumo_ml}ml`
+              `       Aplicando regla: Tipo=${regla.ingredient_type}, Consumo=${regla.consumo_ml}ml`
             );
             let consumoTotalMl = regla.consumo_ml * cantidadVendida;
 
             if (consumoTotalMl <= 0.001) continue;
 
-            // --- Lógica de descuento 'ITEM' (SIN CAMBIOS, PERO DENTRO DEL TRY) ---
+            // --- LÓGICA 'ITEM' ---
             if (regla.ingredient_type === "ITEM") {
               if (!regla.item_id || !regla.marca_id_item) {
                 throw new Error(
@@ -142,6 +155,7 @@ export const processSalesFile = async (req, res) => {
                 );
               }
 
+              // Buscar items priorizados (por prioridad_item)
               const [itemsPriorizados] = await connection.query(
                 `SELECT si.id as item_id, si.stock_unidades, si.variacion, si.cantidad_por_envase, si.unidad_medida, m.nombre as nombre_marca
                   FROM stock_items si
@@ -157,8 +171,9 @@ export const processSalesFile = async (req, res) => {
                 );
               }
 
+              // Iterar sobre las botellas/envases (prioridad_item)
               for (const item of itemsPriorizados) {
-                if (consumoTotalMl <= 0.001) break;
+                if (consumoTotalMl <= 0.001) break; // Consumo de esta regla completado
 
                 const nombreCompletoItem = buildNombreCompleto(
                   item.nombre_marca,
@@ -171,7 +186,7 @@ export const processSalesFile = async (req, res) => {
                   item.cantidad_por_envase <= 0
                 ) {
                   console.warn(
-                    `Advertencia: Cantidad por envase inválida para ${nombreCompletoItem}. Saltando.`
+                    `         Advertencia: Cantidad por envase inválida para ${nombreCompletoItem}. Saltando.`
                   );
                   continue;
                 }
@@ -179,7 +194,7 @@ export const processSalesFile = async (req, res) => {
                 let cantidadConsumidaEnUnidadBase = consumoTotalMl;
                 if (item.unidad_medida === "g")
                   console.log(
-                    `INFO: Asumiendo 1ml=1g para ${nombreCompletoItem}`
+                    `         INFO: Asumiendo 1ml=1g para ${nombreCompletoItem}`
                   );
 
                 const stockDisponibleEnUnidadBase =
@@ -191,6 +206,7 @@ export const processSalesFile = async (req, res) => {
                 const aDescontarEnUnidades =
                   aDescontarDeEsteItemEnUnidadBase / item.cantidad_por_envase;
 
+                // Bloquear fila para actualizar
                 const [stockActualRows] = await connection.query(
                   "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
                   [item.item_id]
@@ -202,7 +218,6 @@ export const processSalesFile = async (req, res) => {
                 const stockNuevo = stockAnterior - aDescontarEnUnidades;
 
                 if (stockNuevo < -0.001) {
-                  // Este error será capturado por el catch y provocará el rollback de la variante
                   throw new Error(
                     `Stock insuficiente (cálculo) para "${nombreCompletoItem}"`
                   );
@@ -215,6 +230,7 @@ export const processSalesFile = async (req, res) => {
                 );
 
                 const descMovimientoItem = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItem})`;
+                // Registrar movimiento (item_id != NULL)
                 await connection.query(
                   `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
                    VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?, NULL)`,
@@ -232,6 +248,7 @@ export const processSalesFile = async (req, res) => {
               } // Fin for itemsPriorizados
 
               if (consumoTotalMl > 0.01) {
+                // Si aún falta ML por consumir
                 throw new Error(
                   `Stock insuficiente (restante) para ${consumoTotalMl.toFixed(
                     1
@@ -239,7 +256,7 @@ export const processSalesFile = async (req, res) => {
                 );
               }
 
-              // --- Lógica de descuento 'PREBATCH' (SIN CAMBIOS, PERO DENTRO DEL TRY) ---
+              // --- LÓGICA 'PREBATCH' ---
             } else if (regla.ingredient_type === "PREBATCH") {
               if (!regla.prebatch_id || !regla.nombre_prebatch_regla) {
                 throw new Error(
@@ -247,6 +264,7 @@ export const processSalesFile = async (req, res) => {
                 );
               }
 
+              // Buscar lotes activos (FIFO)
               const [lotesPrebatch] = await connection.query(
                 `SELECT id, cantidad_actual_ml FROM prebatches WHERE nombre_prebatch = ? AND is_active = TRUE AND cantidad_actual_ml > 0.001 ORDER BY fecha_produccion ASC FOR UPDATE`,
                 [regla.nombre_prebatch_regla]
@@ -258,8 +276,9 @@ export const processSalesFile = async (req, res) => {
                 );
               }
 
+              // Iterar sobre los lotes
               for (const lote of lotesPrebatch) {
-                if (consumoTotalMl <= 0.001) break;
+                if (consumoTotalMl <= 0.001) break; // Consumo de esta regla completado
 
                 const cantidadEnLote = lote.cantidad_actual_ml;
                 const aDescontarDeEsteLote = Math.min(
@@ -271,12 +290,36 @@ export const processSalesFile = async (req, res) => {
                   nuevaCantidadLote.toFixed(5)
                 );
 
+                // Actualizar el lote de prebatch
                 await connection.query(
                   "UPDATE prebatches SET cantidad_actual_ml = ? WHERE id = ?",
                   [nuevaCantidadLoteRedondeada, lote.id]
                 );
+                console.log(
+                  `         Stock prebatch Lote ID ${lote.id} (${
+                    regla.nombre_prebatch_regla
+                  }) actualizado: ${cantidadEnLote.toFixed(
+                    3
+                  )}ml -> ${nuevaCantidadLoteRedondeada.toFixed(3)}ml`
+                );
 
-                // ¡YA NO INSERTAMOS EN STOCK_MOVEMENTS! (según decisión anterior)
+                // Registrar movimiento (item_id = NULL)
+                const descMovimientoPrebatch = `Venta: ${cantidadVendida}x ${productoVendido} (consumo prebatch "${regla.nombre_prebatch_regla}" Lote ${lote.id})`;
+                await connection.query(
+                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
+                    VALUES (NULL, 'CONSUMO', ?, ?, ?, ?, ?, ?)`,
+                  [
+                    -aDescontarDeEsteLote, // Cantidad movida (negativa, en ml)
+                    cantidadEnLote, // Stock anterior (en ml)
+                    nuevaCantidadLoteRedondeada, // Stock nuevo (en ml)
+                    descMovimientoPrebatch,
+                    eventoId,
+                    lote.id, // ID del prebatch afectado
+                  ]
+                );
+                console.log(
+                  `         Movimiento registrado para prebatch Lote ID ${lote.id}`
+                );
 
                 consumoTotalMl -= aDescontarDeEsteLote;
               } // Fin for lotesPrebatch
@@ -291,29 +334,29 @@ export const processSalesFile = async (req, res) => {
             } // Fin if/else ingredient_type
           } // Fin bucle reglasVariante
 
-          // 6. ÉXITO DE LA VARIANTE
+          // 2.6. ÉXITO DE LA VARIANTE
           varianteConsumida = true;
-          await connection.query(`RELEASE SAVEPOINT ${savepointName}`); // Confirmar los cambios de esta variante
-          console.log(`   Variante ${variantPriority} consumida con éxito.`);
-          break; // Salir del bucle de variantes
+          await connection.query(`RELEASE SAVEPOINT ${savepointName}`);
+          console.log(`     Variante ${variantPriority} consumida con éxito.`);
+          break; // <-- Salir del bucle de variantes (¡IMPORTANTE!)
         } catch (error) {
-          // 7. FALLO DE LA VARIANTE
-          await connection.query(`ROLLBACK TO SAVEPOINT ${savepointName}`); // Revertir al savepoint
+          // 2.7. FALLO DE LA VARIANTE
           console.warn(
-            `   Falló Variante ${variantPriority}: ${error.message}`
+            `     Falló Variante ${variantPriority}: ${error.message}`
           );
-          // No hacer 'break', el bucle for...in continuará con la siguiente variante (si hay)
+          await connection.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
+          // No hacer 'break', el bucle for...in continuará con la siguiente variante
         }
-      } // Fin bucle variantes
+      } // Fin bucle variantes (for...in)
 
-      // 8. VERIFICACIÓN FINAL
+      // 2.8. Verificación Final de la Venta
       if (!varianteConsumida) {
-        // Si ninguna variante tuvo éxito, lanzamos un error que revertirá toda la transacción de la venta
+        // Si ninguna variante tuvo éxito, lanzamos un error que revertirá toda la transacción de esta venta
         throw new Error(
-          `Stock insuficiente para TODAS las variantes de "${productoVendido}".`
+          `Stock insuficiente para TODAS las variantes de "${productoVendido}". Venta no procesada.`
         );
       }
-    } // Fin Bucle de Ventas
+    } // Fin Bucle de Ventas (for...of)
 
     console.log(
       "Proceso de descuento finalizado. Haciendo commit principal..."
