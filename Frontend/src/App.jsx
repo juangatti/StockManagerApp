@@ -14,6 +14,7 @@ import ProductionPage from "./pages/ProductionPage";
 import SalesPage from "./pages/SalesPage";
 import AdminPage from "./pages/AdminPage";
 import MovementDetailPage from "./pages/MovementDetailPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
@@ -79,6 +80,7 @@ function App() {
         <Route element={<AuthRoute />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/bar" element={<BarPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         <Route element={<AdminRoute />}>

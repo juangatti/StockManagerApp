@@ -1,3 +1,4 @@
+// Frontend/src/stores/useAuthStore.js
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import axios from "axios";
@@ -17,7 +18,10 @@ const useAuthStore = create(
             username,
             password,
           });
+
+          // 'user' ahora contiene 'display_name' y 'full_name' desde el backend
           const { user, token } = response.data;
+
           set({ user, token, isAuthenticated: true });
           return { success: true };
         } catch (error) {
@@ -36,9 +40,19 @@ const useAuthStore = create(
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false });
       },
+
+      // NUEVA ACCIÓN: Para actualizar el store localmente después de guardar
+      updateUserProfile: (profileData) => {
+        set((state) => ({
+          user: {
+            ...state.user,
+            ...profileData, // Fusiona los nuevos datos (ej. display_name, full_name)
+          },
+        }));
+      },
     }),
     {
-      name: "auth-storage", //
+      name: "auth-storage",
       storage: createJSONStorage(() => sessionStorage),
     }
   )
