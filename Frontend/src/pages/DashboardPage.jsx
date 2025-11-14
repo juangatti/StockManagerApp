@@ -79,10 +79,13 @@ export default function DashboardPage() {
                 <Snowflake className="h-12 w-12 text-cyan-300" />
                 <div>
                   <h3 className="text-lg font-semibold text-slate-300">
-                    {item.nombre_marca}
+                    {item.nombre_completo_hielo}
                   </h3>
                   <p className="text-4xl font-bold text-white font-mono">
-                    {item.stock_unidades.toFixed(1)}
+                    {parseFloat(item.total_unidades).toFixed(2)}
+                    <span className="text-2xl font-medium text-slate-400 ml-2">
+                      unid.
+                    </span>
                   </p>
                 </div>
               </div>

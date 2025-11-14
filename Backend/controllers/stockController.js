@@ -633,21 +633,22 @@ export const getIceReport = async (req, res) => {
       SELECT
         m.nombre AS nombre_marca,
         si.variacion,
-        (SUM(si.stock_unidades * si.cantidad_por_envase) / 1000) AS total_kilogramos -- Calcular total en Kg
+        SUM(si.stock_unidades) AS total_unidades -- <-- CAMBIO AQUÍ
       FROM stock_items si
       JOIN marcas m ON si.marca_id = m.id
       JOIN categorias c ON m.categoria_id = c.id
-      WHERE UPPER(c.nombre) = 'HIELO' AND si.is_active = TRUE AND si.unidad_medida = 'g' -- Filtrar por 'g'
-      GROUP BY m.nombre, si.variacion -- Agrupar por marca y variación
+      WHERE UPPER(c.nombre) = 'HIELO' AND si.is_active = TRUE
+      GROUP BY m.nombre, si.variacion
       ORDER BY m.nombre, si.variacion;
     `;
-    const [rows] = await pool.query(query); //
-    // Construir nombre si es necesario
+    const [rows] = await pool.query(query);
+
+    // Mapeo modificado para enviar 'total_unidades'
     const reportData = rows.map((item) => ({
       nombre_completo_hielo: `${item.nombre_marca}${
         item.variacion ? " " + item.variacion : ""
       }`,
-      total_kilogramos: item.total_kilogramos,
+      total_unidades: item.total_unidades, // <-- CAMBIO AQUÍ
     }));
     res.json(reportData);
   } catch (error) {
