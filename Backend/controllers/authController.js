@@ -2,50 +2,21 @@ import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-// POST /api/auth/register
-export const registerUser = async (req, res) => {
-  const { username, password, role } = req.body;
-  if (!username || !password) {
-    return res
-      .status(400)
-      .json({ message: "Usuario y contraseña son obligatorios." });
-  }
-
-  try {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const [result] = await pool.query(
-      "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-      [username, hashedPassword, role || "operator"]
-    );
-
-    res
-      .status(201)
-      .json({ message: "Usuario creado con éxito.", userId: result.insertId });
-  } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") {
-      return res
-        .status(409)
-        .json({ message: "El nombre de usuario ya existe." });
-    }
-    res.status(500).json({ message: "Error al registrar el usuario." });
-  }
-};
-
+// POST /api/auth/login
 export const loginUser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // MODIFICADO: Hacemos JOIN para obtener los nuevos campos
+    // MODIFICADO: Hacemos JOIN y agregamos "AND u.is_active = TRUE"
     const [users] = await pool.query(
       `SELECT 
         u.id, u.username, u.password, u.role, 
         u.display_name,
-        d.full_name
+        d.full_name,
+        u.is_active
        FROM users u
        LEFT JOIN employee_details d ON u.id = d.user_id
-       WHERE u.username = ?`,
+       WHERE u.username = ?`, // Quitamos el ; para añadir la nueva condición
       [username]
     );
 
@@ -54,19 +25,27 @@ export const loginUser = async (req, res) => {
     }
 
     const user = users[0];
+
+    // NUEVA VALIDACIÓN: Comprobar si el usuario está activo
+    if (!user.is_active) {
+      return res
+        .status(403)
+        .json({ message: "Este usuario ha sido desactivado." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Credenciales inválidas." });
     }
 
-    // MODIFICADO: Añadir nuevos campos al payload del token
+    // El payload del token (sin cambios)
     const payload = {
       user: {
         id: user.id,
         username: user.username,
         role: user.role,
-        display_name: user.display_name, // <-- NUEVO
-        full_name: user.full_name, // <-- NUEVO
+        display_name: user.display_name,
+        full_name: user.full_name,
       },
     };
 
@@ -74,13 +53,13 @@ export const loginUser = async (req, res) => {
       expiresIn: "8h",
     });
 
-    // Devolvemos el objeto user completo (sin el password)
+    // La respuesta (sin cambios)
     const userResponse = {
       id: user.id,
       username: user.username,
       role: user.role,
-      display_name: user.display_name, // <-- NUEVO
-      full_name: user.full_name, // <-- NUEVO
+      display_name: user.display_name,
+      full_name: user.full_name,
     };
 
     res.json({ token, user: userResponse });
@@ -91,7 +70,7 @@ export const loginUser = async (req, res) => {
 
 export const updatePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const userId = req.user.id; // Viene del middleware 'protect'
+  const userId = req.user.id;
 
   if (!currentPassword || !newPassword) {
     return res

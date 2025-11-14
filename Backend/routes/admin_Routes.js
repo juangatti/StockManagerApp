@@ -31,6 +31,13 @@ import {
   getInactiveStockItem,
   restoreStockItem,
   getAllActiveStockItemsForAdjustment,
+  createUser,
+  getUsers,
+  getInactiveUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  restoreUser,
 } from "../controllers/adminController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -82,5 +89,14 @@ router.put("/stock-items/:id/restore", restoreStockItem);
 router.post("/recipes", createRecipe);
 router.get("/recipes/:id", getRecipeById);
 router.put("/recipes/:id", updateRecipe);
+
+// Rutas para Usuarios
+router.post("/users", createUser);
+router.get("/users", getUsers);
+router.get("/users/inactive", getInactiveUsers);
+router.get("/users/:id", getUserById);
+router.put("/users/:id", updateUser);
+router.delete("/users/:id", deleteUser);
+router.put("/users/:id/restore", restoreUser);
 
 export default router;

@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { FolderPlus, BookPlus, PackagePlus, ClipboardPlus } from "lucide-react";
+import {
+  FolderPlus,
+  BookPlus,
+  PackagePlus,
+  ClipboardPlus,
+  Users,
+} from "lucide-react";
 
 import CategoryManager from "../organisms/CategoryManager";
 import MarcaManager from "../organisms/MarcaManager";
 import ItemManager from "../organisms/ItemManager";
 import RecipeManager from "../organisms/RecipeManager";
+import UserManager from "../organisms/UserManager";
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState("category");
@@ -19,7 +26,9 @@ export default function AdminTabs() {
   return (
     <div>
       <div className="border-b border-slate-700 mb-8">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
+          {" "}
+          {/* <-- CAMBIO a grid-cols-5 */}
           <button
             onClick={() => setActiveTab("category")}
             className={buttonClass("category")}
@@ -48,17 +57,24 @@ export default function AdminTabs() {
             <ClipboardPlus className="mr-2 h-5 w-5" />
             Recetas
           </button>
+          {/* 4. AÑADIMOS la nueva pestaña */}
+          <button
+            onClick={() => setActiveTab("user")}
+            className={buttonClass("user")}
+          >
+            <Users className="mr-2 h-5 w-5" />
+            Usuarios
+          </button>
         </div>
       </div>
 
       <div>
-        {/* CORRECCIÓN: Dejamos solo el CategoryManager para la pestaña 'category' */}
         {activeTab === "category" && <CategoryManager />}
-
-        {/* Placeholder para los futuros gestores */}
         {activeTab === "marca" && <MarcaManager />}
         {activeTab === "item" && <ItemManager />}
         {activeTab === "recipe" && <RecipeManager />}
+
+        {activeTab === "user" && <UserManager />}
       </div>
     </div>
   );

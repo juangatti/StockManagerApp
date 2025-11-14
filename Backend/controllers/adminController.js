@@ -1,5 +1,6 @@
 import pool from "../config/db.js";
 import { buildNombreCompleto } from "../utils/helpers.js"; //
+import bcrypt from "bcryptjs";
 
 // --- GESTIÓN DE CATEGORÍAS ---
 export const getCategories = async (req, res) => {
@@ -1088,5 +1089,257 @@ export const restoreProduct = async (req, res) => {
     res.status(200).json({ message: "Categoría restaurada con éxito." });
   } catch (error) {
     res.status(500).json({ message: "Error al restaurar la categoría." });
+  }
+};
+
+export const createUser = async (req, res) => {
+  const {
+    username,
+    password,
+    role,
+    display_name,
+    full_name,
+    email_contact,
+    phone,
+  } = req.body;
+
+  if (!username || !password || !role) {
+    return res
+      .status(400)
+      .json({ message: "Usuario, contraseña y rol son obligatorios." });
+  }
+  if (role !== "admin" && role !== "operator") {
+    return res
+      .status(400)
+      .json({ message: "Rol inválido. Debe ser 'admin' u 'operator'." });
+  }
+
+  let connection;
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // 1. Insertar en 'users'
+    const [userResult] = await connection.query(
+      "INSERT INTO users (username, password, role, display_name, is_active) VALUES (?, ?, ?, ?, TRUE)",
+      [username, hashedPassword, role, display_name || null]
+    );
+    const newUserId = userResult.insertId;
+
+    // 2. Insertar en 'employee_details'
+    await connection.query(
+      "INSERT INTO employee_details (user_id, full_name, email_contact, phone) VALUES (?, ?, ?, ?)",
+      [newUserId, full_name || null, email_contact || null, phone || null]
+    );
+
+    await connection.commit();
+    res
+      .status(201)
+      .json({ message: "Usuario creado con éxito.", userId: newUserId });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    if (error.code === "ER_DUP_ENTRY") {
+      return res
+        .status(409)
+        .json({ message: "El nombre de usuario ya existe." });
+    }
+    console.error("Error creating user:", error);
+    res.status(500).json({ message: "Error al registrar el usuario." });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+export const getUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE u.is_active = TRUE";
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause +=
+        " AND (u.username LIKE ? OR u.display_name LIKE ? OR d.full_name LIKE ?)";
+      queryParams.push(
+        `%${searchQuery}%`,
+        `%${searchQuery}%`,
+        `%${searchQuery}%`
+      );
+    }
+
+    const countQuery = `SELECT COUNT(u.id) AS totalUsers FROM users u LEFT JOIN employee_details d ON u.id = d.user_id ${whereClause}`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalUsers = countRows[0].totalUsers;
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    const dataQuery = `
+      SELECT u.id, u.username, u.role, u.display_name, d.full_name, d.email_contact, d.phone
+      FROM users u
+      LEFT JOIN employee_details d ON u.id = d.user_id
+      ${whereClause}
+      ORDER BY u.username ASC
+      LIMIT ? OFFSET ?
+    `;
+    const [users] = await pool.query(dataQuery, [
+      ...queryParams,
+      limit,
+      offset,
+    ]);
+
+    res.json({
+      users,
+      pagination: { currentPage: page, totalPages, totalUsers, limit },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error del servidor al obtener usuarios." });
+  }
+};
+
+export const getInactiveUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit;
+
+    let whereClause = "WHERE u.is_active = FALSE"; // <-- Cambio aquí
+    const queryParams = [];
+
+    if (searchQuery) {
+      whereClause +=
+        " AND (u.username LIKE ? OR u.display_name LIKE ? OR d.full_name LIKE ?)";
+      queryParams.push(
+        `%${searchQuery}%`,
+        `%${searchQuery}%`,
+        `%${searchQuery}%`
+      );
+    }
+
+    // (Lógica de conteo y datos idéntica a getUsers, solo cambia whereClause)
+    const countQuery = `SELECT COUNT(u.id) AS totalUsers FROM users u LEFT JOIN employee_details d ON u.id = d.user_id ${whereClause}`;
+    const [countRows] = await pool.query(countQuery, queryParams);
+    const totalUsers = countRows[0].totalUsers;
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    const dataQuery = `
+      SELECT u.id, u.username, u.role, u.display_name, d.full_name
+      FROM users u
+      LEFT JOIN employee_details d ON u.id = d.user_id
+      ${whereClause}
+      ORDER BY u.username ASC
+      LIMIT ? OFFSET ?
+    `;
+    const [users] = await pool.query(dataQuery, [
+      ...queryParams,
+      limit,
+      offset,
+    ]);
+
+    res.json({
+      users,
+      pagination: { currentPage: page, totalPages, totalUsers, limit },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error del servidor al obtener usuarios inactivos." });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT u.id, u.username, u.role, u.display_name,
+              d.full_name, d.email_contact, d.phone
+       FROM users u
+       LEFT JOIN employee_details d ON u.id = d.user_id
+       WHERE u.id = ?`,
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    res.status(500).json({ message: "Error del servidor." });
+  }
+};
+
+// PUT /admin/users/:id (Admin edita a otro usuario)
+export const updateUser = async (req, res) => {
+  const { id } = req.params;
+  // Admin NO PUEDE cambiar la contraseña de otro, solo resetearla (función futura)
+  // Admin SÍ PUEDE cambiar el rol y los datos personales
+  const { role, display_name, full_name, email_contact, phone } = req.body;
+
+  if (!role) {
+    return res.status(400).json({ message: "El rol es obligatorio." });
+  }
+  if (role !== "admin" && role !== "operator") {
+    return res
+      .status(400)
+      .json({ message: "Rol inválido. Debe ser 'admin' u 'operator'." });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // 1. Actualizar 'users'
+    await connection.query(
+      "UPDATE users SET role = ?, display_name = ? WHERE id = ?",
+      [role, display_name || null, id]
+    );
+
+    // 2. Actualizar (o Insertar) 'employee_details'
+    await connection.query(
+      `INSERT INTO employee_details (user_id, full_name, email_contact, phone)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         full_name = VALUES(full_name),
+         email_contact = VALUES(email_contact),
+         phone = VALUES(phone)`,
+      [id, full_name || null, email_contact || null, phone || null]
+    );
+
+    await connection.commit();
+    res.json({ message: "Usuario actualizado con éxito." });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Error al actualizar el usuario." });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE users SET is_active = FALSE WHERE id = ?", [id]);
+    res.status(200).json({ message: "Usuario desactivado con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al desactivar el usuario." });
+  }
+};
+
+// PUT /admin/users/:id/restore (Soft Delete Restore)
+export const restoreUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query("UPDATE users SET is_active = TRUE WHERE id = ?", [id]);
+    res.status(200).json({ message: "Usuario restaurado con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al restaurar el usuario." });
   }
 };
