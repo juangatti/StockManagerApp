@@ -73,7 +73,6 @@ export default function AdminTabs() {
         {activeTab === "marca" && <MarcaManager />}
         {activeTab === "item" && <ItemManager />}
         {activeTab === "recipe" && <RecipeManager />}
-
         {activeTab === "user" && <UserManager />}
       </div>
     </div>
