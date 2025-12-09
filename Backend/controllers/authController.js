@@ -7,63 +7,73 @@ export const loginUser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // MODIFICADO: Hacemos JOIN y agregamos "AND u.is_active = TRUE"
+    // 1. OBTENER DATOS DEL USUARIO Y SU ROL
+    // Hacemos JOIN con 'users', 'employee_details' y 'roles'
     const [users] = await pool.query(
       `SELECT 
-        u.id, u.username, u.password, u.role, 
+        u.id, u.username, u.password, u.is_active,
         u.display_name,
-        d.full_name,
-        u.is_active
+        r.id as role_id,
+        r.name as role_name,
+        d.full_name
        FROM users u
+       LEFT JOIN roles r ON u.role_id = r.id
        LEFT JOIN employee_details d ON u.id = d.user_id
-       WHERE u.username = ?`, // Quitamos el ; para añadir la nueva condición
+       WHERE u.username = ?`,
       [username]
     );
 
     if (users.length === 0) {
       return res.status(401).json({ message: "Credenciales inválidas." });
     }
-
     const user = users[0];
 
-    // NUEVA VALIDACIÓN: Comprobar si el usuario está activo
+    // 2. VALIDAR SI ESTÁ ACTIVO (SOFT DELETE)
     if (!user.is_active) {
       return res
         .status(403)
         .json({ message: "Este usuario ha sido desactivado." });
     }
 
+    // 3. VALIDAR CONTRASEÑA
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Credenciales inválidas." });
     }
 
-    // El payload del token (sin cambios)
-    const payload = {
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        display_name: user.display_name,
-        full_name: user.full_name,
-      },
+    // 4. OBTENER PERMISOS DEL ROL
+    let permissions = [];
+    if (user.role_id) {
+      const [permRows] = await pool.query(
+        `SELECT p.permission_key
+         FROM role_permissions rp
+         JOIN permissions p ON rp.permission_id = p.id
+         WHERE rp.role_id = ?`,
+        [user.role_id]
+      );
+      permissions = permRows.map((p) => p.permission_key);
+    }
+    // Si permissions incluye 'all' (ej. SuperAdmin), dale todos los permisos (lógica futura)
+    // Por ahora, solo cargamos los que tiene.
+
+    // 5. CONSTRUIR PAYLOAD DEL TOKEN Y RESPUESTA
+    const userPayload = {
+      id: user.id,
+      username: user.username,
+      role_id: user.role_id,
+      role_name: user.role_name,
+      display_name: user.display_name,
+      full_name: user.full_name,
+      permissions: permissions, // <-- ¡Guardamos los permisos en el token!
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+    const token = jwt.sign({ user: userPayload }, process.env.JWT_SECRET, {
       expiresIn: "8h",
     });
 
-    // La respuesta (sin cambios)
-    const userResponse = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      display_name: user.display_name,
-      full_name: user.full_name,
-    };
-
-    res.json({ token, user: userResponse });
+    res.json({ token, user: userPayload }); // Devolvemos el mismo payload
   } catch (error) {
+    console.error("Error en loginUser:", error);
     res.status(500).json({ message: "Error del servidor." });
   }
 };

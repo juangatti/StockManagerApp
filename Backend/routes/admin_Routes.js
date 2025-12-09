@@ -38,65 +38,105 @@ import {
   updateUser,
   deleteUser,
   restoreUser,
+  seedPermissions,
+  getPermissions,
+  getRoles,
+  getRoleById,
+  createRole,
+  updateRole,
+  deleteRole,
 } from "../controllers/adminController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
 // Todas las rutas de admin están protegidas y solo para el rol 'admin'
-router.use(protect, authorize("admin"));
+router.use(protect);
 
-// Rutas para Categorías
-router.get("/categories", getCategories);
-router.get("/categories/inactive", getInactiveCategories);
-router.get("/categories/all", getAllActiveCategories);
-router.post("/categories", createCategory);
-router.get("/categories/:id", getCategoryById);
-router.put("/categories/:id", updateCategory);
-router.delete("/categories/:id", deleteCategory);
-router.put("/categories/:id/restore", restoreCategory);
+// --- Rutas de Permisos y Roles (Solo para 'roles:manage') ---
+router.post("/seed-permissions", authorize("roles:manage"), seedPermissions); // Ruta especial
+router.get("/permissions", authorize("roles:manage"), getPermissions);
+router.get("/roles", authorize("roles:manage"), getRoles);
+router.post("/roles", authorize("roles:manage"), createRole);
+router.get("/roles/:id", authorize("roles:manage"), getRoleById);
+router.put("/roles/:id", authorize("roles:manage"), updateRole);
+router.delete("/roles/:id", authorize("roles:manage"), deleteRole);
 
-// Rutas para Marcas
-router.get("/marcas", getMarcas);
-router.get("/marcas/inactive", getInactiveMarcas);
-router.get("/marcas/all", getAllActiveMarcas);
-router.get("/marcas/:id", getMarcaById);
-router.post("/marcas", createMarca);
-router.put("/marcas/:id", updateMarca);
-router.delete("/marcas/:id", deleteMarca);
-router.put("/marcas/:id/restore", restoreMarca);
+// --- Rutas de Gestión de Usuarios (Solo para 'users:manage') ---
+router.post("/users", authorize("users:manage"), createUser);
+router.get("/users", authorize("users:manage"), getUsers);
+router.get("/users/inactive", authorize("users:manage"), getInactiveUsers);
+router.get("/users/:id", authorize("users:manage"), getUserById);
+router.put("/users/:id", authorize("users:manage"), updateUser);
+router.delete("/users/:id", authorize("users:manage"), deleteUser);
+router.put("/users/:id/restore", authorize("users:manage"), restoreUser);
 
-// Rutas para Productos (Tragos)
-router.get("/products", getProducts);
-router.get("/products/inactive", getInactiveProducts);
-router.delete("/products/:id", deleteProduct);
-router.put("/products/:id/restore", restoreProduct);
+// --- Rutas de Catálogo (Solo para 'catalog:manage') ---
+router.get("/categories", authorize("catalog:manage"), getCategories);
+router.get(
+  "/categories/inactive",
+  authorize("catalog:manage"),
+  getInactiveCategories
+);
+router.post("/categories", authorize("catalog:manage"), createCategory);
+router.get("/categories/:id", authorize("catalog:manage"), getCategoryById);
+router.put("/categories/:id", authorize("catalog:manage"), updateCategory);
+router.delete("/categories/:id", authorize("catalog:manage"), deleteCategory);
+router.put(
+  "/categories/:id/restore",
+  authorize("catalog:manage"),
+  restoreCategory
+);
+// (Ruta 'all' debe ser accesible para otros permisos, ej. 'production:create')
+router.get("/categories/all", getAllActiveCategories); // <-- Dejar esta sin 'authorize'
 
-// Ruta para Items de Stock
+router.get("/marcas", authorize("catalog:manage"), getMarcas);
+router.get("/marcas/inactive", authorize("catalog:manage"), getInactiveMarcas);
+router.get("/marcas/:id", authorize("catalog:manage"), getMarcaById);
+router.post("/marcas", authorize("catalog:manage"), createMarca);
+router.put("/marcas/:id", authorize("catalog:manage"), updateMarca);
+router.delete("/marcas/:id", authorize("catalog:manage"), deleteMarca);
+router.put("/marcas/:id/restore", authorize("catalog:manage"), restoreMarca);
+// (Ruta 'all' debe ser accesible para otros permisos)
+router.get("/marcas/all", getAllActiveMarcas); // <-- Dejar esta sin 'authorize'
+
+router.get("/products", authorize("catalog:manage"), getProducts);
+router.get(
+  "/products/inactive",
+  authorize("catalog:manage"),
+  getInactiveProducts
+);
+router.delete("/products/:id", authorize("catalog:manage"), deleteProduct);
+router.put(
+  "/products/:id/restore",
+  authorize("catalog:manage"),
+  restoreProduct
+);
+
+router.get("/stock-items", authorize("catalog:manage"), getActiveStockItems);
+router.get("/stock-items/:id", authorize("catalog:manage"), getStockItemById);
+router.get(
+  "/stock-items/inactive",
+  authorize("catalog:manage"),
+  getInactiveStockItem
+);
+router.post("/stock-items", authorize("catalog:manage"), createStockItem);
+router.put("/stock-items/:id", authorize("catalog:manage"), updateStockItem);
+router.delete("/stock-items/:id", authorize("catalog:manage"), deleteStockItem);
+router.put(
+  "/stock-items/:id/restore",
+  authorize("catalog:manage"),
+  restoreStockItem
+);
+// (Ruta 'all-for-adjustment' debe ser accesible para 'stock:adjust')
 router.get(
   "/stock-items/all-for-adjustment",
+  authorize("stock:adjust"), // <-- Proteger con su permiso específico
   getAllActiveStockItemsForAdjustment
 );
-router.get("/stock-items", getActiveStockItems);
-router.get("/stock-items/:id", getStockItemById);
-router.get("/stock-items/inactive", getInactiveStockItem);
-router.post("/stock-items", createStockItem);
-router.put("/stock-items/:id", updateStockItem);
-router.delete("/stock-items/:id", deleteStockItem);
-router.put("/stock-items/:id/restore", restoreStockItem);
 
-// Ruta para Recetas
-router.post("/recipes", createRecipe);
-router.get("/recipes/:id", getRecipeById);
-router.put("/recipes/:id", updateRecipe);
-
-// Rutas para Usuarios
-router.post("/users", createUser);
-router.get("/users", getUsers);
-router.get("/users/inactive", getInactiveUsers);
-router.get("/users/:id", getUserById);
-router.put("/users/:id", updateUser);
-router.delete("/users/:id", deleteUser);
-router.put("/users/:id/restore", restoreUser);
+router.post("/recipes", authorize("catalog:manage"), createRecipe);
+router.get("/recipes/:id", authorize("catalog:colaborador"), getRecipeById);
+router.put("/recipes/:id", authorize("catalog:manage"), updateRecipe);
 
 export default router;

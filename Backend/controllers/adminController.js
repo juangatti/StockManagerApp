@@ -1092,26 +1092,24 @@ export const restoreProduct = async (req, res) => {
   }
 };
 
+// --- GESTIÓN DE USUARIOS ---
+
 export const createUser = async (req, res) => {
+  // Ahora espera role_id
   const {
     username,
     password,
-    role,
+    role_id,
     display_name,
     full_name,
     email_contact,
     phone,
   } = req.body;
 
-  if (!username || !password || !role) {
+  if (!username || !password || !role_id) {
     return res
       .status(400)
       .json({ message: "Usuario, contraseña y rol son obligatorios." });
-  }
-  if (role !== "admin" && role !== "operator") {
-    return res
-      .status(400)
-      .json({ message: "Rol inválido. Debe ser 'admin' u 'operator'." });
   }
 
   let connection;
@@ -1122,10 +1120,10 @@ export const createUser = async (req, res) => {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    // 1. Insertar en 'users'
+    // 1. Insertar en 'users' (con role_id y is_active = TRUE)
     const [userResult] = await connection.query(
-      "INSERT INTO users (username, password, role, display_name, is_active) VALUES (?, ?, ?, ?, TRUE)",
-      [username, hashedPassword, role, display_name || null]
+      "INSERT INTO users (username, password, role_id, display_name, is_active) VALUES (?, ?, ?, ?, TRUE)",
+      [username, hashedPassword, role_id, display_name || null]
     );
     const newUserId = userResult.insertId;
 
@@ -1165,23 +1163,30 @@ export const getUsers = async (req, res) => {
 
     if (searchQuery) {
       whereClause +=
-        " AND (u.username LIKE ? OR u.display_name LIKE ? OR d.full_name LIKE ?)";
+        " AND (u.username LIKE ? OR u.display_name LIKE ? OR d.full_name LIKE ? OR r.name LIKE ?)";
       queryParams.push(
+        `%${searchQuery}%`,
         `%${searchQuery}%`,
         `%${searchQuery}%`,
         `%${searchQuery}%`
       );
     }
 
-    const countQuery = `SELECT COUNT(u.id) AS totalUsers FROM users u LEFT JOIN employee_details d ON u.id = d.user_id ${whereClause}`;
+    const countQuery = `
+      SELECT COUNT(u.id) AS totalUsers 
+      FROM users u 
+      LEFT JOIN employee_details d ON u.id = d.user_id 
+      LEFT JOIN roles r ON u.role_id = r.id
+      ${whereClause}`;
     const [countRows] = await pool.query(countQuery, queryParams);
     const totalUsers = countRows[0].totalUsers;
     const totalPages = Math.ceil(totalUsers / limit);
 
     const dataQuery = `
-      SELECT u.id, u.username, u.role, u.display_name, d.full_name, d.email_contact, d.phone
+      SELECT u.id, u.username, u.display_name, d.full_name, r.name as role_name
       FROM users u
       LEFT JOIN employee_details d ON u.id = d.user_id
+      LEFT JOIN roles r ON u.role_id = r.id
       ${whereClause}
       ORDER BY u.username ASC
       LIMIT ? OFFSET ?
@@ -1203,16 +1208,16 @@ export const getUsers = async (req, res) => {
   }
 };
 
+// GET /admin/users/inactive (Paginado, Inactivos)
 export const getInactiveUsers = async (req, res) => {
+  // ... (Lógica idéntica a getUsers, pero con 'WHERE u.is_active = FALSE')
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || "";
     const offset = (page - 1) * limit;
-
-    let whereClause = "WHERE u.is_active = FALSE"; // <-- Cambio aquí
+    let whereClause = "WHERE u.is_active = FALSE";
     const queryParams = [];
-
     if (searchQuery) {
       whereClause +=
         " AND (u.username LIKE ? OR u.display_name LIKE ? OR d.full_name LIKE ?)";
@@ -1222,17 +1227,15 @@ export const getInactiveUsers = async (req, res) => {
         `%${searchQuery}%`
       );
     }
-
-    // (Lógica de conteo y datos idéntica a getUsers, solo cambia whereClause)
     const countQuery = `SELECT COUNT(u.id) AS totalUsers FROM users u LEFT JOIN employee_details d ON u.id = d.user_id ${whereClause}`;
     const [countRows] = await pool.query(countQuery, queryParams);
     const totalUsers = countRows[0].totalUsers;
     const totalPages = Math.ceil(totalUsers / limit);
-
     const dataQuery = `
-      SELECT u.id, u.username, u.role, u.display_name, d.full_name
+      SELECT u.id, u.username, u.display_name, d.full_name, r.name as role_name
       FROM users u
       LEFT JOIN employee_details d ON u.id = d.user_id
+      LEFT JOIN roles r ON u.role_id = r.id
       ${whereClause}
       ORDER BY u.username ASC
       LIMIT ? OFFSET ?
@@ -1242,7 +1245,6 @@ export const getInactiveUsers = async (req, res) => {
       limit,
       offset,
     ]);
-
     res.json({
       users,
       pagination: { currentPage: page, totalPages, totalUsers, limit },
@@ -1258,7 +1260,7 @@ export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
-      `SELECT u.id, u.username, u.role, u.display_name,
+      `SELECT u.id, u.username, u.role_id, u.display_name,
               d.full_name, d.email_contact, d.phone
        FROM users u
        LEFT JOIN employee_details d ON u.id = d.user_id
@@ -1277,17 +1279,12 @@ export const getUserById = async (req, res) => {
 // PUT /admin/users/:id (Admin edita a otro usuario)
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  // Admin NO PUEDE cambiar la contraseña de otro, solo resetearla (función futura)
   // Admin SÍ PUEDE cambiar el rol y los datos personales
-  const { role, display_name, full_name, email_contact, phone } = req.body;
+  // El 'username' no se puede cambiar
+  const { role_id, display_name, full_name, email_contact, phone } = req.body;
 
-  if (!role) {
+  if (!role_id) {
     return res.status(400).json({ message: "El rol es obligatorio." });
-  }
-  if (role !== "admin" && role !== "operator") {
-    return res
-      .status(400)
-      .json({ message: "Rol inválido. Debe ser 'admin' u 'operator'." });
   }
 
   let connection;
@@ -1297,8 +1294,8 @@ export const updateUser = async (req, res) => {
 
     // 1. Actualizar 'users'
     await connection.query(
-      "UPDATE users SET role = ?, display_name = ? WHERE id = ?",
-      [role, display_name || null, id]
+      "UPDATE users SET role_id = ?, display_name = ? WHERE id = ?",
+      [role_id, display_name || null, id]
     );
 
     // 2. Actualizar (o Insertar) 'employee_details'
@@ -1341,5 +1338,177 @@ export const restoreUser = async (req, res) => {
     res.status(200).json({ message: "Usuario restaurado con éxito." });
   } catch (error) {
     res.status(500).json({ message: "Error al restaurar el usuario." });
+  }
+};
+
+export const seedPermissions = async (req, res) => {
+  // Basado en tu matriz de permisos
+  const permissions = [
+    { name: "Ver Dashboard y Stock", key: "dashboard:view" },
+    { name: "Ver Historial de Movimientos", key: "history:view" },
+    { name: "Registrar Compras", key: "purchases:create" },
+    { name: "Cargar Ventas", key: "sales:upload" },
+    { name: "Registrar Producción", key: "production:create" },
+    { name: "Ajustar Stock", key: "stock:adjust" },
+    { name: "Gestionar Catálogo (Items, Recetas)", key: "catalog:manage" },
+    { name: "Gestionar Equipo (Usuarios)", key: "users:manage" },
+    { name: "Gestionar Roles y Permisos", key: "roles:manage" },
+    { name: "Ver Reservas/Eventos", key: "reservations:view" },
+    { name: "Gestionar Reservas/Eventos", key: "reservations:manage" },
+    { name: "Ver Cronograma", key: "schedules:view" },
+    { name: "Gestionar Cronograma", key: "schedules:manage" },
+  ];
+
+  try {
+    const query =
+      "INSERT INTO permissions (name, permission_key) VALUES ? ON DUPLICATE KEY UPDATE name=VALUES(name)";
+    const values = permissions.map((p) => [p.name, p.key]);
+
+    await pool.query(query, [values]);
+    res
+      .status(201)
+      .json({ message: "Permisos creados/actualizados con éxito." });
+  } catch (error) {
+    console.error("Error seeding permissions:", error);
+    res
+      .status(500)
+      .json({ message: "Error al sembrar permisos.", error: error.message });
+  }
+};
+
+export const getPermissions = async (req, res) => {
+  try {
+    const [permissions] = await pool.query(
+      "SELECT * FROM permissions ORDER BY name ASC"
+    );
+    res.json(permissions);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener permisos." });
+  }
+};
+
+export const getRoles = async (req, res) => {
+  try {
+    const [roles] = await pool.query("SELECT * FROM roles ORDER BY name ASC");
+    res.json(roles);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener roles." });
+  }
+};
+
+export const getRoleById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [roles] = await pool.query("SELECT * FROM roles WHERE id = ?", [id]);
+    if (roles.length === 0) {
+      return res.status(404).json({ message: "Rol no encontrado." });
+    }
+
+    const [permissions] = await pool.query(
+      "SELECT permission_id FROM role_permissions WHERE role_id = ?",
+      [id]
+    );
+    const permissionIds = permissions.map((p) => p.permission_id);
+
+    res.json({ role: roles[0], permissionIds });
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener el rol." });
+  }
+};
+
+export const createRole = async (req, res) => {
+  const { name, description, permissionIds } = req.body;
+  if (!name || !Array.isArray(permissionIds)) {
+    return res
+      .status(400)
+      .json({ message: "Nombre y lista de permisos son requeridos." });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [roleResult] = await connection.query(
+      "INSERT INTO roles (name, description) VALUES (?, ?)",
+      [name, description]
+    );
+    const newRoleId = roleResult.insertId;
+
+    if (permissionIds.length > 0) {
+      const rolePermsData = permissionIds.map((permId) => [newRoleId, permId]);
+      await connection.query(
+        "INSERT INTO role_permissions (role_id, permission_id) VALUES ?",
+        [rolePermsData]
+      );
+    }
+
+    await connection.commit();
+    res
+      .status(201)
+      .json({ message: "Rol creado con éxito.", roleId: newRoleId });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    res.status(500).json({ message: "Error al crear el rol." });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+// PUT /admin/roles/:id
+export const updateRole = async (req, res) => {
+  const { id } = req.params;
+  const { name, description, permissionIds } = req.body;
+  if (!name || !Array.isArray(permissionIds)) {
+    return res
+      .status(400)
+      .json({ message: "Nombre y lista de permisos son requeridos." });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // 1. Actualizar datos del rol
+    await connection.query(
+      "UPDATE roles SET name = ?, description = ? WHERE id = ?",
+      [name, description, id]
+    );
+
+    // 2. Borrar permisos antiguos
+    await connection.query("DELETE FROM role_permissions WHERE role_id = ?", [
+      id,
+    ]);
+
+    // 3. Insertar permisos nuevos (si los hay)
+    if (permissionIds.length > 0) {
+      const rolePermsData = permissionIds.map((permId) => [id, permId]);
+      await connection.query(
+        "INSERT INTO role_permissions (role_id, permission_id) VALUES ?",
+        [rolePermsData]
+      );
+    }
+
+    await connection.commit();
+    res.status(200).json({ message: "Rol actualizado con éxito." });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    res.status(500).json({ message: "Error al actualizar el rol." });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+// DELETE /admin/roles/:id
+export const deleteRole = async (req, res) => {
+  // Nota: Al borrar un rol, la BD (ON DELETE SET NULL)
+  // pondrá 'role_id = NULL' a los usuarios que lo tenían.
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM roles WHERE id = ?", [id]);
+    res.status(200).json({ message: "Rol eliminado con éxito." });
+  } catch (error) {
+    res.status(500).json({ message: "Error al eliminar el rol." });
   }
 };
