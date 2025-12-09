@@ -136,7 +136,7 @@ router.get(
 );
 
 router.post("/recipes", authorize("catalog:manage"), createRecipe);
-router.get("/recipes/:id", authorize("catalog:colaborador"), getRecipeById);
+router.get("/recipes/:id", authorize("catalog:manage"), getRecipeById);
 router.put("/recipes/:id", authorize("catalog:manage"), updateRecipe);
 
 export default router;

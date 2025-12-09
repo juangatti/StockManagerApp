@@ -9,9 +9,13 @@ const AdminRoute = () => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+  const isAdmin =
+    user?.role_name === "GameMaster" ||
+    user?.role_name === "SuperAdmin" ||
+    user?.role_name === "admin";
 
-  // Si el usuario no es 'admin', lo redirigimos al dashboard principal
-  if (user.role !== "admin") {
+  if (!isAdmin) {
+    console.log("Acceso denegado. Rol actual:", user?.role_name);
     return <Navigate to="/dashboard" replace />;
   }
 
