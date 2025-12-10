@@ -2,19 +2,16 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
-  // Package, // <-- Eliminado
   FileClock,
-  // CookingPot, // <-- Eliminado
-  ClipboardList, // <-- Usaremos este para Barra
+  ClipboardList,
   UploadCloud,
   PlusCircle,
   SlidersHorizontal,
   Settings,
-  Hammer, // <-- Icono para Producción (ejemplo)
+  Hammer,
 } from "lucide-react";
-import useAuthStore from "../../stores/useAuthStore"; //
+import useAuthStore from "../../stores/useAuthStore";
 
-// ... (NavGroup y NavItem sin cambios) ...
 const NavGroup = ({ title, children }) => (
   <div>
     <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 mb-2">
@@ -41,11 +38,38 @@ const NavItem = ({ to, icon: Icon, children, onLinkClick }) => {
 };
 
 export default function Sidebar({ onLinkClick }) {
-  const user = useAuthStore((state) => state.user); //
+  const user = useAuthStore((state) => state.user);
+
+  // --- FUNCIÓN HELPER PARA VERIFICAR PERMISOS ---
+  const hasPermission = (perm) => {
+    // 1. Si es un rol con "Superpoderes", acceso total siempre
+    if (
+      user?.role_name === "SuperAdmin" ||
+      user?.role_name === "GameMaster" || // Tu rol actual
+      user?.role_name === "admin"
+    ) {
+      return true;
+    }
+    // 2. Si no, buscamos en la lista de permisos granulares
+    return user?.permissions?.includes(perm);
+  };
+
+  // Lógica para mostrar grupos enteros solo si tiene algún permiso dentro
+  const showOperationsGroup =
+    hasPermission("sales:upload") ||
+    hasPermission("purchases:create") ||
+    hasPermission("stock:adjust") ||
+    hasPermission("production:create");
+
+  const showAdminGroup =
+    hasPermission("catalog:manage") ||
+    hasPermission("users:manage") ||
+    hasPermission("roles:manage") ||
+    hasPermission("history:view");
 
   return (
     <aside className="flex flex-col gap-8">
-      {/* --- GRUPO ANÁLISIS Y REPORTES --- */}
+      {/* --- GRUPO ANÁLISIS Y REPORTES (Visible para todos) --- */}
       <NavGroup title="Análisis y Reportes">
         <NavItem
           to="/dashboard"
@@ -54,52 +78,65 @@ export default function Sidebar({ onLinkClick }) {
         >
           Dashboard
         </NavItem>
-        {/* <NavItem to="/inventory" icon={Package} onLinkClick={onLinkClick}> Inventario </NavItem> */}{" "}
-        {/* <-- Eliminado */}
-        {/* <NavItem to="/prebatches" icon={CookingPot} onLinkClick={onLinkClick}> Prebatches </NavItem> */}{" "}
-        {/* <-- Eliminado */}
-        {/* Nuevo NavItem para Barra */}
         <NavItem to="/bar" icon={ClipboardList} onLinkClick={onLinkClick}>
           Barra (Stock)
         </NavItem>
       </NavGroup>
 
       {/* --- GRUPO OPERACIONES --- */}
-      {user?.role === "admin" && (
+      {showOperationsGroup && (
         <NavGroup title="Operaciones de Stock">
-          <NavItem to="/sales" icon={UploadCloud} onLinkClick={onLinkClick}>
-            Cargar Ventas
-          </NavItem>
-          <NavItem to="/shopping" icon={PlusCircle} onLinkClick={onLinkClick}>
-            Registrar Compra
-          </NavItem>
-          <NavItem
-            to="/adjust"
-            icon={SlidersHorizontal}
-            onLinkClick={onLinkClick}
-          >
-            Ajustar Stock
-          </NavItem>
-          {/* Nuevo NavItem para Producción */}
-          <NavItem to="/production" icon={Hammer} onLinkClick={onLinkClick}>
-            Registrar Producción
-          </NavItem>
+          {hasPermission("sales:upload") && (
+            <NavItem to="/sales" icon={UploadCloud} onLinkClick={onLinkClick}>
+              Cargar Ventas
+            </NavItem>
+          )}
+
+          {hasPermission("purchases:create") && (
+            <NavItem to="/shopping" icon={PlusCircle} onLinkClick={onLinkClick}>
+              Registrar Compra
+            </NavItem>
+          )}
+
+          {hasPermission("stock:adjust") && (
+            <NavItem
+              to="/adjust"
+              icon={SlidersHorizontal}
+              onLinkClick={onLinkClick}
+            >
+              Ajustar Stock
+            </NavItem>
+          )}
+
+          {hasPermission("production:create") && (
+            <NavItem to="/production" icon={Hammer} onLinkClick={onLinkClick}>
+              Registrar Producción
+            </NavItem>
+          )}
         </NavGroup>
       )}
 
       {/* --- GRUPO ADMINISTRACIÓN --- */}
-      {user?.role === "admin" && (
+      {showAdminGroup && (
         <NavGroup title="Administración">
-          <NavItem to="/admin" icon={Settings} onLinkClick={onLinkClick}>
-            Gestionar Catálogo
-          </NavItem>
-          <NavItem
-            to="/historicMovements"
-            icon={FileClock}
-            onLinkClick={onLinkClick}
-          >
-            Historial
-          </NavItem>
+          {/* El link a /admin se muestra si tiene CUALQUIER permiso de gestión */}
+          {(hasPermission("catalog:manage") ||
+            hasPermission("users:manage") ||
+            hasPermission("roles:manage")) && (
+            <NavItem to="/admin" icon={Settings} onLinkClick={onLinkClick}>
+              Administración
+            </NavItem>
+          )}
+
+          {hasPermission("history:view") && (
+            <NavItem
+              to="/historicMovements"
+              icon={FileClock}
+              onLinkClick={onLinkClick}
+            >
+              Historial
+            </NavItem>
+          )}
         </NavGroup>
       )}
     </aside>

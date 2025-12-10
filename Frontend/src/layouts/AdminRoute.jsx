@@ -10,9 +10,9 @@ const AdminRoute = () => {
     return <Navigate to="/login" replace />;
   }
   const isAdmin =
-    user?.role_name === "GameMaster" ||
-    user?.role_name === "SuperAdmin" ||
-    user?.role_name === "admin";
+    user?.roles_name === "GameMaster" ||
+    user?.roles_name === "SuperAdmin" ||
+    user?.roles_name === "admin";
 
   if (!isAdmin) {
     console.log("Acceso denegado. Rol actual:", user?.role_name);

@@ -15,22 +15,11 @@ import SalesPage from "./pages/SalesPage";
 import AdminPage from "./pages/AdminPage";
 import MovementDetailPage from "./pages/MovementDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import AdminRoute from "./layouts/AdminRoute";
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
   return isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />;
-};
-
-const AdminRoute = () => {
-  const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  return user.role === "admin" ? (
-    <MainLayout />
-  ) : (
-    <Navigate to="/dashboard" replace />
-  );
 };
 
 function App() {
