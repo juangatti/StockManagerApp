@@ -8,52 +8,65 @@ import Spinner from "../atoms/Spinner";
 export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
   const [formData, setFormData] = useState({
     username: "",
-    password: "", // Solo para creación
-    role: "operator", // Valor por defecto
+    password: "",
+    role_id: "", // <-- CAMBIO IMPORTANTE: Ahora usamos role_id
     display_name: "",
     full_name: "",
     email_contact: "",
     phone: "",
   });
+
+  const [roles, setRoles] = useState([]); // <-- Estado para guardar la lista de roles
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Empezamos cargando
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (userIdToEdit) {
-      setIsEditing(true);
+    const fetchData = async () => {
       setIsLoading(true);
-      // Es una edición, buscamos los datos del usuario
-      api
-        .get(`/admin/users/${userIdToEdit}`)
-        .then((res) => {
+      try {
+        // 1. Cargar la lista de roles disponibles desde la BD
+        const rolesResponse = await api.get("/admin/roles");
+        setRoles(rolesResponse.data);
+
+        // 2. Si estamos editando, cargar los datos del usuario
+        if (userIdToEdit) {
+          setIsEditing(true);
+          const userResponse = await api.get(`/admin/users/${userIdToEdit}`);
+          const userData = userResponse.data;
+
           setFormData({
-            username: res.data.username || "",
-            password: "", // No traemos la contraseña
-            role: res.data.role || "operator",
-            display_name: res.data.display_name || "",
-            full_name: res.data.full_name || "",
-            email_contact: res.data.email_contact || "",
-            phone: res.data.phone || "",
+            username: userData.username || "",
+            password: "",
+            // Aseguramos que role_id sea un string para que el <select> lo reconozca
+            role_id: userData.role_id ? String(userData.role_id) : "",
+            display_name: userData.display_name || "",
+            full_name: userData.full_name || "",
+            email_contact: userData.email_contact || "",
+            phone: userData.phone || "",
           });
-        })
-        .catch(() =>
-          toast.error("No se pudieron cargar los datos del usuario.")
-        )
-        .finally(() => setIsLoading(false));
-    } else {
-      // Es creación, reseteamos
-      setIsEditing(false);
-      setFormData({
-        username: "",
-        password: "",
-        role: "operator",
-        display_name: "",
-        full_name: "",
-        email_contact: "",
-        phone: "",
-      });
-    }
+        } else {
+          // Si es creación, reseteamos
+          setIsEditing(false);
+          setFormData({
+            username: "",
+            password: "",
+            role_id: "",
+            display_name: "",
+            full_name: "",
+            email_contact: "",
+            phone: "",
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Error al cargar datos.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, [userIdToEdit]);
 
   const handleChange = (e) => {
@@ -64,7 +77,8 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
     e.preventDefault();
 
     // Validaciones
-    if (!formData.username || !formData.role) {
+    if (!formData.username || !formData.role_id) {
+      // <-- Validamos role_id
       toast.error("El nombre de usuario y el rol son obligatorios.");
       return;
     }
@@ -79,15 +93,14 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
 
     setIsSubmitting(true);
 
-    // Si estamos editando y el admin no escribió una nueva contraseña,
-    // no la enviamos en el payload (ya que el endpoint 'updateUser' no la espera).
     const payload = { ...formData };
+    // Convertimos role_id a número antes de enviar
+    payload.role_id = parseInt(payload.role_id);
+
     if (isEditing && !payload.password) {
       delete payload.password;
     }
 
-    // Si estamos creando, usamos el endpoint 'createUser'
-    // Si estamos editando, usamos 'updateUser' (que ignora la contraseña)
     const promise = isEditing
       ? api.put(`/admin/users/${userIdToEdit}`, payload)
       : api.post("/admin/users", payload);
@@ -96,7 +109,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
       loading: isEditing ? "Actualizando usuario..." : "Creando usuario...",
       success: () => {
         setIsSubmitting(false);
-        onFormSubmit(); // Llama a la función del padre para refrescar/cerrar
+        onFormSubmit();
         return `¡Usuario ${isEditing ? "actualizado" : "creado"} con éxito!`;
       },
       error: (err) => {
@@ -135,31 +148,37 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
               onChange={handleChange}
               className={commonInputClass}
               required
-              disabled={isEditing} // No se puede cambiar el username
+              disabled={isEditing}
             />
           </div>
+
+          {/* SELECCIÓN DE ROL DINÁMICA */}
           <div>
             <label
-              htmlFor="role"
+              htmlFor="role_id"
               className="block mb-2 text-sm font-medium text-slate-300"
             >
               Rol (*)
             </label>
             <select
-              name="role"
-              id="role"
-              value={formData.role}
+              name="role_id"
+              id="role_id"
+              value={formData.role_id}
               onChange={handleChange}
               className={commonInputClass}
               required
             >
-              <option value="operator">Operator</option>
-              <option value="admin">Admin</option>
+              <option value="">-- Selecciona un Rol --</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
-        {/* Fila 2: Contraseña (solo para creación o reseteo opcional) */}
+        {/* Fila 2: Contraseña */}
         <div>
           <label
             htmlFor="password"
@@ -177,18 +196,18 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
             placeholder={
               isEditing ? "Dejar vacío para no cambiar" : "Mínimo 6 caracteres"
             }
-            required={!isEditing} // Requerido solo al crear
+            required={!isEditing}
             autoComplete="new-password"
           />
         </div>
 
+        {/* ... Resto de campos (Display Name, Nombre, Email, Teléfono) siguen igual ... */}
         <div className="border-t border-slate-700 pt-4 mt-4">
           <h4 className="text-md font-semibold text-slate-300 mb-3">
             Datos del Perfil (Opcional)
           </h4>
         </div>
 
-        {/* Fila 3: Nombre a Mostrar y Nombre Completo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
@@ -226,7 +245,6 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           </div>
         </div>
 
-        {/* Fila 4: Email y Teléfono */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
