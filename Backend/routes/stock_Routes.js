@@ -24,11 +24,19 @@ router.get("/search-items", searchStockItems);
 router.get("/ice", getIceReport);
 router.get("/alerts", getStockAlerts);
 
-router.post("/purchases", authorize("admin"), registerPurchase);
-router.post("/adjust", authorize("admin"), registerAdjustment);
-router.post("/mass-adjustment", authorize("admin"), registerMassiveAdjustment);
-router.get("/historic-movement", authorize("admin"), getStockMovements);
-router.get("/historic-movement/:id", authorize("admin"), getMovementEventById);
-router.post("/production", authorize("admin"), registerProduction);
+router.post("/purchases", authorize("purchases:create"), registerPurchase);
+router.post("/adjust", authorize("stock:adjust"), registerAdjustment);
+router.post(
+  "/mass-adjustment",
+  authorize("stock:adjust"),
+  registerMassiveAdjustment
+);
+router.get("/historic-movement", authorize("history:view"), getStockMovements);
+router.get(
+  "/historic-movement/:id",
+  authorize("history:view"),
+  getMovementEventById
+);
+router.post("/production", authorize("production:create"), registerProduction);
 
 export default router;
