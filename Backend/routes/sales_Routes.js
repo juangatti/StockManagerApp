@@ -7,6 +7,7 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 // 2. Proteger todas las rutas
+
 router.use(protect);
 
 router.post(
