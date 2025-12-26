@@ -195,7 +195,7 @@ export default function RecipeManager() {
       {error && <Alert message={error} />}
       {loading && products.length === 0 && <Spinner />}
       {/* 13. Lista */}
-      <div className="min-h-[300px] relative">
+      <div className="min-h-75 relative">
         {loading && products.length > 0 && (
           <div className="absolute inset-0 bg-slate-800/50 flex items-center justify-center z-10">
             <Spinner />
