@@ -66,7 +66,7 @@ export default function AdminTabs() {
             onClick={() => setActiveTab("role")}
             className={buttonClass("role")}
           >
-            <Shield className="mr-2 h-5 w-5" /> Roles
+            <Shield className="mr-2 h-5 w-5" />
           </button>
         </div>
       </div>
