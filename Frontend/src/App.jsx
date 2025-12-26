@@ -8,6 +8,7 @@ import BarPage from "./pages/BarPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ShoppingPage from "./pages/ShoppingPage";
+import ReservationsPage from "./pages/ReservationsPage";
 import AdjustPage from "./pages/AdjustPage";
 import HistoricMovementPage from "./pages/HistoricMovementPage";
 import ProductionPage from "./pages/ProductionPage";
@@ -76,6 +77,7 @@ function App() {
           <Route path="/production" element={<ProductionPage />} />
           <Route path="/sales" element={<SalesPage />} />
           <Route path="/shopping" element={<ShoppingPage />} />
+          <Route path="/reservations" element={<ReservationsPage />} />
           <Route path="/adjust" element={<AdjustPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />

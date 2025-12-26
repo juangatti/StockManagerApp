@@ -1,7 +1,14 @@
 // src/pages/DashboardPage.jsx
 import { useState, useEffect } from "react";
 import api from "../api/api";
-import { Snowflake, AlertTriangle, XCircle } from "lucide-react";
+import {
+  Snowflake,
+  AlertTriangle,
+  XCircle,
+  CalendarCheck,
+  User,
+  MapPin,
+} from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
 
 // ... (El componente AlertCard no cambia)
@@ -35,22 +42,29 @@ const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
 );
 
 export default function DashboardPage() {
-  // 1. CORRECCIÓN: 'hielo' ahora será un array para guardar todos los tipos de hielo
   const [hielo, setHielo] = useState([]);
   const [alerts, setAlerts] = useState({ lowStock: [], outOfStock: [] });
+  const [reservationStats, setReservationStats] = useState({
+    count: 0,
+    today_reservations: [],
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [iceRes, alertsRes] = await Promise.all([
+        const [iceRes, alertsRes, resStatsRes] = await Promise.all([
           api.get("/stock/ice"),
           api.get("/stock/alerts"),
+          api
+            .get("/reservations/stats/dashboard")
+            .catch(() => ({ data: { count: 0, today_reservations: [] } })),
         ]);
 
         // 2. CORRECCIÓN: Simplemente guardamos la respuesta de la API directamente
         setHielo(iceRes.data);
         setAlerts(alertsRes.data);
+        setReservationStats(resStatsRes.data);
       } catch (error) {
         console.error("Error al cargar el dashboard:", error);
       } finally {
@@ -66,6 +80,68 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* WIDGET DE RESERVAS */}
+        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border-l-4 border-indigo-500">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <CalendarCheck className="h-8 w-8 text-indigo-400 mr-3" />
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  Reservas de Hoy
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Eventos confirmados para la fecha
+                </p>
+              </div>
+            </div>
+            <span className="text-3xl font-bold text-white bg-indigo-900/50 px-4 py-2 rounded-lg">
+              {reservationStats.count}
+            </span>
+          </div>
+
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            {reservationStats.today_reservations.length > 0 ? (
+              reservationStats.today_reservations.map((res) => (
+                <div
+                  key={res.id}
+                  className="bg-slate-700/50 p-3 rounded border border-slate-700 flex justify-between items-center text-sm"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-indigo-300" />
+                      <span className="text-slate-200 font-medium">
+                        {res.customer_name}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        ({res.pax} pax)
+                      </span>
+                    </div>
+                    {res.location && (
+                      <div className="flex items-center gap-2 text-xs text-slate-400 ml-1">
+                        <MapPin className="h-3 w-3" />
+                        <span>{res.location}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-mono text-indigo-200 font-bold">
+                    {new Date(res.reservation_date).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    hs
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-slate-500 text-sm text-center py-4">
+                Sin reservas para hoy.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700">
         <h2 className="text-3xl font-bold text-white mb-2">
           Informe Hielístico

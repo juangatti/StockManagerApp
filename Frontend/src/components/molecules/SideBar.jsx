@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   Settings,
   Hammer,
+  CalendarDays,
 } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
 
@@ -113,6 +114,19 @@ export default function Sidebar({ onLinkClick }) {
               Registrar Producción
             </NavItem>
           )}
+        </NavGroup>
+      )}
+
+      {/* --- GRUPO AGENDA --- */}
+      {hasPermission("reservations:view") && (
+        <NavGroup title="Recepción">
+          <NavItem
+            to="/reservations"
+            icon={CalendarDays}
+            onLinkClick={onLinkClick}
+          >
+            Agenda y Reservas
+          </NavItem>
         </NavGroup>
       )}
 

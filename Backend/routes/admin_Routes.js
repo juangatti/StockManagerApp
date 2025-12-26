@@ -79,6 +79,9 @@ router.get(
   getInactiveCategories
 );
 router.post("/categories", authorize("catalog:manage"), createCategory);
+// (Ruta 'all' debe ser accesible para otros permisos, ej. 'production:create')
+router.get("/categories/all", getAllActiveCategories); // <-- Dejar esta sin 'authorize'
+
 router.get("/categories/:id", authorize("catalog:manage"), getCategoryById);
 router.put("/categories/:id", authorize("catalog:manage"), updateCategory);
 router.delete("/categories/:id", authorize("catalog:manage"), deleteCategory);
@@ -87,18 +90,17 @@ router.put(
   authorize("catalog:manage"),
   restoreCategory
 );
-// (Ruta 'all' debe ser accesible para otros permisos, ej. 'production:create')
-router.get("/categories/all", getAllActiveCategories); // <-- Dejar esta sin 'authorize'
 
 router.get("/marcas", authorize("catalog:manage"), getMarcas);
 router.get("/marcas/inactive", authorize("catalog:manage"), getInactiveMarcas);
+// (Ruta 'all' debe ser accesible para otros permisos)
+router.get("/marcas/all", getAllActiveMarcas); // <-- Dejar esta sin 'authorize'
+
 router.get("/marcas/:id", authorize("catalog:manage"), getMarcaById);
 router.post("/marcas", authorize("catalog:manage"), createMarca);
 router.put("/marcas/:id", authorize("catalog:manage"), updateMarca);
 router.delete("/marcas/:id", authorize("catalog:manage"), deleteMarca);
 router.put("/marcas/:id/restore", authorize("catalog:manage"), restoreMarca);
-// (Ruta 'all' debe ser accesible para otros permisos)
-router.get("/marcas/all", getAllActiveMarcas); // <-- Dejar esta sin 'authorize'
 
 router.get("/products", authorize("catalog:manage"), getProducts);
 router.get(
@@ -114,6 +116,13 @@ router.put(
 );
 
 router.get("/stock-items", authorize("catalog:manage"), getActiveStockItems);
+// (Ruta 'all-for-adjustment' debe ser accesible para 'stock:adjust')
+router.get(
+  "/stock-items/all-for-adjustment",
+  authorize("stock:adjust"), // <-- Proteger con su permiso específico
+  getAllActiveStockItemsForAdjustment
+);
+
 router.get("/stock-items/:id", authorize("catalog:manage"), getStockItemById);
 router.get(
   "/stock-items/inactive",
@@ -127,12 +136,6 @@ router.put(
   "/stock-items/:id/restore",
   authorize("catalog:manage"),
   restoreStockItem
-);
-// (Ruta 'all-for-adjustment' debe ser accesible para 'stock:adjust')
-router.get(
-  "/stock-items/all-for-adjustment",
-  authorize("stock:adjust"), // <-- Proteger con su permiso específico
-  getAllActiveStockItemsForAdjustment
 );
 
 router.post("/recipes", authorize("catalog:manage"), createRecipe);
