@@ -172,7 +172,7 @@ export default function AdjustmentSheet() {
             </div>
           )}
 
-          <table className="w-full min-w-[500px] text-sm text-left text-slate-300">
+          <table className="w-full min-w-125 text-sm text-left text-slate-300">
             <thead className="text-xs uppercase bg-slate-700 text-slate-400">
               <tr>
                 <th className="py-3 px-6">Item</th>
@@ -207,12 +207,12 @@ export default function AdjustmentSheet() {
                               onChange={(e) =>
                                 handleInputChange(item.id, e.target.value)
                               }
-                              className="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg w-full max-w-[100px] p-2 text-center font-mono focus:ring-sky-500 focus:border-sky-500"
+                              className="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg w-full max-w-25 p-2 text-center font-mono focus:ring-sky-500 focus:border-sky-500"
                               autoFocus
                             />
                             <button
                               onClick={() => handleConfirmEdit(item.id)}
-                              className="p-2 rounded-md hover:bg-slate-700 flex-shrink-0"
+                              className="p-2 rounded-md hover:bg-slate-700 shrink-0"
                               title="Confirmar cambio"
                             >
                               <CheckSquare className="h-5 w-5 text-green-400" />
@@ -228,7 +228,7 @@ export default function AdjustmentSheet() {
                             </span>
                             <button
                               onClick={() => setEditingRowId(item.id)}
-                              className="p-2 rounded-md hover:bg-slate-700 flex-shrink-0"
+                              className="p-2 rounded-md hover:bg-slate-700 shrink-0"
                               title="Habilitar edición"
                             >
                               <Edit className="h-5 w-5 text-sky-400" />
