@@ -10,6 +10,7 @@ import {
   Settings,
   Hammer,
   CalendarDays,
+  Clock,
 } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
 
@@ -118,15 +119,23 @@ export default function Sidebar({ onLinkClick }) {
       )}
 
       {/* --- GRUPO AGENDA --- */}
-      {hasPermission("reservations:view") && (
+      {(hasPermission("reservations:view") ||
+        hasPermission("schedules:view")) && (
         <NavGroup title="Recepción">
-          <NavItem
-            to="/reservations"
-            icon={CalendarDays}
-            onLinkClick={onLinkClick}
-          >
-            Agenda y Reservas
-          </NavItem>
+          {hasPermission("reservations:view") && (
+            <NavItem
+              to="/reservations"
+              icon={CalendarDays}
+              onLinkClick={onLinkClick}
+            >
+              Agenda y Reservas
+            </NavItem>
+          )}
+          {hasPermission("schedules:view") && (
+            <NavItem to="/cronograma" icon={Clock} onLinkClick={onLinkClick}>
+              Horarios
+            </NavItem>
+          )}
         </NavGroup>
       )}
 

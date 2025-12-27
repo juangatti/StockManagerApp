@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../../api/api";
 import toast from "react-hot-toast";
 import {
@@ -8,19 +8,50 @@ import {
   MapPin,
   NotebookPen,
   X,
+  Edit,
 } from "lucide-react";
 import Spinner from "../atoms/Spinner";
 
-export default function ReservationForm({ onFormSubmit, onCancel }) {
+export default function ReservationForm({
+  onFormSubmit,
+  onCancel,
+  initialData = null,
+}) {
   const [formData, setFormData] = useState({
     customer_name: "",
     pax: 2,
     reservation_date: "",
-    reservation_time: "", // Helper para combinar
+    reservation_time: "",
     location: "",
     notes: "",
+    status: "CONFIRMED", // Default para nuevas, se sobrescribe en edición
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      // Parsear fecha y hora desde DATETIME (ISO string)
+      const dateObj = new Date(initialData.reservation_date);
+      // Asegurarse de que esté en local para los inputs
+      // Truco simple: toISOString da UTC. Para inputs type="date"/"time" queremos local.
+      // Ajustamos manualmente o usamos una librería. Haremos manual simple:
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      const hours = String(dateObj.getHours()).padStart(2, "0");
+      const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+
+      setFormData({
+        customer_name: initialData.customer_name,
+        pax: initialData.pax,
+        reservation_date: `${year}-${month}-${day}`,
+        reservation_time: `${hours}:${minutes}`,
+        location: initialData.location || "",
+        notes: initialData.notes || "",
+        status: initialData.status || "CONFIRMED",
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,20 +80,35 @@ export default function ReservationForm({ onFormSubmit, onCancel }) {
       reservation_date: fullDate,
       location: formData.location,
       notes: formData.notes,
+      status: formData.status, // Necesario para update
     };
 
-    const promise = api.post("/reservations", payload);
+    let promise;
+    if (initialData && initialData.id) {
+      // MODO EDICIÓN (PUT)
+      promise = api.put(`/reservations/${initialData.id}`, payload);
+    } else {
+      // MODO CREACIÓN (POST)
+      promise = api.post("/reservations", payload);
+    }
 
     toast.promise(promise, {
-      loading: "Registrando reserva...",
+      loading: initialData
+        ? "Actualizando reserva..."
+        : "Registrando reserva...",
       success: () => {
         setIsSubmitting(false);
         onFormSubmit();
-        return "Reserva registrada con éxito.";
+        return initialData
+          ? "Reserva actualizada con éxito."
+          : "Reserva registrada con éxito.";
       },
       error: (err) => {
         setIsSubmitting(false);
-        return err.response?.data?.message || "Error al registrar.";
+        return (
+          err.response?.data?.message ||
+          (initialData ? "Error al actualizar." : "Error al registrar.")
+        );
       },
     });
   };
@@ -75,7 +121,15 @@ export default function ReservationForm({ onFormSubmit, onCancel }) {
     <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700 w-full max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
         <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-          <CalendarPlus className="text-sky-400" /> Nueva Reserva
+          {initialData ? (
+            <>
+              <Edit className="text-sky-400" /> Editar Reserva #{initialData.id}
+            </>
+          ) : (
+            <>
+              <CalendarPlus className="text-sky-400" /> Nueva Reserva
+            </>
+          )}
         </h3>
         <button onClick={onCancel} className="text-slate-400 hover:text-white">
           <X className="h-6 w-6" />
@@ -201,7 +255,11 @@ export default function ReservationForm({ onFormSubmit, onCancel }) {
             disabled={isSubmitting}
             className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 disabled:bg-slate-500"
           >
-            {isSubmitting ? "Guardando..." : "Confirmar Reserva"}
+            {isSubmitting
+              ? "Guardando..."
+              : initialData
+              ? "Actualizar Reserva"
+              : "Confirmar Reserva"}
           </button>
         </div>
       </form>

@@ -138,9 +138,11 @@ export default function ProfileForm() {
             </label>
             <input
               type="text"
-              value={user.username}
-              className={`${commonInputClass} bg-slate-900/50 cursor-not-allowed`}
+              value={user.username || ""}
+              className={`${commonInputClass} bg-slate-900/50 cursor-not-allowed opacity-70`}
               disabled
+              readOnly
+              title="El nombre de usuario no se puede cambiar. Contacta a un administrador."
             />
           </div>
           <div>

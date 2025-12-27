@@ -1,4 +1,3 @@
-// src/pages/DashboardPage.jsx
 import { useState, useEffect } from "react";
 import api from "../api/api";
 import {
@@ -10,8 +9,8 @@ import {
   MapPin,
 } from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
+import WorkScheduleWidget from "../components/widgets/WorkScheduleWidget";
 
-// ... (El componente AlertCard no cambia)
 const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
   <div
     className={`bg-slate-800 p-6 rounded-lg shadow-lg border-l-4 ${colorClass}`}
@@ -25,10 +24,13 @@ const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
     <ul className="space-y-2">
       {items.length > 0 ? (
         items.map((item) => (
-          <li key={item.id} className="flex justify-between text-slate-300">
+          <li
+            key={item.id}
+            className="flex items-center justify-between text-slate-300"
+          >
             <span>{item.nombre_item}</span>
-            <span className="font-mono font-bold">
-              {item.stock_unidades.toFixed(2)}
+            <span className="font-mono font-bold bg-slate-700 px-2 py-0.5 rounded text-xs ml-2">
+              {parseFloat(item.stock_unidades).toFixed(2)} {item.unidad_medida}
             </span>
           </li>
         ))
@@ -48,23 +50,26 @@ export default function DashboardPage() {
     count: 0,
     today_reservations: [],
   });
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [iceRes, alertsRes, resStatsRes] = await Promise.all([
-          api.get("/stock/ice"),
-          api.get("/stock/alerts"),
-          api
-            .get("/reservations/stats/dashboard")
-            .catch(() => ({ data: { count: 0, today_reservations: [] } })),
-        ]);
+        const [iceRes, alertsRes, resStatsRes, schedulesRes] =
+          await Promise.all([
+            api.get("/stock/ice"),
+            api.get("/stock/alerts"),
+            api
+              .get("/reservations/stats/dashboard")
+              .catch(() => ({ data: { count: 0, today_reservations: [] } })),
+            api.get("/schedules/dashboard").catch(() => ({ data: [] })),
+          ]);
 
-        // 2. CORRECCIÓN: Simplemente guardamos la respuesta de la API directamente
         setHielo(iceRes.data);
         setAlerts(alertsRes.data);
         setReservationStats(resStatsRes.data);
+        setSchedules(schedulesRes.data);
       } catch (error) {
         console.error("Error al cargar el dashboard:", error);
       } finally {
@@ -80,6 +85,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
+      {/* SECCIÓN SUPERIOR: FECHA Y WIDGETS PRINCIPALES */}
+      <h2 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">
+        {fecha.charAt(0).toUpperCase() + fecha.slice(1)}
+      </h2>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* WIDGET DE RESERVAS */}
         <div className="bg-slate-800 p-6 rounded-lg shadow-xl border-l-4 border-indigo-500">
@@ -90,9 +100,7 @@ export default function DashboardPage() {
                 <h2 className="text-xl font-bold text-white">
                   Reservas de Hoy
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Eventos confirmados para la fecha
-                </p>
+                <p className="text-xs text-slate-400">Eventos confirmados</p>
               </div>
             </div>
             <span className="text-3xl font-bold text-white bg-indigo-900/50 px-4 py-2 rounded-lg">
@@ -140,13 +148,16 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+
+        {/* WIDGET DE HORARIOS */}
+        <WorkScheduleWidget schedules={schedules} />
       </div>
 
+      {/* SECCIÓN STOCK DE HIELO */}
       <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700">
-        <h2 className="text-3xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-white mb-4">
           Informe Hielístico
         </h2>
-        <p className="text-sm text-slate-500 mb-6">Publicado el {fecha}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {hielo.length > 0 ? (
@@ -159,8 +170,8 @@ export default function DashboardPage() {
                   </h3>
                   <p className="text-4xl font-bold text-white font-mono">
                     {parseFloat(item.total_unidades).toFixed(2)}
-                    <span className="text-2xl font-medium text-slate-400 ml-2">
-                      unid.
+                    <span className="text-xl font-medium text-slate-400 ml-2">
+                      {item.unidad_medida}
                     </span>
                   </p>
                 </div>
@@ -174,6 +185,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ALERTAS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <AlertCard
           title="Poco Stock"

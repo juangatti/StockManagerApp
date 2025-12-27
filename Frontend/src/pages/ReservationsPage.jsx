@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../api/api";
 import toast from "react-hot-toast";
-import { Calendar, User, MapPin, Users, Clock, PlusCircle } from "lucide-react";
+import {
+  Calendar,
+  User,
+  MapPin,
+  Users,
+  Clock,
+  PlusCircle,
+  Pencil,
+} from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
 import Alert from "../components/atoms/Alert";
 import ReservationForm from "../components/organisms/ReservationForm";
@@ -15,6 +23,7 @@ export default function ReservationsPage() {
     new Date().toISOString().split("T")[0]
   ); // Hoy
   const [showForm, setShowForm] = useState(false);
+  const [editingReservation, setEditingReservation] = useState(null); // Estado para la reserva en edición
   const user = useAuthStore((state) => state.user);
 
   // Permiso para gestionar (crear/editar)
@@ -50,14 +59,29 @@ export default function ReservationsPage() {
     setSelectedDate(e.target.value);
   };
 
+  const handleCreateNew = () => {
+    setEditingReservation(null);
+    setShowForm(true);
+  };
+
+  const handleEdit = (reservation) => {
+    setEditingReservation(reservation);
+    setShowForm(true);
+  };
+
   if (showForm) {
     return (
       <ReservationForm
         onFormSubmit={() => {
           setShowForm(false);
+          setEditingReservation(null);
           fetchReservations();
         }}
-        onCancel={() => setShowForm(false)}
+        onCancel={() => {
+          setShowForm(false);
+          setEditingReservation(null);
+        }}
+        initialData={editingReservation}
       />
     );
   }
@@ -82,7 +106,7 @@ export default function ReservationsPage() {
 
           {canManage && (
             <button
-              onClick={() => setShowForm(true)}
+              onClick={handleCreateNew}
               className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-all shadow-lg shadow-sky-900/50"
             >
               <PlusCircle className="h-5 w-5" /> Nueva Reserva
@@ -161,7 +185,16 @@ export default function ReservationsPage() {
                   >
                     {res.status}
                   </span>
-                  {/* Aquí se podrían agregar botones de editar/cancelar si hay tiempo */}
+
+                  {canManage && (
+                    <button
+                      onClick={() => handleEdit(res)}
+                      className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-slate-700 rounded transition-colors"
+                      title="Editar reserva"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             );

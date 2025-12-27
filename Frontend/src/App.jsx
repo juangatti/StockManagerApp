@@ -17,6 +17,7 @@ import AdminPage from "./pages/AdminPage";
 import MovementDetailPage from "./pages/MovementDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminRoute from "./layouts/AdminRoute";
+import SchedulesPage from "./pages/SchedulesPage"; // <--- Import
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
@@ -71,6 +72,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/bar" element={<BarPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/cronograma" element={<SchedulesPage />} />
         </Route>
 
         <Route element={<AdminRoute />}>

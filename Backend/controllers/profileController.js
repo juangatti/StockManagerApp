@@ -6,17 +6,18 @@ export const getProfile = async (req, res) => {
   try {
     const userId = req.user.id; // Viene del middleware 'protect'
 
-    // Hacemos un JOIN para obtener datos de 'users' y 'employee_details'
+    // Hacemos un JOIN para obtener datos de 'users', 'employee_details' y 'roles'
     const [rows] = await pool.query(
       `SELECT
         u.username,
-        u.role,
+        r.name as role_name,
         u.display_name,
         d.full_name,
         d.email_contact,
         d.phone
       FROM users u
       LEFT JOIN employee_details d ON u.id = d.user_id
+      LEFT JOIN roles r ON u.role_id = r.id
       WHERE u.id = ?`,
       [userId]
     );

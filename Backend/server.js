@@ -8,6 +8,7 @@ import adminRoutes from "./routes/admin_Routes.js";
 import authRoutes from "./routes/auth_Routes.js";
 import profileRoutes from "./routes/profile_Routes.js";
 import reservationsRoutes from "./routes/reservations_Routes.js";
+import schedulesRoutes from "./routes/schedules_Routes.js";
 // Cargar variables de entorno
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/reservations", reservationsRoutes);
+app.use("/api/schedules", schedulesRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, () => {
