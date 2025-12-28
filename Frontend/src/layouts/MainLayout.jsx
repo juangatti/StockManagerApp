@@ -22,7 +22,7 @@ const UserProfileLink = ({ user, onClick }) => {
       onClick={onClick} // Para cerrar el menú móvil al navegar
     >
       {/* Avatar Circular con Iniciales */}
-      <div className="flex-shrink-0 bg-sky-600 rounded-full h-9 w-9 flex items-center justify-center font-bold text-white text-sm">
+      <div className="shrink-0 bg-sky-600 rounded-full h-9 w-9 flex items-center justify-center font-bold text-white text-sm">
         {initials}
       </div>
 
@@ -82,6 +82,9 @@ export default function MainLayout() {
             <LogOut className="h-4 w-4" />
             Cerrar Sesión
           </button>
+          <p className="text-xs text-center text-slate-500 mt-4">
+            Created by Juan Gatti ®
+          </p>
         </footer>
       </div>
 
@@ -132,6 +135,9 @@ export default function MainLayout() {
                 <LogOut className="h-4 w-4" />
                 Cerrar Sesión
               </button>
+              <p className="text-xs text-center text-slate-500 mt-4">
+                Created by Juan Gatti ®
+              </p>
             </footer>
           </div>
         </div>
