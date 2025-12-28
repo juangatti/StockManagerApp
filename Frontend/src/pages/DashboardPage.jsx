@@ -135,6 +135,7 @@ export default function DashboardPage() {
                     {new Date(res.reservation_date).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
+                      hour12: false,
                     })}{" "}
                     hs
                   </span>

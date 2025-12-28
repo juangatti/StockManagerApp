@@ -131,6 +131,7 @@ export default function ReservationsPage() {
             const time = new Date(res.reservation_date).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
+              hour12: false,
             });
             return (
               <div
