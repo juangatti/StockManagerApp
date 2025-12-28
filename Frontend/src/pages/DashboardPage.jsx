@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState({ lowStock: [], outOfStock: [] });
   const [reservationStats, setReservationStats] = useState({
     count: 0,
+    totalPax: 0,
     today_reservations: [],
   });
   const [schedules, setSchedules] = useState([]);
@@ -60,9 +61,9 @@ export default function DashboardPage() {
           await Promise.all([
             api.get("/stock/ice"),
             api.get("/stock/alerts"),
-            api
-              .get("/reservations/stats/dashboard")
-              .catch(() => ({ data: { count: 0, today_reservations: [] } })),
+            api.get("/reservations/stats/dashboard").catch(() => ({
+              data: { count: 0, totalPax: 0, today_reservations: [] },
+            })),
             api.get("/schedules/dashboard").catch(() => ({ data: [] })),
           ]);
 
@@ -97,14 +98,12 @@ export default function DashboardPage() {
             <div className="flex items-center">
               <CalendarCheck className="h-8 w-8 text-indigo-400 mr-3" />
               <div>
-                <h2 className="text-xl font-bold text-white">
-                  Reservas de Hoy
-                </h2>
-                <p className="text-xs text-slate-400">Eventos confirmados</p>
+                <h2 className="text-xl font-bold text-white">Total Personas</h2>
+                <p className="text-xs text-slate-400">Reservas de hoy</p>
               </div>
             </div>
             <span className="text-3xl font-bold text-white bg-indigo-900/50 px-4 py-2 rounded-lg">
-              {reservationStats.count}
+              {reservationStats.totalPax || 0}
             </span>
           </div>
 

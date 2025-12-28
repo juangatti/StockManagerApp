@@ -59,6 +59,30 @@ export const getReservations = async (req, res) => {
 };
 
 // POST /api/reservations
+// Helper to check for location conflicts
+// existingReservations: array of rows from DB
+// newLocations: array of strings ["Salon 1", "Salon 2"]
+// ignoreId: (optional) ID of the reservation being updated, to ignore self-conflict
+const hasLocationConflict = (
+  existingReservations,
+  newLocations,
+  ignoreId = null
+) => {
+  for (const res of existingReservations) {
+    if (ignoreId && res.id === parseInt(ignoreId)) continue;
+    if (!res.location) continue;
+
+    // Split existing locations (handled as comma-separated string)
+    const existingLocs = res.location.split(",").map((l) => l.trim());
+
+    // Check intersection
+    const conflict = existingLocs.some((l) => newLocations.includes(l));
+    if (conflict) return true;
+  }
+  return false;
+};
+
+// POST /api/reservations
 export const createReservation = async (req, res) => {
   const { customer_name, pax, reservation_date, location, notes } = req.body;
   const created_by = req.user ? req.user.id : null;
@@ -70,6 +94,39 @@ export const createReservation = async (req, res) => {
   }
 
   try {
+    // 1. Validate Location Conflicts
+    if (location) {
+      // Parse new locations
+      // Si viene como array, úsalo. Si es string, split.
+      const requestedLocations = Array.isArray(location)
+        ? location
+        : location
+            .split(",")
+            .map((l) => l.trim())
+            .filter(Boolean);
+
+      if (requestedLocations.length > 0) {
+        // Extract date strictly YYYY-MM-DD for comparison
+        // Assuming reservation_date is ISO string or "YYYY-MM-DD"
+        const dateOnly = reservation_date.split("T")[0];
+
+        // Fetch all active reservations for this date
+        // Note: Using a broader query to get all potential conflicts
+        const [existing] = await pool.query(
+          `SELECT id, location FROM reservations 
+           WHERE DATE(reservation_date) = ? AND status != 'CANCELLED' AND status != 'DELETED'`,
+          [dateOnly]
+        );
+
+        if (hasLocationConflict(existing, requestedLocations)) {
+          return res.status(400).json({
+            message:
+              "Una o más ubicaciones seleccionadas ya están ocupadas para esta fecha.",
+          });
+        }
+      }
+    }
+
     const [result] = await pool.query(
       `INSERT INTO reservations (customer_name, pax, reservation_date, location, notes, status, created_by)
        VALUES (?, ?, ?, ?, ?, 'CONFIRMED', ?)`,
@@ -96,6 +153,34 @@ export const updateReservation = async (req, res) => {
   }
 
   try {
+    // 1. Validate Location Conflicts (same logic as create)
+    if (location) {
+      const requestedLocations = Array.isArray(location)
+        ? location
+        : location
+            .split(",")
+            .map((l) => l.trim())
+            .filter(Boolean);
+
+      if (requestedLocations.length > 0) {
+        const dateOnly = reservation_date.split("T")[0];
+
+        const [existing] = await pool.query(
+          `SELECT id, location FROM reservations 
+           WHERE DATE(reservation_date) = ? AND status != 'CANCELLED' AND status != 'DELETED'`,
+          [dateOnly]
+        );
+
+        // Pass 'id' to ignore self-conflict
+        if (hasLocationConflict(existing, requestedLocations, id)) {
+          return res.status(400).json({
+            message:
+              "Una o más ubicaciones seleccionadas ya están ocupadas para esta fecha.",
+          });
+        }
+      }
+    }
+
     await pool.query(
       `UPDATE reservations
        SET customer_name = ?, pax = ?, reservation_date = ?, location = ?, notes = ?, status = ?
@@ -143,9 +228,12 @@ export const getDashboardStats = async (req, res) => {
       [today]
     );
 
+    const totalPax = rows.reduce((acc, curr) => acc + curr.pax, 0);
+
     res.json({
       today_reservations: rows,
       count: rows.length,
+      totalPax,
     });
   } catch (error) {
     console.error("Error fetching dashboard reservation stats:", error);
