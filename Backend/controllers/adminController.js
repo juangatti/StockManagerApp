@@ -1292,11 +1292,22 @@ export const updateUser = async (req, res) => {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    // 1. Actualizar 'users'
-    await connection.query(
-      "UPDATE users SET role_id = ?, display_name = ? WHERE id = ?",
-      [role_id, display_name || null, id]
-    );
+    // 1. Construir query dinámica para 'users'
+    let userQuery = "UPDATE users SET role_id = ?, display_name = ?";
+    const userParams = [role_id, display_name || null];
+
+    // Si viene password, lo hasheamos y agregamos a la query
+    if (req.body.password && req.body.password.length >= 6) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(req.body.password, salt);
+      userQuery += ", password = ?";
+      userParams.push(hashedPassword);
+    }
+
+    userQuery += " WHERE id = ?";
+    userParams.push(id);
+
+    await connection.query(userQuery, userParams);
 
     // 2. Actualizar (o Insertar) 'employee_details'
     await connection.query(
