@@ -212,14 +212,38 @@ export default function ReservationForm({
           </label>
           <div className="relative">
             <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
+            <select
               name="location"
               value={formData.location}
               onChange={handleChange}
               className={commonInputClass}
-              placeholder="Ej. Mesa 4, Barra, Salón..."
-            />
+            >
+              <option value="">Seleccionar ubicación...</option>
+              <optgroup label="Salón">
+                <option value="Salon 1">Salon 1</option>
+                <option value="Salon 2">Salon 2</option>
+              </optgroup>
+              <optgroup label="Beso">
+                <option value="Beso 1">Beso 1</option>
+                <option value="Beso 2">Beso 2</option>
+                <option value="Beso 3">Beso 3</option>
+              </optgroup>
+              <optgroup label="Sectores">
+                <option value="Caja">Caja</option>
+                <option value="Rojo">Rojo</option>
+                <option value="Medio">Medio</option>
+                <option value="Azul">Azul</option>
+                <option value="Negro">Negro</option>
+              </optgroup>
+              <optgroup label="Bajas">
+                <option value="Bajas 1">Bajas 1</option>
+                <option value="Bajas 2">Bajas 2</option>
+                <option value="Bajas 3">Bajas 3</option>
+                <option value="Bajas 4">Bajas 4</option>
+                <option value="Bajas 5">Bajas 5</option>
+                <option value="Bajas 6">Bajas 6</option>
+              </optgroup>
+            </select>
           </div>
         </div>
 
