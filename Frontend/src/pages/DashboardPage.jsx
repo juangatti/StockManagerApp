@@ -155,14 +155,17 @@ export default function DashboardPage() {
 
       {/* SECCIÓN STOCK DE HIELO */}
       <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700">
-        <h2 className="text-2xl font-bold text-white mb-4">
+        <h2 className="text-2xl font-bold text-white mb-4 text-center">
           Informe Hielístico
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {hielo.length > 0 ? (
             hielo.map((item, index) => (
-              <div key={index} className="flex items-center gap-4">
+              <div
+                key={index}
+                className="flex flex-col items-center justify-center gap-2 text-center"
+              >
                 <Snowflake className="h-12 w-12 text-cyan-300" />
                 <div>
                   <h3 className="text-lg font-semibold text-slate-300">
