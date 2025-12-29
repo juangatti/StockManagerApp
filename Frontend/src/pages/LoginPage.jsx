@@ -104,6 +104,16 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <p className="text-center text-xs text-slate-500">
+          Stock Manager App{" "}
+          <span className="align-super" style={{ fontSize: "0.6rem" }}>
+            ®
+          </span>{" "}
+          {new Date().getFullYear()}
+        </p>
+      </div>
     </div>
   );
 }
