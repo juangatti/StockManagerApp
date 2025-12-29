@@ -164,7 +164,9 @@ export default function DashboardPage() {
             hielo.map((item, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center justify-center gap-2 text-center"
+                className={`flex flex-col items-center justify-center gap-2 text-center ${
+                  index % 2 !== 0 ? "lg:col-start-3" : ""
+                }`}
               >
                 <Snowflake className="h-12 w-12 text-cyan-300" />
                 <div>
