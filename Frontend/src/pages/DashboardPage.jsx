@@ -159,14 +159,12 @@ export default function DashboardPage() {
           Informe Hielístico
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
           {hielo.length > 0 ? (
             hielo.map((item, index) => (
               <div
                 key={index}
-                className={`flex flex-col items-center justify-center gap-2 text-center ${
-                  index % 2 !== 0 ? "lg:col-start-3" : ""
-                }`}
+                className="flex flex-col items-center justify-center gap-2 text-center"
               >
                 <Snowflake className="h-12 w-12 text-cyan-300" />
                 <div>
