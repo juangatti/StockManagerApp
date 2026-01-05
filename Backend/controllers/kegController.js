@@ -1,11 +1,53 @@
 import pool from "../config/db.js";
 
+// -- CREATE MANUAL KEG --
+export const createKeg = async (req, res) => {
+  const { code, style_id, supplier_id, initial_volume, cost, purchase_date } =
+    req.body;
+
+  if (!code || !style_id || !supplier_id || !initial_volume) {
+    return res.status(400).json({ message: "Faltan datos obligatorios" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. Create a "Manual" purchase record for this single keg
+    const [purchaseResult] = await connection.query(
+      "INSERT INTO purchases (supplier_id, purchase_date, total_cost, status, notes) VALUES (?, ?, ?, 'COMPLETED', 'Carga Manual')",
+      [supplier_id, purchase_date || new Date(), cost || 0]
+    );
+    const purchaseId = purchaseResult.insertId;
+
+    // 2. Insert the Keg
+    await connection.query(
+      "INSERT INTO kegs (code, style_id, purchase_id, initial_volume, current_volume, status, cost) VALUES (?, ?, ?, ?, ?, 'STORED', ?)",
+      [code, style_id, purchaseId, initial_volume, initial_volume, cost || 0]
+    );
+
+    await connection.commit();
+    res.status(201).json({ message: "Barril creado exitosamente" });
+  } catch (error) {
+    await connection.rollback();
+    console.error("Error creating manual keg:", error);
+    if (error.code === "ER_DUP_ENTRY") {
+      return res
+        .status(409)
+        .json({ message: "Ya existe un barril con ese código" });
+    }
+    res.status(500).json({ message: "Error al crear barril" });
+  } finally {
+    connection.release();
+  }
+};
+
 // -- GET KEGS (optional filters) --
 export const getKegs = async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
-      SELECT k.*, bs.name as style_name, g.name as glassware_name, p.purchase_date, s.name as supplier_name
+      SELECT k.*, bs.name as style_name, bs.fantasy_name as style_fantasy_name, g.name as glassware_name, p.purchase_date, s.name as supplier_name
       FROM kegs k
       JOIN beer_styles bs ON k.style_id = bs.id
       LEFT JOIN glassware g ON bs.glassware_id = g.id

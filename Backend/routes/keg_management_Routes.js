@@ -29,6 +29,7 @@ import {
 import {
   getKegs,
   getKegById,
+  createKeg,
   tapKeg,
   emptyKeg,
   returnKegs,
@@ -63,6 +64,7 @@ router.post("/movements/adjustment", createGlasswareAdjustment); // Roturas/Ajus
 
 // --- KEGS (CICLO DE VIDA) ---
 router.get("/kegs", getKegs);
+router.post("/kegs", createKeg); // Manual Creation
 router.get("/kegs/:id", getKegById);
 router.put("/kegs/:id/tap", tapKeg);
 router.put("/kegs/:id/empty", emptyKeg);

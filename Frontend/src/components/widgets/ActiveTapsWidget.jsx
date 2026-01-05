@@ -126,7 +126,7 @@ export default function ActiveTapsWidget() {
                 <>
                   <div>
                     <h3 className="text-lg font-bold text-white leading-tight mb-1 truncate">
-                      {activeKeg.style_name}
+                      {activeKeg.style_fantasy_name || activeKeg.style_name}
                     </h3>
                     <p className="text-xs text-slate-400 font-mono mb-2">
                       {activeKeg.code}

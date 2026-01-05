@@ -9,7 +9,7 @@ export const getStyles = async (req, res) => {
        FROM beer_styles bs 
        LEFT JOIN glassware g ON bs.glassware_id = g.id 
        WHERE bs.active = 1 
-       ORDER BY bs.name ASC`
+       ORDER BY bs.fantasy_name ASC, bs.name ASC`
     );
     res.json(rows);
   } catch (error) {
@@ -36,8 +36,14 @@ export const getStyleById = async (req, res) => {
 
 // -- CREATE STYLE --
 export const createStyle = async (req, res) => {
-  const { name, description_default, abv_default, ibu_default, glassware_id } =
-    req.body;
+  const {
+    name,
+    fantasy_name,
+    description_default,
+    abv_default,
+    ibu_default,
+    glassware_id,
+  } = req.body;
 
   if (!name) {
     return res
@@ -47,8 +53,15 @@ export const createStyle = async (req, res) => {
 
   try {
     const [result] = await pool.query(
-      "INSERT INTO beer_styles (name, description_default, abv_default, ibu_default, glassware_id) VALUES (?, ?, ?, ?, ?)",
-      [name, description_default, abv_default, ibu_default, glassware_id]
+      "INSERT INTO beer_styles (name, fantasy_name, description_default, abv_default, ibu_default, glassware_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        name,
+        fantasy_name,
+        description_default,
+        abv_default,
+        ibu_default,
+        glassware_id,
+      ]
     );
     res
       .status(201)
@@ -69,6 +82,7 @@ export const updateStyle = async (req, res) => {
   const { id } = req.params;
   const {
     name,
+    fantasy_name,
     description_default,
     abv_default,
     ibu_default,
@@ -78,9 +92,10 @@ export const updateStyle = async (req, res) => {
 
   try {
     const [result] = await pool.query(
-      "UPDATE beer_styles SET name = ?, description_default = ?, abv_default = ?, ibu_default = ?, glassware_id = ?, active = ? WHERE id = ?",
+      "UPDATE beer_styles SET name = ?, fantasy_name = ?, description_default = ?, abv_default = ?, ibu_default = ?, glassware_id = ?, active = ? WHERE id = ?",
       [
         name,
+        fantasy_name,
         description_default,
         abv_default,
         ibu_default,
