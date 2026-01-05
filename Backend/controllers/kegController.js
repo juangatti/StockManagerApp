@@ -65,7 +65,9 @@ export const getKegs = async (req, res) => {
     res.json(rows);
   } catch (error) {
     console.error("Error fetching kegs:", error);
-    res.status(500).json({ message: "Error al obtener barriles" });
+    res
+      .status(500)
+      .json({ message: "Error al obtener barriles", error: error.message });
   }
 };
 
