@@ -9,6 +9,8 @@ import {
   Plus,
   X,
   Save,
+  Link,
+  Unplug,
 } from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
 import * as XLSX from "xlsx";
@@ -20,7 +22,7 @@ export default function KegsReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  // Modal State
+  // Create Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [styles, setStyles] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -33,9 +35,13 @@ export default function KegsReportPage() {
     purchase_date: new Date().toISOString().split("T")[0],
   });
 
+  // Tap Modal State
+  const [isTapModalOpen, setIsTapModalOpen] = useState(false);
+  const [selectedTapKeg, setSelectedTapKeg] = useState(null);
+  const [tapNumber, setTapNumber] = useState("");
+
   useEffect(() => {
     fetchKegs();
-    // Fetch options for modal
     fetchOptions();
   }, []);
 
@@ -103,6 +109,47 @@ export default function KegsReportPage() {
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Error al crear barril");
+    }
+  };
+
+  const openTapModal = (keg) => {
+    setSelectedTapKeg(keg);
+    setTapNumber("");
+    setIsTapModalOpen(true);
+  };
+
+  const handleTapSubmit = async (e) => {
+    e.preventDefault();
+    if (!tapNumber || !selectedTapKeg) return;
+
+    try {
+      await api.put(`/keg-management/kegs/${selectedTapKeg.id}/tap`, {
+        tap_number: parseInt(tapNumber),
+      });
+      toast.success(`Barril conectado a canilla ${tapNumber}`);
+      setIsTapModalOpen(false);
+      fetchKegs();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Error al conectar barril");
+    }
+  };
+
+  const handleUntap = async (keg) => {
+    if (!window.confirm(`¿Seguro que deseas desconectar el barril #${keg.id}?`))
+      return;
+    try {
+      // Assuming 'empty' marks it as empty. If user just wants to unassign without emptying, we might need a different endpoint.
+      // But typically untapping implies finishing it or moving it.
+      // Based on kegController, we have 'emptyKeg' which sets status=EMPTY and tap=NULL.
+      // If user just wants to swap, they would tap another one.
+      // Let's assume the button is for "Vaciar/Desconectar".
+      await api.put(`/keg-management/kegs/${keg.id}/empty`);
+      toast.success("Barril desconectado/vaciado");
+      fetchKegs();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Error al desconectar");
     }
   };
 
@@ -231,6 +278,7 @@ export default function KegsReportPage() {
                   <th className="px-6 py-4">Estado</th>
                   <th className="px-6 py-4">Ubicación</th>
                   <th className="px-6 py-4 text-right">Volumen</th>
+                  <th className="px-6 py-4 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
@@ -294,6 +342,26 @@ export default function KegsReportPage() {
                       <div className="text-xs text-slate-500">
                         de {keg.initial_volume} L
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {keg.status === "STORED" && (
+                        <button
+                          onClick={() => openTapModal(keg)}
+                          className="bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 mx-auto"
+                          title="Pinchar en Canilla"
+                        >
+                          <Link className="h-3 w-3" /> Pinchar
+                        </button>
+                      )}
+                      {keg.status === "TAPPED" && (
+                        <button
+                          onClick={() => handleUntap(keg)}
+                          className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 mx-auto"
+                          title="Desconectar / Vaciar"
+                        >
+                          <Unplug className="h-3 w-3" /> Desconectar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -441,6 +509,74 @@ export default function KegsReportPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* TAP ASSIGNMENT MODAL */}
+      {isTapModalOpen && selectedTapKeg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 rounded-xl shadow-2xl border border-slate-700 w-full max-w-sm overflow-hidden transform transition-all">
+            <div className="bg-amber-500/10 px-6 py-4 border-b border-amber-500/20 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-amber-500 flex items-center gap-2">
+                <Link className="h-5 w-5" /> Conectar Barril
+              </h3>
+              <button
+                onClick={() => setIsTapModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-slate-400 mb-1">
+                  Barril Seleccionado:
+                </p>
+                <p className="text-white font-medium text-lg">
+                  {selectedTapKeg.style_fantasy_name ||
+                    selectedTapKeg.style_name}
+                </p>
+                <p className="text-xs text-slate-500 font-mono">
+                  {selectedTapKeg.code}
+                </p>
+              </div>
+
+              <form onSubmit={handleTapSubmit}>
+                <label className="block text-xs font-medium text-slate-400 mb-2">
+                  Seleccionar Canilla (1-12)
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {[...Array(12)].map((_, i) => {
+                    const num = i + 1;
+                    // In a real app, we might want to disable occupied taps, but we don't have that list here easily without fetching all active taps.
+                    // The backend will validation will handle it.
+                    return (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setTapNumber(num)}
+                        className={`py-2 rounded font-bold transition-all ${
+                          tapNumber === num
+                            ? "bg-amber-500 text-black shadow-lg shadow-amber-500/50 scale-105"
+                            : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!tapNumber}
+                  className="w-full py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded shadow-lg shadow-amber-500/20 transition-all"
+                >
+                  Confirmar Conexión
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -13,17 +13,25 @@ export const createKeg = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 1. Create a "Manual" purchase record for this single keg
-    const [purchaseResult] = await connection.query(
-      "INSERT INTO purchases (supplier_id, purchase_date, total_cost, status, notes) VALUES (?, ?, ?, 'COMPLETED', 'Carga Manual')",
-      [supplier_id, purchase_date || new Date(), cost || 0]
+    // 1. Create stock_movement (Instead of purchases table)
+    const [moveResult] = await connection.query(
+      "INSERT INTO stock_movements (supplier_id, type, description, created_at) VALUES (?, 'COMPRA', ?, ?)",
+      [supplier_id, `Carga Manual Barril ${code}`, purchase_date || new Date()]
     );
-    const purchaseId = purchaseResult.insertId;
+    const stockMovementId = moveResult.insertId;
 
-    // 2. Insert the Keg
+    // 2. Insert the Keg (Linking to stock_movement_id, NOT purchase_id)
+    // We assume the kegs table has stock_movement_id based on movementController logic
     await connection.query(
-      "INSERT INTO kegs (code, style_id, purchase_id, initial_volume, current_volume, status, cost) VALUES (?, ?, ?, ?, ?, 'STORED', ?)",
-      [code, style_id, purchaseId, initial_volume, initial_volume, cost || 0]
+      "INSERT INTO kegs (code, style_id, stock_movement_id, initial_volume, current_volume, status, cost) VALUES (?, ?, ?, ?, ?, 'STORED', ?)",
+      [
+        code,
+        style_id,
+        stockMovementId,
+        initial_volume,
+        initial_volume,
+        cost || 0,
+      ]
     );
 
     await connection.commit();
@@ -36,7 +44,9 @@ export const createKeg = async (req, res) => {
         .status(409)
         .json({ message: "Ya existe un barril con ese código" });
     }
-    res.status(500).json({ message: "Error al crear barril" });
+    res
+      .status(500)
+      .json({ message: "Error al crear barril", error: error.message });
   } finally {
     connection.release();
   }
@@ -47,12 +57,12 @@ export const getKegs = async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
-      SELECT k.*, bs.name as style_name, bs.fantasy_name as style_fantasy_name, g.name as glassware_name, p.purchase_date, s.name as supplier_name
+      SELECT k.*, bs.name as style_name, bs.fantasy_name as style_fantasy_name, g.name as glassware_name, sm.created_at as purchase_date, s.name as supplier_name
       FROM kegs k
       JOIN beer_styles bs ON k.style_id = bs.id
       LEFT JOIN glassware g ON bs.glassware_id = g.id
-      JOIN purchases p ON k.purchase_id = p.id
-      JOIN suppliers s ON p.supplier_id = s.id
+      LEFT JOIN stock_movements sm ON k.stock_movement_id = sm.id
+      LEFT JOIN suppliers s ON sm.supplier_id = s.id
     `;
     const params = [];
     if (status) {
