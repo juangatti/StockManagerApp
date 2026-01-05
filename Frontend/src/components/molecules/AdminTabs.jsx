@@ -6,6 +6,7 @@ import {
   ClipboardPlus,
   Users,
   Shield,
+  Truck,
 } from "lucide-react";
 
 import CategoryManager from "../organisms/CategoryManager";
@@ -17,6 +18,7 @@ import UserManager from "../organisms/UserManager";
 import RoleManager from "../organisms/RoleManager";
 import GlasswareManager from "../organisms/GlasswareManager";
 import BeerStylesManager from "../organisms/BeerStylesManager";
+import SupplierManager from "../organisms/SupplierManager";
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState("category");
@@ -59,6 +61,12 @@ export default function AdminTabs() {
             <ClipboardPlus className="mr-2 h-5 w-5" /> Recetas
           </button>
           <button
+            onClick={() => setActiveTab("supplier")}
+            className={buttonClass("supplier")}
+          >
+            <Truck className="mr-2 h-5 w-5" /> Proveedores
+          </button>
+          <button
             onClick={() => setActiveTab("user")}
             className={buttonClass("user")}
           >
@@ -96,6 +104,7 @@ export default function AdminTabs() {
         {activeTab === "role" && <RoleManager />}
         {activeTab === "glass" && <GlasswareManager />}
         {activeTab === "style" && <BeerStylesManager />}
+        {activeTab === "supplier" && <SupplierManager />}
       </div>
     </div>
   );
