@@ -97,7 +97,7 @@ export const processSalesFile = async (req, res) => {
            pb.nombre_prebatch as nombre_prebatch_regla,
            si.marca_id as marca_id_item,
            m.nombre as nombre_marca_item
-         FROM recetas r
+         FROM recipes r
          LEFT JOIN prebatches pb ON r.ingredient_type = 'PREBATCH' AND r.prebatch_id = pb.id
          LEFT JOIN stock_items si ON r.ingredient_type = 'ITEM' AND r.item_id = si.id
          LEFT JOIN marcas m ON si.marca_id = m.id
@@ -161,7 +161,7 @@ export const processSalesFile = async (req, res) => {
                   FROM stock_items si
                   JOIN marcas m ON si.marca_id = m.id
                   WHERE si.marca_id = ? AND si.stock_unidades > 0.001 AND si.is_active = TRUE
-                  ORDER BY (SELECT r_inner.prioridad_item FROM recetas r_inner WHERE r_inner.item_id = si.id AND r_inner.producto_id = ? LIMIT 1) ASC`,
+                  ORDER BY (SELECT r_inner.prioridad_item FROM recipes r_inner WHERE r_inner.item_id = si.id AND r_inner.producto_id = ? LIMIT 1) ASC`,
                 [regla.marca_id_item, productId]
               );
 

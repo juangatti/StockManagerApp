@@ -876,7 +876,7 @@ export const createRecipe = async (req, res) => {
 
         // Sentencia INSERT actualizada con recipe_variant
         await connection.query(
-          `INSERT INTO recetas (
+          `INSERT INTO recipes (
                producto_id,
                recipe_variant, -- <-- Nueva columna
                ingredient_type,
@@ -946,7 +946,7 @@ export const getRecipeById = async (req, res) => {
           WHEN r.ingredient_type = 'PREBATCH' THEN (SELECT pb.nombre_prebatch FROM prebatches pb WHERE pb.id = r.prebatch_id)
           ELSE NULL
         END AS prebatch_nombre
-      FROM recetas r
+      FROM recipes r
       WHERE r.producto_id = ?
       ORDER BY r.recipe_variant ASC, r.id ASC`, // <-- Ordenar por variante
       [id]
@@ -986,7 +986,7 @@ export const updateRecipe = async (req, res) => {
       "UPDATE productos SET nombre_producto_fudo = ? WHERE id = ?",
       [nombre_producto_fudo, id]
     );
-    await connection.query("DELETE FROM recetas WHERE producto_id = ?", [id]);
+    await connection.query("DELETE FROM recipes WHERE producto_id = ?", [id]);
 
     // Insertar nuevas reglas (si existen)
     if (reglas.length > 0) {
@@ -1026,7 +1026,7 @@ export const updateRecipe = async (req, res) => {
 
         // Sentencia INSERT actualizada con recipe_variant
         await connection.query(
-          `INSERT INTO recetas (
+          `INSERT INTO recipes (
                producto_id, recipe_variant, ingredient_type, item_id, prebatch_id, consumo_ml, prioridad_item
              ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           [
