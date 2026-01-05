@@ -13,30 +13,37 @@ export const createKeg = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 1. Create stock_movement
+    // 1. Create stock_movement (Table: stock_movements)
+    // Structure: type, description, fecha_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, supplier_id
+    // Constraints: cantidad_unidades_movidas, stock_anterior, stock_nuevo are NOT NULL.
     const [moveResult] = await connection.query(
-      "INSERT INTO stock_movements (supplier_id, type, description, created_at) VALUES (?, 'COMPRA', ?, ?)",
-      [supplier_id, `Carga Manual Barril ${code}`, purchase_date || new Date()]
+      `INSERT INTO stock_movements 
+       (supplier_id, type, description, fecha_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo) 
+       VALUES (?, 'COMPRA', ?, ?, ?, 0, 0)`,
+      [
+        supplier_id,
+        `Carga Manual Barril ${code}`,
+        purchase_date || new Date(),
+        1, // Adding 1 keg
+      ]
     );
     const stockMovementId = moveResult.insertId;
 
-    // 2. Insert the Keg
-    // Mapped to User Schema: volume_initial, cost_price.
-    // WARNING: current_volume is assumed to exist for app logic, otherwise we default to volume_initial logic if column exists.
-    // User schema provided: volume_initial, cost_price.
-    // I will insert into volume_initial and cost_price.
+    // 2. Insert the Keg (Table: kegs)
+    // Structure: code, style_id, stock_movement_id, volume_initial, cost_price, current_volume, status
     await connection.query(
-      "INSERT INTO kegs (code, style_id, stock_movement_id, volume_initial, cost_price, status) VALUES (?, ?, ?, ?, ?, 'STORED')",
-      [code, style_id, stockMovementId, initial_volume, cost || 0]
+      `INSERT INTO kegs 
+       (code, style_id, stock_movement_id, volume_initial, cost_price, current_volume, status) 
+       VALUES (?, ?, ?, ?, ?, ?, 'STORED')`,
+      [
+        code,
+        style_id,
+        stockMovementId,
+        initial_volume, // volume_initial
+        cost || 0, // cost_price
+        initial_volume, // current_volume (Same as initial)
+      ]
     );
-
-    // If current_volume exists in DB, it should ideally be set. If user didn't create it, this might specific line might need checking.
-    // But standard logic requires current_volume. I'll execute a separate update to set current_volume = volume_initial IF it exists,
-    // or rely on a DB trigger/default.
-    // For now, adhering strictly to the provided schema to avoid 500 errors on "Unknown Column".
-    // Wait, if I don't set current_volume, how do we track consumption?
-    // I will assume for a moment the user omitted it or I should attempt to set it if I can.
-    // safer path: match the provided CREATE TABLE exactly.
 
     await connection.commit();
     res.status(201).json({ message: "Barril creado exitosamente" });
@@ -61,13 +68,11 @@ export const getKegs = async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
-      SELECT k.*, 
-             k.volume_initial as initial_volume, 
-             k.cost_price as cost,
+      SELECT k.id, k.code, k.volume_initial as initial_volume, k.current_volume, k.cost_price as cost, k.status, k.tap_number, k.abv, k.ibu,
              bs.name as style_name, 
              bs.fantasy_name as style_fantasy_name, 
              g.name as glassware_name, 
-             sm.created_at as purchase_date, 
+             sm.fecha_movimiento as purchase_date, 
              s.name as supplier_name
       FROM kegs k
       JOIN beer_styles bs ON k.style_id = bs.id
