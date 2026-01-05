@@ -195,7 +195,7 @@ export default function ActiveTapsWidget() {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
                   <span className="text-xs uppercase font-semibold tracking-wider">
-                    Libre
+                    No disponible
                   </span>
                   <button
                     onClick={() => handleAssignClick(slotNum)}

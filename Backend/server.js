@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth_Routes.js";
 import profileRoutes from "./routes/profile_Routes.js";
 import reservationsRoutes from "./routes/reservations_Routes.js";
 import schedulesRoutes from "./routes/schedules_Routes.js";
+import kegManagementRoutes from "./routes/keg_management_Routes.js";
 // Cargar variables de entorno
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/reservations", reservationsRoutes);
 app.use("/api/schedules", schedulesRoutes);
+app.use("/api/keg-management", kegManagementRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, () => {
