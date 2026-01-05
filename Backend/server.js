@@ -29,12 +29,14 @@ app.use(express.json());
 app.use("/api/stock", stockRoutes);
 app.use("/api/prebatches", prebatchRoutes);
 app.use("/api/sales", salesRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/profile", profileRoutes);
-app.use("/api/reservations", reservationsRoutes);
-app.use("/api/schedules", schedulesRoutes);
-app.use("/api/keg-management", kegManagementRoutes);
+app.use("/api/users", userRoutes); // Used for both profiles and admin user management
+app.use("/api/admin", adminRoutes); // Admin ONLY routes (metrics, backup, etc)
+app.use("/api/reservations", reservationsRoutes); // New (assuming reservationRoutes refers to the existing reservationsRoutes)
+app.use("/api/keg-management", kegManagementRoutes); // New
+
+// Force Redeploy timestamp
+console.log("Server initiated at " + new Date().toISOString());
 
 // Iniciar el servidor
 app.listen(PORT, () => {
