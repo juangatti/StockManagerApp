@@ -5,9 +5,10 @@ export const getKegs = async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
-      SELECT k.*, bs.name as style_name, p.purchase_date, s.name as supplier_name
+      SELECT k.*, bs.name as style_name, g.name as glassware_name, p.purchase_date, s.name as supplier_name
       FROM kegs k
       JOIN beer_styles bs ON k.style_id = bs.id
+      LEFT JOIN glassware g ON bs.glassware_id = g.id
       JOIN purchases p ON k.purchase_id = p.id
       JOIN suppliers s ON p.supplier_id = s.id
     `;

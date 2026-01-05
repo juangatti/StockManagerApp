@@ -813,8 +813,8 @@ export const getInactiveProducts = async (req, res) => {
 };
 
 export const createRecipe = async (req, res) => {
-  // Ahora esperamos recipe_variant en las reglas
-  const { nombre_producto_fudo, reglas } = req.body;
+  // Ahora esperamos recipe_variant en las reglas, y glassware_id en el producto
+  const { nombre_producto_fudo, reglas, glassware_id } = req.body;
   if (
     !nombre_producto_fudo ||
     !reglas ||
@@ -831,8 +831,8 @@ export const createRecipe = async (req, res) => {
     await connection.beginTransaction();
 
     const [productResult] = await connection.query(
-      "INSERT INTO productos (nombre_producto_fudo) VALUES (?)",
-      [nombre_producto_fudo]
+      "INSERT INTO productos (nombre_producto_fudo, glassware_id) VALUES (?, ?)",
+      [nombre_producto_fudo, glassware_id || null]
     );
     const newProductId = productResult.insertId;
 
@@ -926,7 +926,10 @@ export const getRecipeById = async (req, res) => {
   const { id } = req.params;
   try {
     const [productRows] = await pool.query(
-      "SELECT * FROM productos WHERE id = ?",
+      `SELECT p.*, g.name as glassware_name 
+       FROM productos p 
+       LEFT JOIN glassware g ON p.glassware_id = g.id 
+       WHERE p.id = ?`,
       [id]
     );
     if (productRows.length === 0)
@@ -969,7 +972,7 @@ export const getRecipeById = async (req, res) => {
 
 export const updateRecipe = async (req, res) => {
   const { id } = req.params;
-  const { nombre_producto_fudo, reglas } = req.body;
+  const { nombre_producto_fudo, reglas, glassware_id } = req.body;
 
   if (!nombre_producto_fudo || !Array.isArray(reglas)) {
     // Validar que reglas sea array
@@ -983,8 +986,8 @@ export const updateRecipe = async (req, res) => {
     await connection.beginTransaction();
 
     await connection.query(
-      "UPDATE productos SET nombre_producto_fudo = ? WHERE id = ?",
-      [nombre_producto_fudo, id]
+      "UPDATE productos SET nombre_producto_fudo = ?, glassware_id = ? WHERE id = ?",
+      [nombre_producto_fudo, glassware_id || null, id]
     );
     await connection.query("DELETE FROM recipes WHERE producto_id = ?", [id]);
 
