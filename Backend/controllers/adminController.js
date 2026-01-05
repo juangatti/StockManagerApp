@@ -2,6 +2,8 @@ import pool from "../config/db.js";
 import { buildNombreCompleto } from "../utils/helpers.js"; //
 import bcrypt from "bcryptjs";
 
+///prueba
+
 // --- GESTIÓN DE CATEGORÍAS ---
 export const getCategories = async (req, res) => {
   try {
