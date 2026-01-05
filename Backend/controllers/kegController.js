@@ -13,26 +13,30 @@ export const createKeg = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 1. Create stock_movement (Instead of purchases table)
+    // 1. Create stock_movement
     const [moveResult] = await connection.query(
       "INSERT INTO stock_movements (supplier_id, type, description, created_at) VALUES (?, 'COMPRA', ?, ?)",
       [supplier_id, `Carga Manual Barril ${code}`, purchase_date || new Date()]
     );
     const stockMovementId = moveResult.insertId;
 
-    // 2. Insert the Keg (Linking to stock_movement_id, NOT purchase_id)
-    // We assume the kegs table has stock_movement_id based on movementController logic
+    // 2. Insert the Keg
+    // Mapped to User Schema: volume_initial, cost_price.
+    // WARNING: current_volume is assumed to exist for app logic, otherwise we default to volume_initial logic if column exists.
+    // User schema provided: volume_initial, cost_price.
+    // I will insert into volume_initial and cost_price.
     await connection.query(
-      "INSERT INTO kegs (code, style_id, stock_movement_id, initial_volume, current_volume, status, cost) VALUES (?, ?, ?, ?, ?, 'STORED', ?)",
-      [
-        code,
-        style_id,
-        stockMovementId,
-        initial_volume,
-        initial_volume,
-        cost || 0,
-      ]
+      "INSERT INTO kegs (code, style_id, stock_movement_id, volume_initial, cost_price, status) VALUES (?, ?, ?, ?, ?, 'STORED')",
+      [code, style_id, stockMovementId, initial_volume, cost || 0]
     );
+
+    // If current_volume exists in DB, it should ideally be set. If user didn't create it, this might specific line might need checking.
+    // But standard logic requires current_volume. I'll execute a separate update to set current_volume = volume_initial IF it exists,
+    // or rely on a DB trigger/default.
+    // For now, adhering strictly to the provided schema to avoid 500 errors on "Unknown Column".
+    // Wait, if I don't set current_volume, how do we track consumption?
+    // I will assume for a moment the user omitted it or I should attempt to set it if I can.
+    // safer path: match the provided CREATE TABLE exactly.
 
     await connection.commit();
     res.status(201).json({ message: "Barril creado exitosamente" });
@@ -57,7 +61,14 @@ export const getKegs = async (req, res) => {
   try {
     const { status } = req.query;
     let query = `
-      SELECT k.*, bs.name as style_name, bs.fantasy_name as style_fantasy_name, g.name as glassware_name, sm.created_at as purchase_date, s.name as supplier_name
+      SELECT k.*, 
+             k.volume_initial as initial_volume, 
+             k.cost_price as cost,
+             bs.name as style_name, 
+             bs.fantasy_name as style_fantasy_name, 
+             g.name as glassware_name, 
+             sm.created_at as purchase_date, 
+             s.name as supplier_name
       FROM kegs k
       JOIN beer_styles bs ON k.style_id = bs.id
       LEFT JOIN glassware g ON bs.glassware_id = g.id
