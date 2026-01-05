@@ -17,7 +17,8 @@ import AdminPage from "./pages/AdminPage";
 import MovementDetailPage from "./pages/MovementDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AdminRoute from "./layouts/AdminRoute";
-import SchedulesPage from "./pages/SchedulesPage"; // <--- Import
+import SchedulesPage from "./pages/SchedulesPage";
+import KegsReportPage from "./pages/KegsReportPage";
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
@@ -81,6 +82,7 @@ function App() {
           <Route path="/shopping" element={<ShoppingPage />} />
           <Route path="/reservations" element={<ReservationsPage />} />
           <Route path="/adjust" element={<AdjustPage />} />
+          <Route path="/keg-report" element={<KegsReportPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
           <Route
