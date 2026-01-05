@@ -61,6 +61,18 @@ export const tapKeg = async (req, res) => {
   }
 
   try {
+    // Verificar si la canilla ya está ocupada
+    const [occupied] = await pool.query(
+      "SELECT id FROM kegs WHERE tap_number = ? AND status = 'TAPPED'",
+      [tap_number]
+    );
+
+    if (occupied.length > 0) {
+      return res.status(400).json({
+        message: `La canilla ${tap_number} ya está ocupada por el barril #${occupied[0].id}`,
+      });
+    }
+
     const [result] = await pool.query(
       "UPDATE kegs SET status = 'TAPPED', tap_number = ?, tapped_at = NOW() WHERE id = ? AND status = 'STORED'",
       [tap_number, id]

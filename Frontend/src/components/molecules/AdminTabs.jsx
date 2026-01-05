@@ -13,7 +13,7 @@ import MarcaManager from "../organisms/MarcaManager";
 import ItemManager from "../organisms/ItemManager";
 import RecipeManager from "../organisms/RecipeManager";
 import UserManager from "../organisms/UserManager";
-import UserManager from "../organisms/UserManager";
+
 import RoleManager from "../organisms/RoleManager";
 import GlasswareManager from "../organisms/GlasswareManager";
 import BeerStylesManager from "../organisms/BeerStylesManager";
