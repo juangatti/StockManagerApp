@@ -13,7 +13,10 @@ import MarcaManager from "../organisms/MarcaManager";
 import ItemManager from "../organisms/ItemManager";
 import RecipeManager from "../organisms/RecipeManager";
 import UserManager from "../organisms/UserManager";
+import UserManager from "../organisms/UserManager";
 import RoleManager from "../organisms/RoleManager";
+import GlasswareManager from "../organisms/GlasswareManager";
+import BeerStylesManager from "../organisms/BeerStylesManager";
 
 export default function AdminTabs() {
   const [activeTab, setActiveTab] = useState("category");
@@ -28,7 +31,7 @@ export default function AdminTabs() {
   return (
     <div>
       <div className="border-b border-slate-700 mb-8">
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-8 gap-2">
           {" "}
           {/* <-- CAMBIAR A 6 COLUMNAS */}
           <button
@@ -61,12 +64,24 @@ export default function AdminTabs() {
           >
             <Users className="mr-2 h-5 w-5" /> Usuarios
           </button>
-          {/* NUEVA PESTAÑA */}
+          <button
+            onClick={() => setActiveTab("glass")}
+            className={buttonClass("glass")}
+          >
+            <i className="mr-2 h-5 w-5 not-italic text-lg">🍷</i> Cristaleria
+          </button>
+          <button
+            onClick={() => setActiveTab("style")}
+            className={buttonClass("style")}
+          >
+            <i className="mr-2 h-5 w-5 not-italic text-lg">🍺</i> Estilos
+          </button>
+          {/* ROL/PERMISOS AL FINAL (CAMBIAR GRID COLUMS) */}
           <button
             onClick={() => setActiveTab("role")}
             className={buttonClass("role")}
           >
-            <Shield className="mr-2 h-5 w-5" />
+            <Shield className="mr-2 h-5 w-5" /> Roles
           </button>
         </div>
       </div>
@@ -79,6 +94,8 @@ export default function AdminTabs() {
         {activeTab === "user" && <UserManager />}
         {/* RENDERIZAR ROLEMANAGER */}
         {activeTab === "role" && <RoleManager />}
+        {activeTab === "glass" && <GlasswareManager />}
+        {activeTab === "style" && <BeerStylesManager />}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
 import WorkScheduleWidget from "../components/widgets/WorkScheduleWidget";
+import ActiveTapsWidget from "../components/widgets/ActiveTapsWidget";
 
 const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
   <div
@@ -90,6 +91,9 @@ export default function DashboardPage() {
       <h2 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">
         {fecha.charAt(0).toUpperCase() + fecha.slice(1)}
       </h2>
+
+      {/* WIDGET DE CANILLAS ACTIVAS */}
+      <ActiveTapsWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* WIDGET DE RESERVAS */}

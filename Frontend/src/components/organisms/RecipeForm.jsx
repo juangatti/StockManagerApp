@@ -24,11 +24,13 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
 
   // Nuevos estados para manejar prebatches y carga inicial
   const [availablePrebatches, setAvailablePrebatches] = useState([]);
+  const [availableGlassware, setAvailableGlassware] = useState([]); // [NEW]
+  const [selectedGlasswareId, setSelectedGlasswareId] = useState(""); // [NEW]
   const [loadingDependencies, setLoadingDependencies] = useState(true);
 
   const ingredientRefs = useRef({}); // Refs para limpiar inputs hijos si es necesario
 
-  // 1. Cargar dependencias iniciales (Items de Stock y Nombres de Prebatches)
+  // 1. Cargar dependencias iniciales (Items de Stock, Nombres de Prebatches, Cristalería)
   useEffect(() => {
     const loadDependencies = async () => {
       setLoadingDependencies(true);
@@ -37,8 +39,9 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
         const fetchStockIfNeeded =
           stockItems.length === 0 ? fetchStock() : Promise.resolve();
 
-        const [prebatchNamesRes] = await Promise.all([
+        const [prebatchNamesRes, glasswareRes] = await Promise.all([
           api.get("/prebatches/names"),
+          api.get("/keg-management/glassware"),
           fetchStockIfNeeded,
         ]);
 
@@ -48,9 +51,15 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
           setAvailablePrebatches([]);
           toast.error("No se pudieron cargar los nombres de prebatches.");
         }
+
+        if (Array.isArray(glasswareRes.data)) {
+          setAvailableGlassware(glasswareRes.data);
+        }
       } catch (error) {
         console.error("Error loading recipe dependencies:", error);
-        toast.error("Error al cargar datos necesarios (items/prebatches).");
+        toast.error(
+          "Error al cargar datos necesarios (items/prebatches/cristalería)."
+        );
       } finally {
         setLoadingDependencies(false);
       }
@@ -61,7 +70,9 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
   // 2. Pre-llenar formulario si estamos editando
   useEffect(() => {
     if (recipeToEdit && !loadingDependencies) {
+      console.log("Editing:", recipeToEdit);
       setProductName(recipeToEdit.product.nombre_producto_fudo);
+      setSelectedGlasswareId(recipeToEdit.product.glassware_id || ""); // [NEW]
       setReglas(
         recipeToEdit.reglas.map((r) => ({
           tempId: generateTempId(),
@@ -76,6 +87,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
       );
     } else if (!recipeToEdit && !loadingDependencies) {
       setProductName("");
+      setSelectedGlasswareId(""); // [NEW]
       setReglas([]);
     }
   }, [recipeToEdit, loadingDependencies]);
@@ -243,6 +255,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
     // Enviar al backend
     const payload = {
       nombre_producto_fudo: productName.trim(),
+      glassware_id: selectedGlasswareId ? parseInt(selectedGlasswareId) : null, // [NEW]
       reglas: payloadReglas,
     };
     const isEditing = !!recipeToEdit?.product.id;
@@ -278,15 +291,30 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
         <Spinner />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input
-            type="text"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="Nombre del Producto (Ej: NEGRONI)"
-            className={commonInputClass}
-            required
-            disabled={isSubmitting}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="Nombre del Producto (Ej: NEGRONI)"
+              className={commonInputClass}
+              required
+              disabled={isSubmitting}
+            />
+            <select
+              value={selectedGlasswareId}
+              onChange={(e) => setSelectedGlasswareId(e.target.value)}
+              className={commonInputClass}
+              disabled={isSubmitting}
+            >
+              <option value="">-- Sin Cristalería Asignada --</option>
+              {availableGlassware.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name} ({g.capacity_ml}ml)
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="space-y-4 border border-slate-700 p-4 rounded-lg">
             <h4 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
