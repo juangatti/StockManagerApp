@@ -115,24 +115,25 @@ export default function ReservationForm({
 
   // Estilos mejorados
   const commonInputClass =
-    "bg-slate-700/50 border border-slate-600/50 text-white text-base md:text-sm rounded-xl w-full py-3 px-4 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all duration-200 pl-11 shadow-inner placeholder:text-slate-500";
-  const labelClass = "block mb-1.5 text-sm font-medium text-slate-300 ml-1";
+    "bg-white border border-gray-300 text-text-primary text-base md:text-sm rounded-xl w-full py-3 px-4 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 pl-11 shadow-sm placeholder:text-gray-400";
+  const labelClass =
+    "block mb-1.5 text-xs font-bold text-text-secondary uppercase tracking-wider ml-1";
 
   return (
-    <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 md:p-8 rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-2xl mx-auto backdrop-blur-sm">
-      <div className="flex justify-between items-center mb-8 border-b border-slate-700/50 pb-6">
-        <h3 className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
-          <div className="p-2 bg-slate-800 rounded-lg shadow-lg border border-slate-700/50">
+    <div className="bg-surface p-6 md:p-8 rounded-2xl shadow-(--shadow-card) border border-gray-200 w-full max-w-2xl mx-auto">
+      <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-6">
+        <h3 className="text-xl md:text-2xl font-bold text-text-primary flex items-center gap-3 font-display uppercase tracking-tight">
+          <div className="p-2 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
             {initialData ? (
-              <Edit className="text-sky-400 h-6 w-6" />
+              <Edit className="text-primary h-6 w-6" />
             ) : (
-              <CalendarPlus className="text-sky-400 h-6 w-6" />
+              <CalendarPlus className="text-primary h-6 w-6" />
             )}
           </div>
           {initialData ? (
             <span>
               Editar Reserva{" "}
-              <span className="text-sky-400">#{initialData.id}</span>
+              <span className="text-primary">#{initialData.id}</span>
             </span>
           ) : (
             "Nueva Reserva"
@@ -140,7 +141,7 @@ export default function ReservationForm({
         </h3>
         <button
           onClick={onCancel}
-          className="text-slate-400 hover:text-white p-2 hover:bg-slate-700/50 rounded-full transition-colors"
+          className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <X className="h-6 w-6" />
         </button>
@@ -154,7 +155,7 @@ export default function ReservationForm({
               Nombre del Cliente (*)
             </label>
             <div className="relative group">
-              <User className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-sky-400 transition-colors" />
+              <User className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
               <input
                 type="text"
                 name="customer_name"
@@ -171,7 +172,7 @@ export default function ReservationForm({
               Cantidad de Personas (*)
             </label>
             <div className="relative group">
-              <Users className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-sky-400 transition-colors" />
+              <Users className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
               <input
                 type="number"
                 name="pax"
@@ -197,7 +198,7 @@ export default function ReservationForm({
                 name="reservation_date"
                 value={formData.reservation_date}
                 onChange={handleChange}
-                className="bg-slate-700/50 border border-slate-600/50 text-white text-base md:text-sm rounded-xl w-full py-3 px-4 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all duration-200 shadow-inner"
+                className="bg-white border border-gray-300 text-text-primary text-base md:text-sm rounded-xl w-full py-3 px-4 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 shadow-sm"
                 required
               />
             </div>
@@ -212,7 +213,7 @@ export default function ReservationForm({
                 name="reservation_time"
                 value={formData.reservation_time}
                 onChange={handleChange}
-                className="bg-slate-700/50 border border-slate-600/50 text-white text-base md:text-sm rounded-xl w-full py-3 px-4 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all duration-200 shadow-inner"
+                className="bg-white border border-gray-300 text-text-primary text-base md:text-sm rounded-xl w-full py-3 px-4 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 shadow-sm"
                 required
               />
             </div>
@@ -232,7 +233,7 @@ export default function ReservationForm({
               .map((loc) => (
                 <span
                   key={loc}
-                  className="bg-indigo-900/50 text-indigo-200 border border-indigo-500/30 text-xs px-2 py-1 rounded-full flex items-center gap-1"
+                  className="bg-gray-100 text-gray-700 border border-gray-200 text-xs px-2 py-1 rounded-full flex items-center gap-1"
                 >
                   {loc}
                   <button
@@ -256,7 +257,7 @@ export default function ReservationForm({
           </div>
 
           <div className="relative group">
-            <MapPin className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-sky-400 transition-colors" />
+            <MapPin className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
             <select
               name="location_selector"
               value=""
@@ -305,7 +306,7 @@ export default function ReservationForm({
               </optgroup>
             </select>
             {/* Custom arrow for better cross-browser look */}
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
               <svg
                 className="fill-current h-4 w-4"
                 xmlns="http://www.w3.org/2000/svg"
@@ -323,31 +324,31 @@ export default function ReservationForm({
             Notas Adicionales
           </label>
           <div className="relative group">
-            <NotebookPen className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-400 group-focus-within:text-sky-400 transition-colors" />
+            <NotebookPen className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
             <textarea
               name="notes"
               rows="3"
               value={formData.notes}
               onChange={handleChange}
-              className="bg-slate-700/50 border border-slate-600/50 text-white text-base md:text-sm rounded-xl w-full py-3 px-4 pl-11 focus:ring-2 focus:ring-sky-500/50 focus:border-sky-500 transition-all duration-200 shadow-inner placeholder:text-slate-500 resize-none"
+              className="bg-white border border-gray-300 text-text-primary text-base md:text-sm rounded-xl w-full py-3 px-4 pl-11 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 shadow-sm placeholder:text-gray-400 resize-none"
               placeholder="Ej. Cumpleaños, alergias..."
             />
           </div>
         </div>
 
         {/* Botones - Mobile First: Stacked on mobile, row on desktop */}
-        <div className="flex flex-col-reverse md:flex-row justify-end gap-3 md:gap-4 pt-6 mt-2 border-t border-slate-700/50">
+        <div className="flex flex-col-reverse md:flex-row justify-end gap-3 md:gap-4 pt-6 mt-2 border-t border-gray-100">
           <button
             type="button"
             onClick={onCancel}
-            className="w-full md:w-auto text-slate-300 bg-slate-700/50 hover:bg-slate-700 hover:text-white font-medium rounded-xl text-sm px-6 py-3.5 transition-all duration-200 border border-transparent hover:border-slate-600"
+            className="w-full md:w-auto text-gray-600 bg-white hover:bg-gray-50 font-bold rounded-xl text-sm px-6 py-3.5 transition-all duration-200 border border-gray-300 uppercase tracking-wide"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full md:w-auto text-white bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 hover:shadow-lg hover:shadow-sky-500/25 font-bold rounded-xl text-sm px-8 py-3.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:-translate-y-0.5"
+            className="w-full md:w-auto text-white bg-primary hover:bg-primary-dark shadow-md hover:shadow-lg font-bold rounded-xl text-sm px-8 py-3.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 uppercase tracking-wide"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">

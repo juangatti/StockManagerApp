@@ -26,12 +26,12 @@ const UserProfileLink = ({ user, onClick }) => {
   return (
     <Link
       to="/profile"
-      className="flex items-center gap-3 p-2 rounded-lg mb-2 text-left w-full hover:bg-[var(--color-secondary)] transition-colors group"
+      className="flex items-center gap-3 p-2 rounded-lg mb-2 text-left w-full hover:bg-secondary transition-colors group"
       title="Ir a Mi Perfil"
       onClick={onClick} // Para cerrar el menú móvil al navegar
     >
       {/* Avatar Circular con Iniciales */}
-      <div className="shrink-0 bg-[var(--color-primary)] rounded-full h-9 w-9 flex items-center justify-center font-bold text-white text-sm shadow-sm">
+      <div className="shrink-0 bg-primary rounded-full h-9 w-9 flex items-center justify-center font-bold text-white text-sm shadow-sm">
         {initials}
       </div>
 
@@ -59,15 +59,15 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)] overflow-hidden">
+    <div className="flex min-h-screen bg-background text-text-primary overflow-hidden">
       {/* ... sidebar and header code ... */}
-      <aside className="hidden md:flex flex-col w-[280px] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] shadow-xl shrink-0">
-        <header className="p-6 border-b border-[var(--color-secondary)]">
+      <aside className="hidden md:flex flex-col w-[280px] bg-secondary-dark border-r border-secondary shadow-xl shrink-0">
+        <header className="p-6 border-b border-secondary">
           <Link
             to="/dashboard"
-            className="flex items-center gap-3 text-white hover:text-[var(--color-primary-light)] transition-colors"
+            className="flex items-center gap-3 text-white hover:text-primary-light transition-colors"
           >
-            <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
+            <ClipboardList className="h-8 w-8 text-primary" />
             <span className="text-2xl font-black font-display uppercase tracking-tighter">
               SMA
             </span>
@@ -78,7 +78,7 @@ export default function MainLayout() {
           <Sidebar />
         </nav>
 
-        <footer className="p-4 border-t border-[var(--color-secondary)]">
+        <footer className="p-4 border-t border-secondary">
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
@@ -123,7 +123,7 @@ export default function MainLayout() {
                 title="Notificaciones"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 bg-[var(--color-primary)] rounded-full border-2 border-white"></span>
+                <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full border-2 border-white"></span>
               </button>
 
               {/* Inbox/Messages */}
@@ -144,7 +144,7 @@ export default function MainLayout() {
                 <span className="hidden lg:block font-bold text-gray-800">
                   {user.display_name || user.username}
                 </span>
-                <div className="h-9 w-9 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-bold border-2 border-white shadow-sm ring-1 ring-gray-100">
+                <div className="h-9 w-9 rounded-full bg-primary text-white flex items-center justify-center font-bold border-2 border-white shadow-sm ring-1 ring-gray-100">
                   {user.username?.charAt(0).toUpperCase() || "U"}
                 </div>
               </Link>
@@ -153,7 +153,7 @@ export default function MainLayout() {
         </header>
 
         {/* --- MAIN CONTENT AREA --- */}
-        <main className="flex-1 overflow-y-auto bg-[var(--color-background)] p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
           <Outlet />
         </main>
       </div>
@@ -165,21 +165,21 @@ export default function MainLayout() {
             className="flex-1 bg-black/50 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="relative flex flex-col w-72 max-w-[calc(100%-3rem)] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] shadow-2xl animate-in slide-in-from-left duration-300">
-            <header className="p-6 border-b border-[var(--color-secondary)] flex justify-between items-center">
+          <div className="relative flex flex-col w-72 max-w-[calc(100%-3rem)] bg-secondary-dark border-r border-secondary shadow-2xl animate-in slide-in-from-left duration-300">
+            <header className="p-6 border-b border-secondary flex justify-between items-center">
               <Link
                 to="/dashboard"
                 className="inline-flex items-center gap-3 text-white"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <ClipboardList className="h-7 w-7 text-[var(--color-primary)]" />
+                <ClipboardList className="h-7 w-7 text-primary" />
                 <span className="text-xl font-bold font-display uppercase">
                   SMA
                 </span>
               </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-white p-2 hover:bg-[var(--color-secondary)] rounded-full transition-colors"
+                className="text-white p-2 hover:bg-secondary rounded-full transition-colors"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -189,7 +189,7 @@ export default function MainLayout() {
               <Sidebar />
             </nav>
 
-            <footer className="p-4 border-t border-[var(--color-secondary)]">
+            <footer className="p-4 border-t border-secondary">
               <button
                 onClick={() => {
                   handleLogout();

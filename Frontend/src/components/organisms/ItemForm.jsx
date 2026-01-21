@@ -121,13 +121,13 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
 
   // Clase común para inputs (Mauer Theme)
   const commonInputClass =
-    "bg-white border border-gray-300 text-[var(--color-text-primary)] text-sm rounded-lg w-full p-2.5 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] transition-colors shadow-sm placeholder-gray-400";
+    "bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary transition-colors shadow-sm placeholder-gray-400";
 
   // --- JSX ---
   return (
-    <div className="bg-[var(--color-surface)] p-8 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
-      <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-100 pb-4">
-        <PackagePlus className="text-[var(--color-primary)] h-6 w-6" />
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-100 pb-4">
+        <PackagePlus className="text-primary h-6 w-6" />
         {itemToEdit?.id ? "Editar Item de Stock" : "Crear Nuevo Item (Envase)"}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -137,7 +137,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="marca_id"
-              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Marca del Producto (*)
             </label>
@@ -164,7 +164,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="variacion"
-              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Variación (Opcional)
             </label>
@@ -183,7 +183,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="cantidad_por_envase"
-              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Cantidad por Envase (*) {/* <-- Label actualizado */}
             </label>
@@ -207,7 +207,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="unidad_medida"
-              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Unidad de Medida (*) {/* <-- Nuevo campo */}
             </label>
@@ -228,7 +228,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="alerta_stock_bajo"
-              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Alerta Stock Bajo (unid.) (*)
             </label>
@@ -261,7 +261,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-5 py-2.5 text-sm font-bold text-white bg-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
+            className="px-5 py-2.5 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
           >
             {isSubmitting ? "Guardando..." : "Guardar Cambios"}
           </button>
