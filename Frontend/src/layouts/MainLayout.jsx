@@ -68,8 +68,8 @@ export default function MainLayout() {
             className="flex items-center gap-3 text-white hover:text-[var(--color-primary-light)] transition-colors"
           >
             <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
-            <span className="text-xl font-bold font-display uppercase tracking-wider">
-              Stock Manager
+            <span className="text-2xl font-black font-display uppercase tracking-tighter">
+              SMA
             </span>
           </Link>
         </header>
@@ -105,11 +105,6 @@ export default function MainLayout() {
               >
                 <Menu className="h-6 w-6" />
               </button>
-
-              {/* SMA Title (The "SMA" specifically requested for this column) */}
-              <h1 className="text-2xl font-black font-display text-[var(--color-text-primary)] tracking-tighter">
-                SMA
-              </h1>
             </div>
 
             {/* Right Side Icons */}
