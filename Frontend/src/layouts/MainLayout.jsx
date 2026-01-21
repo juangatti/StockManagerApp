@@ -10,6 +10,7 @@ import {
   Menu,
   Sun,
   Moon,
+  Calendar,
 } from "lucide-react";
 import Sidebar from "../components/molecules/SideBar";
 
@@ -97,7 +98,7 @@ export default function MainLayout() {
         {/* --- TOP HEADER BAR --- */}
         <header className="bg-white border-b border-gray-200 shadow-sm z-20">
           <div className="flex items-center justify-between px-4 md:px-8 py-3">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
@@ -105,6 +106,18 @@ export default function MainLayout() {
               >
                 <Menu className="h-6 w-6" />
               </button>
+
+              {/* Date Display */}
+              <div className="hidden md:flex items-center gap-2.5 text-gray-400">
+                <Calendar className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-bold font-display uppercase tracking-[0.2em] text-gray-500">
+                  {new Date().toLocaleDateString("es-AR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                </span>
+              </div>
             </div>
 
             {/* Right Side Icons */}

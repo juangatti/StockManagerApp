@@ -83,17 +83,8 @@ export default function DashboardPage() {
 
   if (loading) return <Spinner />;
 
-  const fecha = new Date().toLocaleDateString("es-AR", { dateStyle: "full" });
-
   return (
     <div className="space-y-8">
-      {/* SECCIÓN SUPERIOR: FECHA Y WIDGETS PRINCIPALES */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-4 mb-6">
-        <h2 className="text-3xl font-bold text-text-primary font-display uppercase tracking-tighter">
-          {fecha}
-        </h2>
-      </div>
-
       {/* WIDGET DE CANILLAS ACTIVAS */}
       <ActiveTapsWidget />
 
