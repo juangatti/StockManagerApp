@@ -95,10 +95,12 @@ export default function BarPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-white">Barra - Stock Actual</h2>
+      <h2 className="text-3xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide">
+        Barra - Stock Actual
+      </h2>
 
       {/* Pestañas (Añadir ocultar form al cambiar) */}
-      <div className="border-b border-slate-700">
+      <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-6" aria-label="Tabs">
           <TabButton
             isActive={activeTab === "bebidas"}
@@ -178,7 +180,7 @@ export default function BarPage() {
                 ) : prebatchError ? (
                   <Alert message={prebatchError} />
                 ) : (
-                  <div className="bg-slate-800 p-0 md:p-6 rounded-lg shadow-xl">
+                  <div className="bg-[var(--color-surface)] p-0 md:p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-100">
                     <PrebatchesTable
                       prebatches={prebatches}
                       loading={loadingPrebatches}
