@@ -12,7 +12,7 @@ const ViewToggleButton = ({ onClick, isActive, children }) => (
     onClick={onClick}
     className={`flex items-center gap-2 px-3 py-1 text-sm rounded-md transition-colors ${
       isActive
-        ? "bg-[var(--color-primary)] text-white"
+        ? "bg-primary text-white"
         : "bg-gray-100 text-gray-500 hover:bg-gray-200"
     }`}
   >
@@ -33,7 +33,7 @@ function DetailTable({ movimientos, viewAs }) {
 
   return (
     <div className="bg-white border border-gray-100 rounded-lg shadow-inner overflow-x-auto">
-      <table className="w-full text-sm text-left text-[var(--color-text-secondary)]">
+      <table className="w-full text-sm text-left text-text-secondary">
         <thead className="text-xs uppercase bg-gray-50 text-gray-400">
           <tr>
             <th className="py-3 px-6">Ingrediente Consumido</th>
@@ -54,7 +54,7 @@ function DetailTable({ movimientos, viewAs }) {
 
             return (
               <tr key={mov.id} className="border-b border-gray-50">
-                <td className="py-4 px-6 font-medium text-[var(--color-text-primary)]">
+                <td className="py-4 px-6 font-medium text-text-primary">
                   {mov.nombre_item}
                 </td>
                 <td
@@ -110,7 +110,7 @@ function EventSummary({ evento }) {
   };
 
   return (
-    <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border-l-4 border-[var(--color-primary)]">
+    <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border-l-4 border-primary">
       <div className="flex justify-between items-center mb-4">
         <span
           className={`px-3 py-1 rounded-full text-sm font-semibold ${getTypeClass(
@@ -123,10 +123,10 @@ function EventSummary({ evento }) {
           {formatFecha(evento.fecha_evento)}
         </span>
       </div>
-      <p className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">
+      <p className="text-xl font-semibold text-text-primary mb-2">
         {evento.evento_descripcion}
       </p>
-      <div className="flex items-center text-[var(--color-text-muted)]">
+      <div className="flex items-center text-text-muted">
         <Package className="h-4 w-4 mr-2" />
         <span>{evento.movimientos?.length || 0} ingredientes afectados</span>
       </div>
@@ -203,12 +203,12 @@ export default function MovementDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide">
+        <h2 className="text-3xl font-bold text-text-primary font-display uppercase tracking-wide">
           Detalle del Movimiento
         </h2>
         <Link
           to="/historicMovements"
-          className="flex items-center gap-2 text-sm text-[var(--color-primary)] hover:opacity-80"
+          className="flex items-center gap-2 text-sm text-primary hover:opacity-80"
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al Historial
@@ -220,9 +220,7 @@ export default function MovementDetailPage() {
       {/* Toggle de Unidades */}
       {evento.movimientos && evento.movimientos.length > 0 && (
         <div className="flex justify-end items-center gap-2">
-          <span className="text-sm text-[var(--color-text-muted)]">
-            Ver en:
-          </span>
+          <span className="text-sm text-text-muted">Ver en:</span>
           <ViewToggleButton
             onClick={() => setViewAs("unid")}
             isActive={viewAs === "unid"}
@@ -249,9 +247,9 @@ export default function MovementDetailPage() {
         {groupKeys.map((groupKey) => (
           <div
             key={groupKey}
-            className="bg-[var(--color-surface)] p-4 rounded-lg shadow-[var(--shadow-card)] border border-gray-100"
+            className="bg-surface p-4 rounded-lg shadow-(--shadow-card) border border-gray-100"
           >
-            <h3 className="text-lg font-semibold text-[var(--color-primary)] mb-3 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
               {groupKey}
             </h3>

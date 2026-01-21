@@ -88,15 +88,12 @@ export default function ReservationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border-b-4 border-[var(--color-primary)]">
+      <div className="flex flex-col md:flex-row justify-between items-center bg-surface p-6 rounded-lg shadow-(--shadow-card) border-b-4 border-primary">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide flex items-center gap-3">
-            <Calendar className="h-8 w-8 text-[var(--color-primary)]" />{" "}
-            Reservas
+          <h2 className="text-3xl font-bold text-text-primary font-display uppercase tracking-wide flex items-center gap-3">
+            <Calendar className="h-8 w-8 text-primary" /> Reservas
           </h2>
-          <p className="text-[var(--color-text-muted)] mt-1">
-            Gestión de mesas y eventos.
-          </p>
+          <p className="text-text-muted mt-1">Gestión de mesas y eventos.</p>
         </div>
 
         <div className="flex gap-4 mt-4 md:mt-0 items-center">
@@ -104,13 +101,13 @@ export default function ReservationsPage() {
             type="date"
             value={selectedDate}
             onChange={handleDateChange}
-            className="bg-white border border-gray-200 text-gray-800 text-sm rounded-lg p-2.5 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
+            className="bg-white border border-gray-200 text-text-primary text-sm rounded-lg p-2.5 focus:ring-primary focus:border-primary"
           />
 
           {canManage && (
             <button
               onClick={handleCreateNew}
-              className="flex items-center gap-2 bg-[var(--color-primary)] hover:opacity-90 text-white font-medium rounded-lg text-sm px-5 py-2.5 transition-all shadow-lg shadow-[var(--color-primary)]/20"
+              className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-lg text-sm px-5 py-2.5 transition-all shadow-lg shadow-red-500/10 uppercase tracking-wide"
             >
               <PlusCircle className="h-5 w-5" /> Nueva Reserva
             </button>
@@ -122,9 +119,9 @@ export default function ReservationsPage() {
       {loading && <Spinner />}
 
       {!loading && reservations.length === 0 ? (
-        <div className="text-center py-20 bg-[var(--color-surface)] rounded-lg border-2 border-dashed border-gray-200">
+        <div className="text-center py-20 bg-surface rounded-lg border-2 border-dashed border-gray-200">
           <Calendar className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-xl text-gray-400">
+          <p className="text-xl text-text-muted font-bold">
             No hay reservas para esta fecha.
           </p>
         </div>
@@ -139,7 +136,7 @@ export default function ReservationsPage() {
             return (
               <div
                 key={res.id}
-                className="bg-[var(--color-surface)] rounded-lg p-5 border border-gray-100 hover:border-[var(--color-primary)]/50 transition-colors shadow-[var(--shadow-card)] relative overflow-hidden group"
+                className="bg-surface rounded-lg p-5 border border-gray-100 hover:border-primary/50 transition-colors shadow-(--shadow-card) relative overflow-hidden group"
               >
                 <div
                   className={`absolute top-0 left-0 w-1 h-full ${
@@ -148,22 +145,22 @@ export default function ReservationsPage() {
                 ></div>
 
                 <div className="flex justify-between items-start mb-3 pl-3">
-                  <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-                    <User className="h-4 w-4 text-[var(--color-primary)]" />{" "}
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                    <User className="h-4 w-4 text-primary" />{" "}
                     {res.customer_name}
                   </h3>
-                  <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded">
+                  <span className="text-xs font-mono bg-gray-100 text-text-muted px-2 py-1 rounded font-bold">
                     #{res.id}
                   </span>
                 </div>
 
-                <div className="pl-3 space-y-2 text-sm text-[var(--color-text-secondary)]">
+                <div className="pl-3 space-y-2 text-sm text-text-secondary">
                   <p className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-400" />
                     {res.pax} Personas
                   </p>
-                  <p className="flex items-center gap-2 text-[var(--color-text-primary)] font-semibold">
-                    <Clock className="h-4 w-4 text-[var(--color-primary)]" />
+                  <p className="flex items-center gap-2 text-text-primary font-bold">
+                    <Clock className="h-4 w-4 text-primary" />
                     {time} hs
                   </p>
                   {res.location && (
@@ -173,7 +170,7 @@ export default function ReservationsPage() {
                     </p>
                   )}
                   {res.notes && (
-                    <div className="mt-2 text-xs bg-gray-50 p-2 rounded text-[var(--color-text-muted)] italic">
+                    <div className="mt-2 text-xs bg-gray-50 p-2 rounded text-text-muted italic border-l-2 border-gray-200">
                       "{res.notes}"
                     </div>
                   )}
@@ -193,7 +190,7 @@ export default function ReservationsPage() {
                   {canManage && (
                     <button
                       onClick={() => handleEdit(res)}
-                      className="p-1.5 text-gray-400 hover:text-[var(--color-primary)] hover:bg-gray-50 rounded transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-50 rounded transition-colors"
                       title="Editar reserva"
                     >
                       <Pencil className="h-4 w-4" />

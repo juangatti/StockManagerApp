@@ -86,14 +86,14 @@ export default function ActiveTapsWidget() {
   if (loading && taps.length === 0) return <Spinner />;
 
   return (
-    <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
+    <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
       <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-        <Beer className="h-8 w-8 text-[var(--color-accent)]" />
+        <Beer className="h-8 w-8 text-accent" />
         <div>
-          <h2 className="text-2xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide">
+          <h2 className="text-2xl font-bold text-text-primary font-display uppercase tracking-wide">
             Gestión de Canillas
           </h2>
-          <p className="text-sm text-[var(--color-text-muted)] font-bold uppercase tracking-wider">
+          <p className="text-sm text-text-muted font-bold uppercase tracking-wider">
             Vista general de las 12 canillas
           </p>
         </div>
@@ -109,7 +109,7 @@ export default function ActiveTapsWidget() {
               key={slotNum}
               className={`rounded-lg p-4 border relative transition-all duration-200 h-48 flex flex-col justify-between group ${
                 activeKeg
-                  ? "bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-[var(--color-accent)]"
+                  ? "bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-accent"
                   : "bg-gray-50 border-dashed border-gray-300 hover:border-gray-400"
               }`}
             >
@@ -117,7 +117,7 @@ export default function ActiveTapsWidget() {
               <div
                 className={`absolute top-0 right-0 px-2 py-1 rounded-bl-lg text-xs font-bold border-b border-l ${
                   activeKeg
-                    ? "bg-[var(--color-primary)] text-white border-[var(--color-primary)]"
+                    ? "bg-primary text-white border-primary"
                     : "bg-gray-200 text-gray-500 border-gray-300"
                 }`}
               >
@@ -127,13 +127,13 @@ export default function ActiveTapsWidget() {
               {activeKeg ? (
                 <>
                   <div>
-                    <h3 className="text-lg font-bold text-[var(--color-text-primary)] leading-tight mb-1 truncate font-display">
+                    <h3 className="text-lg font-bold text-text-primary leading-tight mb-1 truncate font-display">
                       {activeKeg.style_fantasy_name || activeKeg.style_name}
                     </h3>
-                    <p className="text-xs text-[var(--color-text-secondary)] font-mono mb-2 bg-gray-100 inline-block px-1.5 rounded">
+                    <p className="text-xs text-text-secondary font-mono mb-2 bg-gray-100 inline-block px-1.5 rounded">
                       {activeKeg.code}
                     </p>
-                    <div className="flex gap-3 text-xs text-[var(--color-text-secondary)] mb-2 font-medium">
+                    <div className="flex gap-3 text-xs text-text-secondary mb-2 font-medium">
                       <span className="flex items-center gap-1">
                         <Activity className="h-3 w-3 text-green-600" />{" "}
                         {activeKeg.ibu}
@@ -146,7 +146,7 @@ export default function ActiveTapsWidget() {
                   </div>
 
                   <div className="mt-auto">
-                    <div className="flex items-center gap-1 text-[var(--color-text-muted)] text-xs mb-3">
+                    <div className="flex items-center gap-1 text-text-muted text-xs mb-3">
                       <GlassWater className="h-3 w-3" />
                       <span className="truncate">
                         {activeKeg.glassware_name || "Genérico"}
@@ -162,11 +162,11 @@ export default function ActiveTapsWidget() {
                 </>
               ) : isAssigning ? (
                 <div className="flex flex-col h-full justify-center gap-2">
-                  <p className="text-xs font-bold text-[var(--color-text-secondary)] mb-1 uppercase">
+                  <p className="text-xs font-bold text-text-secondary mb-1 uppercase">
                     Seleccionar Barril:
                   </p>
                   <select
-                    className="bg-white border border-gray-300 text-[var(--color-text-primary)] text-xs rounded p-1.5 w-full focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent cursor-pointer shadow-sm"
+                    className="bg-white border border-gray-300 text-text-primary text-xs rounded p-1.5 w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer shadow-sm"
                     value={selectedKegId}
                     onChange={(e) => setSelectedKegId(e.target.value)}
                     autoFocus
@@ -182,7 +182,7 @@ export default function ActiveTapsWidget() {
                     <button
                       onClick={() => handleConfirmAssign(slotNum)}
                       disabled={!selectedKegId}
-                      className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white py-1.5 rounded flex justify-center items-center disabled:opacity-50 transition-colors shadow-sm"
+                      className="flex-1 bg-primary hover:bg-primary-dark text-white py-1.5 rounded flex justify-center items-center disabled:opacity-50 transition-colors shadow-sm"
                     >
                       <Check className="h-4 w-4" />
                     </button>
@@ -201,7 +201,7 @@ export default function ActiveTapsWidget() {
                   </span>
                   <button
                     onClick={() => handleAssignClick(slotNum)}
-                    className="p-2 rounded-full border-2 border-gray-300 text-gray-400 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] transition-all hover:scale-110 bg-white shadow-sm"
+                    className="p-2 rounded-full border-2 border-gray-300 text-gray-400 hover:text-primary hover:border-primary transition-all hover:scale-110 bg-white shadow-sm"
                     title="Asignar barril"
                   >
                     <Plus className="h-6 w-6" />

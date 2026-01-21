@@ -95,7 +95,7 @@ export default function BarPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide">
+      <h2 className="text-3xl font-bold text-text-primary font-display uppercase tracking-wide">
         Barra - Stock Actual
       </h2>
 
@@ -180,7 +180,7 @@ export default function BarPage() {
                 ) : prebatchError ? (
                   <Alert message={prebatchError} />
                 ) : (
-                  <div className="bg-[var(--color-surface)] p-0 md:p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-100">
+                  <div className="bg-surface p-0 md:p-6 rounded-lg shadow-(--shadow-card) border border-gray-100">
                     <PrebatchesTable
                       prebatches={prebatches}
                       loading={loadingPrebatches}

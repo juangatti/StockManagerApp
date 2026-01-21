@@ -47,7 +47,7 @@ export default function AdjustForm() {
         } else {
           console.error(
             `Respuesta inesperada para el item ID ${selectedItem.id}:`,
-            response.data
+            response.data,
           );
           setStockActualSistema("Error");
           toast.error("No se pudo obtener el stock actual del item.");
@@ -55,7 +55,7 @@ export default function AdjustForm() {
       } catch (error) {
         console.error(
           `Error fetching stock for item ID ${selectedItem.id}:`,
-          error
+          error,
         );
         setStockActualSistema("Error");
         toast.error("Error de red al obtener el stock del item.");
@@ -76,7 +76,7 @@ export default function AdjustForm() {
     e.preventDefault();
     if (!selectedItem || conteoReal === "" || !descripcion.trim()) {
       toast.error(
-        "Selecciona un item, especifica el conteo real y añade un motivo."
+        "Selecciona un item, especifica el conteo real y añade un motivo.",
       );
       return;
     }
@@ -87,7 +87,7 @@ export default function AdjustForm() {
       stockActualSistema === "N/A"
     ) {
       toast.error(
-        "Espera a que cargue el stock actual o selecciona un item válido."
+        "Espera a que cargue el stock actual o selecciona un item válido.",
       );
       return;
     }
@@ -119,7 +119,7 @@ export default function AdjustForm() {
   };
 
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
       <form onSubmit={handleSubmit} className="space-y-6">
         <AutocompleteInput
           label="Item a Ajustar"
@@ -133,16 +133,18 @@ export default function AdjustForm() {
 
         {/* Mostrar stock actual o spinner */}
         {selectedItem && (
-          <div className="bg-slate-900 p-4 rounded-lg flex justify-between items-center min-h-[60px]">
-            {" "}
-            {/* Altura mínima */}
-            <span className="text-slate-400">Stock actual en sistema:</span>
+          <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center min-h-[60px] border border-gray-100 shadow-inner">
+            <span className="text-text-secondary font-medium">
+              Stock actual en sistema:
+            </span>
             {isLoadingStock ? (
               <Spinner />
             ) : (
               <span
                 className={`font-bold text-lg ${
-                  stockActualSistema === "Error" ? "text-red-400" : "text-white"
+                  stockActualSistema === "Error"
+                    ? "text-primary"
+                    : "text-text-primary"
                 }`}
               >
                 {stockActualSistema}{" "}
@@ -158,7 +160,7 @@ export default function AdjustForm() {
         <div>
           <label
             htmlFor="conteoReal"
-            className="block mb-2 text-sm font-medium text-slate-300"
+            className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
           >
             Conteo Físico Real (unidades)
           </label>
@@ -168,7 +170,7 @@ export default function AdjustForm() {
             value={conteoReal}
             onChange={(e) => setConteoReal(e.target.value)}
             step="0.01"
-            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
+            className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 transition-all shadow-sm placeholder:text-gray-400"
             placeholder="Ej: 12.5"
             disabled={!selectedItem || isLoadingStock} // Deshabilitar mientras carga stock
           />
@@ -178,7 +180,7 @@ export default function AdjustForm() {
         <div>
           <label
             htmlFor="descripcion"
-            className="block mb-2 text-sm font-medium text-slate-300"
+            className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
           >
             Motivo del Ajuste
           </label>
@@ -187,14 +189,13 @@ export default function AdjustForm() {
             id="descripcion"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
+            className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 transition-all shadow-sm placeholder:text-gray-400"
             placeholder="Ej: Rotura de botella, Conteo físico semanal"
             disabled={!selectedItem || isLoadingStock} // Deshabilitar mientras carga stock
           />
         </div>
 
-        {/* Botón Submit */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4">
           <button
             type="submit"
             disabled={
@@ -203,7 +204,7 @@ export default function AdjustForm() {
               isLoadingStock ||
               stockActualSistema === "Error"
             } // Deshabilitar si carga o hay error
-            className="flex items-center justify-center text-white bg-amber-600 hover:bg-amber-700 focus:ring-4 focus:ring-amber-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+            className="flex items-center justify-center text-white bg-primary hover:bg-primary-dark focus:ring-4 focus:ring-red-100 font-bold rounded-lg text-sm px-8 py-3 text-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-500/10 uppercase tracking-widest"
           >
             <SlidersHorizontal className="mr-2 h-5 w-5" />
             {isSubmitting ? "Ajustando..." : "Confirmar Ajuste"}

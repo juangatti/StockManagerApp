@@ -119,21 +119,21 @@ export default function ProfileForm() {
   }
 
   const commonInputClass =
-    "bg-white border border-gray-300 text-[var(--color-text-primary)] text-sm rounded-lg focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] block w-full p-2.5 shadow-sm transition-colors";
+    "bg-white border border-gray-300 text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 shadow-sm transition-colors";
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-8">
       {/* --- Tarjeta 1: Identidad --- */}
-      <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
-        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
-          <UserCog className="text-[var(--color-primary)]" /> Identidad
+      <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
+        <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
+          <UserCog className="text-primary" /> Identidad
         </h3>
-        <p className="text-sm text-[var(--color-text-muted)] mb-4 font-medium">
+        <p className="text-sm text-text-muted mb-4 font-medium">
           El "Nombre a Mostrar" aparecerá en el sidebar.
         </p>
         <div className="space-y-4">
           <div>
-            <label className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+            <label className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">
               Usuario (Login)
             </label>
             <input
@@ -148,7 +148,7 @@ export default function ProfileForm() {
           <div>
             <label
               htmlFor="display_name"
-              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Nombre a Mostrar
             </label>
@@ -166,9 +166,9 @@ export default function ProfileForm() {
       </div>
 
       {/* --- Tarjeta 2: Datos de Contacto --- */}
-      <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
-        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
-          <Contact className="text-[var(--color-primary)]" /> Datos de Contacto
+      <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
+        <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
+          <Contact className="text-primary" /> Datos de Contacto
         </h3>
         <div className="space-y-4">
           <div>
@@ -226,16 +226,16 @@ export default function ProfileForm() {
       </div>
 
       {/* --- Tarjeta 3: Seguridad --- */}
-      <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
-        <h3 className="text-lg font-bold text-[var(--color-text-primary)] mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
-          <Lock className="text-[var(--color-primary)]" /> Cambiar Contraseña
+      <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
+        <h3 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2 font-display uppercase tracking-wide">
+          <Lock className="text-primary" /> Cambiar Contraseña
         </h3>
-        <p className="text-sm text-[var(--color-text-muted)] mb-4 font-medium">
+        <p className="text-sm text-text-muted mb-4 font-medium">
           Deja estos campos vacíos si no quieres cambiar tu contraseña.
         </p>
         <div className="space-y-4">
           <div>
-            <label className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+            <label className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">
               Contraseña Actual
             </label>
             <input
@@ -249,7 +249,7 @@ export default function ProfileForm() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+              <label className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">
                 Nueva Contraseña
               </label>
               <input
@@ -263,7 +263,7 @@ export default function ProfileForm() {
               />
             </div>
             <div>
-              <label className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+              <label className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">
                 Confirmar Nueva
               </label>
               <input
@@ -284,7 +284,7 @@ export default function ProfileForm() {
         <button
           type="submit"
           disabled={isSubmitting || isLoading}
-          className="flex items-center justify-center text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] focus:ring-4 focus:ring-red-200 font-bold rounded-lg text-sm px-6 py-3 disabled:bg-gray-400 uppercase tracking-wide transition-colors shadow-sm"
+          className="flex items-center justify-center text-white bg-primary hover:bg-primary-dark focus:ring-4 focus:ring-red-200 font-bold rounded-lg text-sm px-6 py-3 disabled:bg-gray-400 uppercase tracking-wide transition-colors shadow-sm"
         >
           <Save className="mr-2 h-5 w-5" />
           {isSubmitting ? "Guardando..." : "Guardar Cambios"}

@@ -39,7 +39,7 @@ export default function UserManager() {
     } catch (err) {
       toast.error(`No se pudieron cargar los usuarios.`);
       setError(
-        `Error al cargar usuarios: ${err.message || "Error desconocido"}`
+        `Error al cargar usuarios: ${err.message || "Error desconocido"}`,
       );
     } finally {
       setLoading(false);
@@ -128,16 +128,16 @@ export default function UserManager() {
   }
 
   return (
-    <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
+    <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-100">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-xl font-bold text-text-primary font-display uppercase tracking-wide">
           {viewingInactive ? "Usuarios Desactivados" : "Gestionar Equipo"}
         </h3>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setViewingInactive(!viewingInactive)}
             title={viewingInactive ? "Ver activos" : "Ver desactivados"}
-            className="flex items-center gap-2 text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700"
+            className="flex items-center gap-2 text-text-muted hover:text-text-primary p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             {viewingInactive ? (
               <Eye className="h-5 w-5" />
@@ -148,7 +148,7 @@ export default function UserManager() {
           {!viewingInactive && (
             <button
               onClick={handleCreate}
-              className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+              className="flex items-center justify-center text-white bg-primary hover:bg-primary-dark font-bold rounded-lg text-sm px-6 py-2.5 text-center shadow-lg shadow-red-500/10 uppercase tracking-widest transition-all"
             >
               <UserPlus className="mr-2 h-5 w-5" /> Crear Usuario
             </button>
@@ -165,37 +165,37 @@ export default function UserManager() {
       {error && <Alert message={error} />}
       {loading && users.length === 0 && <Spinner />}
 
-      <div className="min-h-[300px] relative">
+      <div className="min-h-[300px] relative mt-6">
         {loading && users.length > 0 && (
-          <div className="absolute inset-0 bg-slate-800/50 flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]">
             <Spinner />
           </div>
         )}
         {!loading && users.length === 0 ? (
-          <p className="text-center text-slate-500 py-10">
+          <p className="text-center text-text-muted py-12 italic font-medium">
             {searchQuery
               ? "No se encontraron usuarios."
               : "No hay usuarios para mostrar."}
           </p>
         ) : (
-          <ul className="divide-y divide-slate-700">
+          <ul className="divide-y divide-gray-50 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
             {users.map((user) => (
               <li
                 key={user.id}
-                className="py-3 flex justify-between items-center"
+                className="px-5 py-4 flex justify-between items-center bg-white hover:bg-gray-50/50 transition-colors"
               >
                 <div>
-                  <span className="text-white font-semibold">
+                  <span className="text-text-primary font-bold font-display uppercase tracking-tight">
                     {user.username}
                   </span>
-                  <span className="text-xs text-slate-300 ml-2">
+                  <span className="text-xs text-text-muted ml-3 font-medium">
                     ({user.full_name || "Sin nombre"})
                   </span>
                   <span
-                    className={`text-xs ml-2 px-2 py-0.5 rounded-full ${
+                    className={`text-xs ml-3 px-2.5 py-1 rounded-full font-bold border ${
                       user.role === "admin"
-                        ? "bg-amber-500/20 text-amber-400"
-                        : "bg-slate-700 text-slate-300"
+                        ? "bg-amber-50 text-amber-700 border-amber-100 shadow-sm"
+                        : "bg-gray-100 text-text-secondary border-gray-200"
                     }`}
                   >
                     {user.role}
@@ -206,25 +206,25 @@ export default function UserManager() {
                     <button
                       onClick={() => handleRestore(user.id, user.username)}
                       title="Restaurar"
-                      className="p-2 rounded-md hover:bg-slate-700"
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                      <RotateCcw className="h-5 w-5 text-green-400" />
+                      <RotateCcw className="h-5 w-5 text-green-600" />
                     </button>
                   ) : (
                     <>
                       <button
                         onClick={() => handleEdit(user)}
                         title="Editar"
-                        className="p-2 rounded-md hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                       >
-                        <Edit className="h-5 w-5 text-sky-400" />
+                        <Edit className="h-5 w-5 text-primary" />
                       </button>
                       <button
                         onClick={() => handleDelete(user.id, user.username)}
                         title="Desactivar"
-                        className="p-2 rounded-md hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 className="h-5 w-5 text-red-500" />
+                        <Trash2 className="h-5 w-5 text-gray-400 hover:text-primary transition-colors" />
                       </button>
                     </>
                   )}

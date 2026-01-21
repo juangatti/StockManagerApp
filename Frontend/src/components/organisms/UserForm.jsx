@@ -122,12 +122,12 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
   if (isLoading) return <Spinner />;
 
   const commonInputClass =
-    "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500";
+    "bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary transition-all shadow-sm";
 
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        <UserPlus className="text-sky-400" />
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-50 pb-4">
+        <UserPlus className="text-primary h-6 w-6" />
         {isEditing ? "Editar Usuario" : "Crear Nuevo Usuario"}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -136,7 +136,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="username"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Usuario (Login) (*)
             </label>
@@ -156,7 +156,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="role_id"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Rol (*)
             </label>
@@ -182,7 +182,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
         <div>
           <label
             htmlFor="password"
-            className="block mb-2 text-sm font-medium text-slate-300"
+            className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
           >
             {isEditing ? "Nueva Contraseña (Opcional)" : "Contraseña (*)"}
           </label>
@@ -202,8 +202,8 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
         </div>
 
         {/* ... Resto de campos (Display Name, Nombre, Email, Teléfono) siguen igual ... */}
-        <div className="border-t border-slate-700 pt-4 mt-4">
-          <h4 className="text-md font-semibold text-slate-300 mb-3">
+        <div className="border-t border-gray-100 pt-6 mt-4">
+          <h4 className="text-xs font-bold text-text-muted mb-4 uppercase tracking-widest">
             Datos del Perfil (Opcional)
           </h4>
         </div>
@@ -212,7 +212,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="display_name"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Nombre a Mostrar
             </label>
@@ -229,7 +229,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="full_name"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Nombre y Apellido
             </label>
@@ -249,7 +249,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="email_contact"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Email de Contacto
             </label>
@@ -266,7 +266,7 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="phone"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Teléfono
             </label>
@@ -282,19 +282,18 @@ export default function UserForm({ userIdToEdit, onFormSubmit, onCancel }) {
           </div>
         </div>
 
-        {/* Botones */}
-        <div className="flex justify-end pt-4 gap-4">
+        <div className="flex justify-end pt-6 gap-4 border-t border-gray-100 mt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="text-white bg-slate-600 hover:bg-slate-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+            className="text-text-muted hover:text-text-primary px-6 py-2.5 font-bold uppercase text-xs tracking-widest transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting || isLoading}
-            className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500"
+            className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-lg font-bold transition-all flex items-center shadow-lg shadow-red-500/10 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Guardando..." : "Guardar Cambios"}
           </button>

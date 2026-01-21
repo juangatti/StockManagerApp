@@ -199,15 +199,17 @@ export default function KegsReportPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-background min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide flex items-center gap-2">
-            <Beer className="h-8 w-8 text-amber-500" /> Reporte de Barriles
-          </h1>
-          <p className="text-[var(--color-text-muted)] text-sm">
-            Visualiza y gestiona el estado de todos los barriles.
-          </p>
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary font-display uppercase tracking-wide flex items-center gap-2">
+              <Beer className="h-8 w-8 text-amber-500" /> Reporte de Barriles
+            </h1>
+            <p className="text-text-muted text-sm font-medium">
+              Visualiza y gestiona el estado de todos los barriles.
+            </p>
+          </div>
         </div>
         <div className="flex gap-3">
           <button
@@ -218,14 +220,14 @@ export default function KegsReportPage() {
           </button>
           <button
             onClick={fetchKegs}
-            className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white"
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors"
             title="Recargar"
           >
             <RefreshCcw className="h-5 w-5" />
           </button>
           <button
             onClick={exportToExcel}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold uppercase text-sm tracking-wider transition-all shadow-sm"
           >
             <Download className="h-5 w-5" /> Exportar Excel
           </button>
@@ -233,7 +235,7 @@ export default function KegsReportPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-[var(--color-surface)] p-4 rounded-lg shadow-[var(--shadow-card)] mb-6 flex flex-wrap gap-4 items-center border border-gray-100">
+      <div className="bg-surface p-4 rounded-lg shadow-(--shadow-card) mb-6 flex flex-wrap gap-4 items-center border border-gray-100">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
@@ -241,7 +243,7 @@ export default function KegsReportPage() {
             placeholder="Buscar por código o estilo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-800 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary focus:ring-primary focus:border-primary transition-all shadow-sm placeholder:text-gray-400"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -249,7 +251,7 @@ export default function KegsReportPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white border border-gray-200 rounded-lg text-gray-800 py-2 px-4 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
+            className="bg-white border border-gray-200 rounded-lg text-text-primary py-2 px-4 focus:ring-primary focus:border-primary cursor-pointer transition-all shadow-sm"
           >
             <option value="ALL">Todos los Estados</option>
             <option value="STORED">En Depósito</option>
@@ -261,48 +263,48 @@ export default function KegsReportPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-[var(--color-surface)] rounded-lg shadow-[var(--shadow-card)] overflow-hidden border border-gray-100">
+      <div className="bg-surface rounded-lg shadow-(--shadow-card) overflow-hidden border border-gray-100">
         {loading ? (
           <div className="p-12 flex justify-center">
             <Spinner />
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+            <table className="w-full text-left text-sm text-text-secondary">
+              <thead className="bg-gray-50 text-xs uppercase text-text-secondary font-display tracking-wider border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4">ID / Código</th>
-                  <th className="px-6 py-4">Estilo</th>
-                  <th className="px-6 py-4 text-center">IBU / ABV</th>
-                  <th className="px-6 py-4">Cristalería</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4">Ubicación</th>
-                  <th className="px-6 py-4 text-right">Volumen</th>
-                  <th className="px-6 py-4 text-center">Acciones</th>
+                  <th className="px-6 py-4 font-bold">ID / Código</th>
+                  <th className="px-6 py-4 font-bold">Estilo</th>
+                  <th className="px-6 py-4 text-center font-bold">IBU / ABV</th>
+                  <th className="px-6 py-4 font-bold">Cristalería</th>
+                  <th className="px-6 py-4 font-bold">Estado</th>
+                  <th className="px-6 py-4 font-bold">Ubicación</th>
+                  <th className="px-6 py-4 text-right font-bold">Volumen</th>
+                  <th className="px-6 py-4 text-center font-bold">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-50">
                 {filteredKegs.map((keg) => (
                   <tr
                     key={keg.id}
                     className="hover:bg-gray-50/50 transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <div className="font-bold text-[var(--color-text-primary)]">
+                      <div className="font-bold text-text-primary">
                         #{keg.id}
                       </div>
-                      <div className="text-xs text-[var(--color-text-muted)] font-mono">
+                      <div className="text-xs text-text-muted font-mono font-bold">
                         {keg.code}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-[var(--color-text-primary)]">
+                    <td className="px-6 py-4 font-medium text-text-primary">
                       {keg.style_fantasy_name || keg.style_name}
                       {keg.style_fantasy_name && (
-                        <span className="text-xs text-[var(--color-text-muted)] block">
+                        <span className="text-xs text-text-muted block">
                           ({keg.style_name})
                         </span>
                       )}
-                      <div className="text-xs text-[var(--color-text-muted)] mt-1">
+                      <div className="text-xs text-text-muted mt-1 uppercase font-bold tracking-tighter">
                         Prov: {keg.supplier_name}
                       </div>
                     </td>
@@ -318,7 +320,7 @@ export default function KegsReportPage() {
                     </td>
                     <td className="px-6 py-4">
                       {keg.glassware_name || (
-                        <span className="text-slate-600 italic">N/A</span>
+                        <span className="text-text-muted italic">N/A</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -332,19 +334,21 @@ export default function KegsReportPage() {
                     </td>
                     <td className="px-6 py-4">
                       {keg.status === "TAPPED" ? (
-                        <div className="flex items-center gap-2 text-amber-400 font-bold">
-                          <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                        <div className="flex items-center gap-2 text-primary font-bold">
+                          <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                           Canilla #{keg.tap_number}
                         </div>
                       ) : (
-                        <span className="text-slate-500">Depósito</span>
+                        <span className="text-text-muted font-medium">
+                          Depósito
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="text-[var(--color-text-primary)] font-mono">
+                      <div className="text-text-primary font-mono font-bold">
                         {keg.current_volume} L
                       </div>
-                      <div className="text-xs text-[var(--color-text-muted)]">
+                      <div className="text-xs text-text-muted font-medium">
                         de {keg.initial_volume} L
                       </div>
                     </td>
@@ -373,7 +377,7 @@ export default function KegsReportPage() {
               </tbody>
             </table>
             {filteredKegs.length === 0 && (
-              <div className="p-8 text-center text-slate-500">
+              <div className="p-12 text-center text-text-muted font-medium italic">
                 No se encontraron barriles con los filtros actuales.
               </div>
             )}
@@ -383,25 +387,25 @@ export default function KegsReportPage() {
 
       {/* CREATE MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-800 rounded-xl shadow-2xl border border-slate-700 w-full max-w-lg overflow-hidden">
-            <div className="bg-slate-700/50 px-6 py-4 border-b border-slate-600 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Plus className="h-5 w-5 text-indigo-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 font-display uppercase tracking-wide">
+                <Plus className="h-5 w-5 text-primary" />
                 Alta Manual de Barril
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-text-muted hover:text-primary transition-colors p-1"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
                     Código Identificador *
                   </label>
                   <input
@@ -409,13 +413,13 @@ export default function KegsReportPage() {
                     name="code"
                     value={newKeg.code}
                     onChange={handleCreateChange}
-                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm placeholder:text-gray-400"
                     placeholder="#KEY123"
                     required
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
                     Volumen Inicial (L) *
                   </label>
                   <input
@@ -423,7 +427,7 @@ export default function KegsReportPage() {
                     name="initial_volume"
                     value={newKeg.initial_volume}
                     onChange={handleCreateChange}
-                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm placeholder:text-gray-400"
                     placeholder="50"
                     required
                   />
@@ -431,14 +435,14 @@ export default function KegsReportPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
                   Estilo de Cerveza *
                 </label>
                 <select
                   name="style_id"
                   value={newKeg.style_id}
                   onChange={handleCreateChange}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm cursor-pointer"
                   required
                 >
                   <option value="">-- Seleccionar Estilo --</option>
@@ -451,14 +455,14 @@ export default function KegsReportPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
                   Proveedor *
                 </label>
                 <select
                   name="supplier_id"
                   value={newKeg.supplier_id}
                   onChange={handleCreateChange}
-                  className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm cursor-pointer"
                   required
                 >
                   <option value="">-- Seleccionar Proveedor --</option>
@@ -470,9 +474,9 @@ export default function KegsReportPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div className="col-span-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
                     Costo ($)
                   </label>
                   <input
@@ -480,12 +484,12 @@ export default function KegsReportPage() {
                     name="cost"
                     value={newKeg.cost}
                     onChange={handleCreateChange}
-                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm placeholder:text-gray-400"
                     placeholder="0.00"
                   />
                 </div>
                 <div className="col-span-1">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
                     Fecha de Compra
                   </label>
                   <input
@@ -493,22 +497,22 @@ export default function KegsReportPage() {
                     name="purchase_date"
                     value={newKeg.purchase_date}
                     onChange={handleCreateChange}
-                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
+              <div className="pt-6 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+                  className="px-5 py-2 rounded-lg text-text-secondary font-bold hover:bg-gray-100 transition-colors uppercase text-sm tracking-wide"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-lg shadow-indigo-500/20"
+                  className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-red-500/10 uppercase text-sm tracking-widest"
                 >
                   Guardar Barril
                 </button>
@@ -520,51 +524,49 @@ export default function KegsReportPage() {
 
       {/* TAP ASSIGNMENT MODAL */}
       {isTapModalOpen && selectedTapKeg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-800 rounded-xl shadow-2xl border border-slate-700 w-full max-w-sm overflow-hidden transform transition-all">
-            <div className="bg-amber-500/10 px-6 py-4 border-b border-amber-500/20 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-amber-500 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-surface rounded-xl shadow-2xl border border-gray-200 w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="bg-primary/5 px-6 py-4 border-b border-primary/10 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-primary flex items-center gap-2 font-display uppercase tracking-wide">
                 <Link className="h-5 w-5" /> Conectar Barril
               </h3>
               <button
                 onClick={() => setIsTapModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-text-muted hover:text-primary transition-colors p-1"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
             <div className="p-6">
-              <div className="mb-4">
-                <p className="text-sm text-slate-400 mb-1">
+              <div className="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <p className="text-xs font-bold text-text-muted mb-1 uppercase tracking-wider">
                   Barril Seleccionado:
                 </p>
-                <p className="text-white font-medium text-lg">
+                <p className="text-text-primary font-bold text-xl leading-tight">
                   {selectedTapKeg.style_fantasy_name ||
                     selectedTapKeg.style_name}
                 </p>
-                <p className="text-xs text-slate-500 font-mono">
+                <p className="text-xs text-text-muted font-mono mt-1 font-bold">
                   {selectedTapKeg.code}
                 </p>
               </div>
 
               <form onSubmit={handleTapSubmit}>
-                <label className="block text-xs font-medium text-slate-400 mb-2">
+                <label className="block text-xs font-bold text-text-secondary mb-3 uppercase tracking-wider">
                   Seleccionar Canilla (1-12)
                 </label>
-                <div className="grid grid-cols-4 gap-2 mb-6">
+                <div className="grid grid-cols-4 gap-2.5 mb-8">
                   {[...Array(12)].map((_, i) => {
                     const num = i + 1;
-                    // In a real app, we might want to disable occupied taps, but we don't have that list here easily without fetching all active taps.
-                    // The backend will validation will handle it.
                     return (
                       <button
                         key={num}
                         type="button"
                         onClick={() => setTapNumber(num)}
-                        className={`py-2 rounded font-bold transition-all ${
+                        className={`py-2 rounded-lg font-bold transition-all border ${
                           tapNumber === num
-                            ? "bg-amber-500 text-black shadow-lg shadow-amber-500/50 scale-105"
-                            : "bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white"
+                            ? "bg-primary border-primary text-white shadow-lg shadow-red-500/20 scale-105"
+                            : "bg-white border-gray-200 text-text-secondary hover:border-primary hover:text-primary"
                         }`}
                       >
                         {num}
@@ -576,7 +578,7 @@ export default function KegsReportPage() {
                 <button
                   type="submit"
                   disabled={!tapNumber}
-                  className="w-full py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold rounded shadow-lg shadow-amber-500/20 transition-all"
+                  className="w-full py-3 bg-primary hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-red-500/10 transition-all uppercase tracking-widest text-sm"
                 >
                   Confirmar Conexión
                 </button>

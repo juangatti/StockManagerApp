@@ -54,7 +54,7 @@ export default function ItemManager() {
       toast.error(
         `No se pudieron cargar los items ${
           inactiveMode ? "desactivados" : "activos"
-        }.`
+        }.`,
       );
       setError(`Error al cargar items: ${err.message || "Error desconocido"}`);
     } finally {
@@ -141,18 +141,18 @@ export default function ItemManager() {
   // const itemsToList = viewingInactive ? inactiveItems : stockItems; // Ya no necesitamos esto
 
   return (
-    <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
+    <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-100">
       {" "}
       {/* Padding ajustado */}
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-xl font-bold text-text-primary font-display uppercase tracking-wide">
           {viewingInactive ? "Items Desactivados" : "Gestionar Items (Envases)"}
         </h3>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setViewingInactive(!viewingInactive)}
             title={viewingInactive ? "Ver activos" : "Ver desactivados"}
-            className="flex items-center gap-2 text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700"
+            className="flex items-center gap-2 text-text-muted hover:text-text-primary p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             {viewingInactive ? (
               <Eye className="h-5 w-5" />
@@ -163,7 +163,7 @@ export default function ItemManager() {
           {!viewingInactive && (
             <button
               onClick={handleCreate}
-              className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+              className="flex items-center justify-center text-white bg-primary hover:bg-primary-dark font-bold rounded-lg text-sm px-6 py-2.5 text-center shadow-lg shadow-red-500/10 uppercase tracking-widest transition-all"
             >
               <PackagePlus className="mr-2 h-5 w-5" /> Crear Nuevo
             </button>
@@ -179,30 +179,32 @@ export default function ItemManager() {
       {error && <Alert message={error} />}
       {loading && items.length === 0 && <Spinner />}
       {/* 13. Lista */}
-      <div className="min-h-[300px] relative">
+      <div className="min-h-[300px] relative mt-6">
         {loading && items.length > 0 && (
-          <div className="absolute inset-0 bg-slate-800/50 flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]">
             <Spinner />
           </div>
         )}
         {!loading && items.length === 0 ? (
-          <p className="text-center text-slate-500 py-10">
+          <p className="text-center text-text-muted py-12 italic font-medium">
             {searchQuery
               ? "No se encontraron items."
               : "No hay items para mostrar."}
           </p>
         ) : (
-          <ul className="divide-y divide-slate-700">
+          <ul className="divide-y divide-gray-50 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
             {/* Usamos el estado local 'items' */}
             {items.map((item) => (
               <li
                 key={item.id}
-                className="py-3 flex justify-between items-center"
+                className="px-5 py-4 flex justify-between items-center bg-white hover:bg-gray-50/50 transition-colors"
               >
                 <div>
-                  <span className="text-white">{item.nombre_completo}</span>
+                  <span className="text-text-primary font-bold font-display uppercase tracking-tight">
+                    {item.nombre_completo}
+                  </span>
                   {/* Mostramos categoría siempre (útil para inactivos también) */}
-                  <span className="text-xs text-slate-400 ml-2 bg-slate-700 px-2 py-1 rounded-full">
+                  <span className="text-xs text-text-muted ml-3 bg-gray-100 px-2.5 py-1 rounded-full font-bold border border-gray-200 uppercase tracking-tighter">
                     {item.nombre_categoria}
                   </span>
                 </div>
@@ -213,9 +215,9 @@ export default function ItemManager() {
                         handleRestore(item.id, item.nombre_completo)
                       }
                       title="Restaurar"
-                      className="p-2 rounded-md hover:bg-slate-700"
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                      <RotateCcw className="h-5 w-5 text-green-400" />
+                      <RotateCcw className="h-5 w-5 text-green-600" />
                     </button>
                   ) : (
                     <>
@@ -223,18 +225,18 @@ export default function ItemManager() {
                         // Pasamos el item completo, que ahora incluye prioridad y alerta
                         onClick={() => handleEdit(item)}
                         title="Editar"
-                        className="p-2 rounded-md hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                       >
-                        <Edit className="h-5 w-5 text-sky-400" />
+                        <Edit className="h-5 w-5 text-primary" />
                       </button>
                       <button
                         onClick={() =>
                           handleDelete(item.id, item.nombre_completo)
                         }
                         title="Desactivar"
-                        className="p-2 rounded-md hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 className="h-5 w-5 text-red-500" />
+                        <Trash2 className="h-5 w-5 text-gray-400 hover:text-primary transition-colors" />
                       </button>
                     </>
                   )}

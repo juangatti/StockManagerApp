@@ -126,7 +126,7 @@ export default function AdjustmentSheet() {
         setIsLoadingItems(true); // Mostrar carga mientras se refresca localmente
         try {
           const response = await api.get(
-            "/admin/stock-items/all-for-adjustment"
+            "/admin/stock-items/all-for-adjustment",
           );
           setLocalStockItems(response.data || []);
           const initialCounts = (response.data || []).reduce((acc, item) => {
@@ -144,7 +144,7 @@ export default function AdjustmentSheet() {
       fetchStock(); // Refresca el store paginado (para la vista Inventario)
     } catch (err) {
       toast.error(
-        err.response?.data?.message || "Error al guardar los ajustes."
+        err.response?.data?.message || "Error al guardar los ajustes.",
       );
     } finally {
       setIsSubmitting(false);
@@ -160,20 +160,20 @@ export default function AdjustmentSheet() {
 
   return (
     <>
-      <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
+      <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
         {/* Mostramos error si hubo al cargar */}
         {loadError && <Alert message={loadError} />}
 
         <div className="overflow-x-auto relative">
           {/* Spinner overlay para recarga post-submit */}
           {isLoadingItems && localStockItems.length > 0 && (
-            <div className="absolute inset-0 bg-slate-800/70 flex items-center justify-center z-10">
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]">
               <Spinner />
             </div>
           )}
 
-          <table className="w-full min-w-125 text-sm text-left text-slate-300">
-            <thead className="text-xs uppercase bg-slate-700 text-slate-400">
+          <table className="w-full min-w-125 text-sm text-left text-text-secondary">
+            <thead className="text-xs uppercase bg-gray-50 text-text-muted font-display font-bold tracking-wider border-b border-gray-100">
               <tr>
                 <th className="py-3 px-6">Item</th>
                 <th className="py-3 px-6 text-center">Stock Actual / Conteo</th>
@@ -190,10 +190,13 @@ export default function AdjustmentSheet() {
               ) : (
                 localStockItems.map(
                   (
-                    item // Mapear sobre localStockItems
+                    item, // Mapear sobre localStockItems
                   ) => (
-                    <tr key={item.id} className="border-b border-slate-700">
-                      <td className="py-4 px-6 font-medium text-white">
+                    <tr
+                      key={item.id}
+                      className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="py-4 px-6 font-bold text-text-primary font-display uppercase tracking-tight">
                         {item.nombre_completo}
                       </td>
                       <td className="py-4 px-6 text-center">
@@ -207,37 +210,37 @@ export default function AdjustmentSheet() {
                               onChange={(e) =>
                                 handleInputChange(item.id, e.target.value)
                               }
-                              className="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg w-full max-w-25 p-2 text-center font-mono focus:ring-sky-500 focus:border-sky-500"
+                              className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full max-w-25 p-2 text-center font-mono font-bold focus:ring-primary focus:border-primary shadow-sm"
                               autoFocus
                             />
                             <button
                               onClick={() => handleConfirmEdit(item.id)}
-                              className="p-2 rounded-md hover:bg-slate-700 shrink-0"
+                              className="p-2 rounded-lg hover:bg-green-50 shrink-0 transition-colors"
                               title="Confirmar cambio"
                             >
-                              <CheckSquare className="h-5 w-5 text-green-400" />
+                              <CheckSquare className="h-5 w-5 text-green-500" />
                             </button>
                           </div>
                         ) : (
                           // ... (span y botón Edit)
                           <div className="flex items-center justify-center gap-2">
-                            <span className="font-mono">
+                            <span className="font-mono font-bold text-text-primary">
                               {conteo[item.id] !== undefined
                                 ? conteo[item.id]
                                 : item.stock_unidades.toFixed(2)}
                             </span>
                             <button
                               onClick={() => setEditingRowId(item.id)}
-                              className="p-2 rounded-md hover:bg-slate-700 shrink-0"
+                              className="p-2 rounded-lg hover:bg-gray-100 shrink-0 transition-colors"
                               title="Habilitar edición"
                             >
-                              <Edit className="h-5 w-5 text-sky-400" />
+                              <Edit className="h-5 w-5 text-primary" />
                             </button>
                           </div>
                         )}
                       </td>
                     </tr>
-                  )
+                  ),
                 )
               )}
             </tbody>
@@ -245,32 +248,32 @@ export default function AdjustmentSheet() {
         </div>
 
         {/* ... (Descripción y Botón Guardar) ... */}
-        <div className="mt-8 border-t border-slate-700 pt-6">
+        <div className="mt-8 border-t border-gray-100 pt-6">
           <label
             htmlFor="descripcion-masiva"
-            className="block mb-2 text-sm font-medium text-slate-300"
+            className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
           >
             Motivo del Ajuste Masivo (Obligatorio)
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <FileText className="h-5 w-5 text-slate-400" />
+              <FileText className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
               id="descripcion-masiva"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 pl-10"
+              className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 pl-10 transition-all shadow-sm"
               placeholder="Ej: Conteo semanal barra principal, Cierre de mes"
             />
           </div>
         </div>
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-8">
           <button
             onClick={handleSubmit}
             disabled={!descripcion || editingRowId !== null || isLoadingItems}
-            className="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+            className="flex items-center justify-center text-white bg-primary hover:bg-primary-dark focus:ring-4 focus:ring-red-100 font-bold rounded-lg text-sm px-8 py-3 text-center disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-500/10 uppercase tracking-widest"
           >
             <Save className="mr-2 h-5 w-5" />
             Revisar y Guardar Ajustes

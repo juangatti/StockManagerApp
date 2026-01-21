@@ -39,10 +39,10 @@ export default function CategoryManager() {
       toast.error(
         `No se pudieron cargar las categorías ${
           inactiveMode ? "desactivadas" : "activas"
-        }.`
+        }.`,
       );
       setError(
-        `Error al cargar categorías: ${err.message || "Error desconocido"}`
+        `Error al cargar categorías: ${err.message || "Error desconocido"}`,
       );
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ export default function CategoryManager() {
   const handleDelete = (categoryId, categoryName) => {
     if (
       window.confirm(
-        `¿Estás seguro de que quieres desactivar la categoría "${categoryName}"?`
+        `¿Estás seguro de que quieres desactivar la categoría "${categoryName}"?`,
       )
     ) {
       const promise = api.delete(`/admin/categories/${categoryId}`);
@@ -98,7 +98,7 @@ export default function CategoryManager() {
   const handleRestore = (categoryId, categoryName) => {
     if (
       window.confirm(
-        `¿Estás seguro de que quieres restaurar la categoría "${categoryName}"?`
+        `¿Estás seguro de que quieres restaurar la categoría "${categoryName}"?`,
       )
     ) {
       const promise = api.put(`/admin/categories/${categoryId}/restore`);
@@ -147,16 +147,16 @@ export default function CategoryManager() {
   }
 
   return (
-    <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
+    <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-100">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-semibold text-white">
+        <h3 className="text-xl font-bold text-text-primary font-display uppercase tracking-wide">
           {viewingInactive ? "Categorías Desactivadas" : "Gestionar Categorías"}
         </h3>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setViewingInactive(!viewingInactive)}
             title={viewingInactive ? "Ver activas" : "Ver desactivadas"}
-            className="flex items-center gap-2 text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-700"
+            className="flex items-center gap-2 text-text-muted hover:text-text-primary p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             {viewingInactive ? (
               <Eye className="h-5 w-5" />
@@ -167,7 +167,7 @@ export default function CategoryManager() {
           {!viewingInactive && (
             <button
               onClick={handleCreate}
-              className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+              className="flex items-center justify-center text-white bg-primary hover:bg-primary-dark font-bold rounded-lg text-sm px-6 py-2.5 text-center shadow-lg shadow-red-500/10 uppercase tracking-widest transition-all"
             >
               <FolderPlus className="mr-2 h-5 w-5" /> Crear Nueva
             </button>
@@ -184,50 +184,52 @@ export default function CategoryManager() {
       {error && <Alert message={error} />}
       {loading && categories.length === 0 && <Spinner />}
 
-      <div className="min-h-[300px] relative">
+      <div className="min-h-[300px] relative mt-6">
         {loading && categories.length > 0 && (
-          <div className="absolute inset-0 bg-slate-800/50 flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]">
             <Spinner />
           </div>
         )}
         {!loading && categories.length === 0 ? (
-          <p className="text-center text-slate-500 py-10">
+          <p className="text-center text-text-muted py-12 italic font-medium">
             {searchQuery
               ? "No se encontraron categorías."
               : "No hay categorías para mostrar."}
           </p>
         ) : (
-          <ul className="divide-y divide-slate-700">
+          <ul className="divide-y divide-gray-50 border border-gray-100 rounded-lg overflow-hidden shadow-sm">
             {categories.map((cat) => (
               <li
                 key={cat.id}
-                className="py-3 flex justify-between items-center"
+                className="px-5 py-4 flex justify-between items-center bg-white hover:bg-gray-50/50 transition-colors"
               >
-                <span className="text-white">{cat.nombre}</span>
+                <span className="text-text-primary font-bold font-display uppercase tracking-tight">
+                  {cat.nombre}
+                </span>
                 <div className="flex items-center gap-2">
                   {viewingInactive ? (
                     <button
                       onClick={() => handleRestore(cat.id, cat.nombre)}
                       title="Restaurar"
-                      className="p-2 rounded-md hover:bg-slate-700"
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                      <RotateCcw className="h-5 w-5 text-green-400" />
+                      <RotateCcw className="h-5 w-5 text-green-600" />
                     </button>
                   ) : (
                     <>
                       <button
                         onClick={() => handleEdit(cat)}
                         title="Editar"
-                        className="p-2 rounded-md hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                       >
-                        <Edit className="h-5 w-5 text-sky-400" />
+                        <Edit className="h-5 w-5 text-primary" />
                       </button>
                       <button
                         onClick={() => handleDelete(cat.id, cat.nombre)}
                         title="Desactivar"
-                        className="p-2 rounded-md hover:bg-slate-700"
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 className="h-5 w-5 text-red-500" />
+                        <Trash2 className="h-5 w-5 text-gray-400 hover:text-primary transition-colors" />
                       </button>
                     </>
                   )}

@@ -22,16 +22,16 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
         } else {
           console.error(
             "La respuesta de /admin/categories/all no es un array:",
-            res.data
+            res.data,
           );
           setCategories([]);
           toast.error(
-            "Error al cargar la lista de categorías (formato inesperado)."
+            "Error al cargar la lista de categorías (formato inesperado).",
           );
         }
       })
       .catch(() =>
-        toast.error("No se pudieron cargar las categorías (error de red).")
+        toast.error("No se pudieron cargar las categorías (error de red)."),
       );
   }, []);
 
@@ -73,9 +73,9 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
   };
 
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        <BookPlus className="text-sky-400" />
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-50 pb-4">
+        <BookPlus className="text-primary h-6 w-6" />
         {marcaToEdit?.id ? "Editar Marca" : "Crear Nueva Marca"}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,7 +83,7 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="marca-name"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Nombre de la Marca
             </label>
@@ -92,14 +92,14 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
               id="marca-name"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
+              className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary transition-all shadow-sm"
               placeholder="Ej: Fernet Branca"
             />
           </div>
           <div>
             <label
               htmlFor="categoria-id"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Categoría Padre
             </label>
@@ -107,7 +107,7 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
               id="categoria-id"
               value={categoriaId}
               onChange={(e) => setCategoriaId(e.target.value)}
-              className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5"
+              className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary transition-all shadow-sm"
             >
               <option value="">Selecciona una categoría...</option>
               {categories.map((cat) => (
@@ -118,18 +118,18 @@ export default function MarcaForm({ marcaToEdit, onFormSubmit, onCancel }) {
             </select>
           </div>
         </div>
-        <div className="flex justify-end pt-2 gap-4">
+        <div className="flex justify-end pt-4 gap-4 border-t border-gray-100 mt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="text-white bg-slate-600 hover:bg-slate-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+            className="text-text-muted hover:text-text-primary px-6 py-2.5 font-bold uppercase text-xs tracking-widest transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500"
+            className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-lg font-bold transition-all flex items-center shadow-lg shadow-red-500/10 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Guardando..." : "Guardar Cambios"}
           </button>

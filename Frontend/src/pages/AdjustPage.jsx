@@ -8,7 +8,7 @@ export default function AdjustPage() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide mb-6">
+      <h2 className="text-3xl font-bold text-text-primary font-display uppercase tracking-wide mb-6">
         Ajuste de Inventario
       </h2>
       <AdjustmentTypeSwitcher

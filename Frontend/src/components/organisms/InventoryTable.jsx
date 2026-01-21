@@ -15,9 +15,9 @@ export default function InventoryTable({ loading }) {
             <Spinner />
           </div>
         )}
-        <table className="w-full text-sm text-left text-[var(--color-text-primary)]">
+        <table className="w-full text-sm text-left text-text-primary">
           {/* 3. Thead Clean Style */}
-          <thead className="text-xs uppercase bg-gray-50 text-[var(--color-text-secondary)] font-display tracking-wider hidden md:table-header-group border-b border-gray-200">
+          <thead className="text-xs uppercase bg-gray-50 text-text-secondary font-display tracking-wider hidden md:table-header-group border-b border-gray-200">
             <tr>
               <th scope="col" className="py-4 px-6 font-semibold">
                 Item
@@ -48,9 +48,9 @@ export default function InventoryTable({ loading }) {
                 >
                   <td
                     data-label="Item"
-                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 font-medium text-[var(--color-text-primary)] md:whitespace-nowrap border-b md:border-b-0 border-gray-100"
+                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 font-medium text-text-primary md:whitespace-nowrap border-b md:border-b-0 border-gray-100"
                   >
-                    <span className="md:hidden font-bold text-[var(--color-text-secondary)] mr-2 uppercase text-xs">
+                    <span className="md:hidden font-bold text-text-secondary mr-2 uppercase text-xs">
                       Item:{" "}
                     </span>
                     {item.nombre_completo}
@@ -65,9 +65,9 @@ export default function InventoryTable({ loading }) {
                   </td>
                   <td
                     data-label="Stock"
-                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 text-left md:text-center font-mono font-bold text-[var(--color-secondary-dark)]"
+                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 text-left md:text-center font-mono font-bold text-secondary-dark"
                   >
-                    <span className="md:hidden font-bold text-[var(--color-text-secondary)] mr-2 uppercase text-xs">
+                    <span className="md:hidden font-bold text-text-secondary mr-2 uppercase text-xs">
                       Stock:{" "}
                     </span>
                     {item.stock_unidades.toFixed(2)}

@@ -35,7 +35,7 @@ export default function PrebatchForm({
         ]);
         setExistingNames(Array.isArray(namesRes.data) ? namesRes.data : []);
         setCategories(
-          Array.isArray(categoriesRes.data) ? categoriesRes.data : []
+          Array.isArray(categoriesRes.data) ? categoriesRes.data : [],
         );
       } catch (error) {
         console.error("Error loading dependencies for prebatch form:", error);
@@ -86,7 +86,7 @@ export default function PrebatchForm({
       !formData.cantidad_inicial_ml
     ) {
       toast.error(
-        "Nombre, Fecha de Producción y Cantidad Inicial son obligatorios."
+        "Nombre, Fecha de Producción y Cantidad Inicial son obligatorios.",
       );
       return;
     }
@@ -127,12 +127,12 @@ export default function PrebatchForm({
   };
 
   const commonInputClass =
-    "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500";
+    "bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary transition-all shadow-sm";
 
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        <CookingPot className="text-sky-400" />
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-50 pb-4">
+        <CookingPot className="text-primary h-6 w-6" />
         {prebatchToEdit ? "Editar Prebatch" : "Crear Nuevo Prebatch"}
       </h3>
       {loadingDependencies ? (
@@ -143,7 +143,7 @@ export default function PrebatchForm({
           <div>
             <label
               htmlFor="nombre_prebatch"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Nombre del Prebatch (*)
             </label>
@@ -175,7 +175,7 @@ export default function PrebatchForm({
             <div>
               <label
                 htmlFor="fecha_produccion"
-                className="block mb-2 text-sm font-medium text-slate-300"
+                className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
               >
                 Fecha de Producción (*)
               </label>
@@ -193,7 +193,7 @@ export default function PrebatchForm({
             <div>
               <label
                 htmlFor="cantidad_inicial_ml"
-                className="block mb-2 text-sm font-medium text-slate-300"
+                className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
               >
                 Cantidad Inicial (ml) (*)
               </label>
@@ -214,7 +214,7 @@ export default function PrebatchForm({
             <div>
               <label
                 htmlFor="identificador_lote"
-                className="block mb-2 text-sm font-medium text-slate-300"
+                className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
               >
                 Identificador Lote (Opcional)
               </label>
@@ -232,7 +232,7 @@ export default function PrebatchForm({
             <div>
               <label
                 htmlFor="categoria_id"
-                className="block mb-2 text-sm font-medium text-slate-300"
+                className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
               >
                 Categoría (Opcional)
               </label>
@@ -253,25 +253,24 @@ export default function PrebatchForm({
             </div>
           </div>
 
-          {/* Botones */}
-          <div className="flex justify-end pt-2 gap-4">
+          <div className="flex justify-end pt-4 gap-4 border-t border-gray-100 mt-4">
             <button
               type="button"
               onClick={onCancel}
-              className="text-white bg-slate-600 hover:bg-slate-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+              className="text-text-muted hover:text-text-primary px-6 py-2.5 font-bold uppercase text-xs tracking-widest transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500"
+              className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-lg font-bold transition-all flex items-center shadow-lg shadow-red-500/10 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting
                 ? "Guardando..."
                 : prebatchToEdit
-                ? "Actualizar Prebatch"
-                : "Crear Prebatch"}
+                  ? "Actualizar Prebatch"
+                  : "Crear Prebatch"}
             </button>
           </div>
         </form>

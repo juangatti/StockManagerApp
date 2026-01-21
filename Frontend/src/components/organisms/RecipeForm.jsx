@@ -279,12 +279,12 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
 
   // Clase común para inputs (Mauer Theme)
   const commonInputClass =
-    "bg-white border border-gray-300 text-[var(--color-text-primary)] text-sm rounded-lg w-full p-2.5 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] disabled:opacity-50 transition-colors shadow-sm placeholder-gray-400";
+    "bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary disabled:opacity-50 transition-colors shadow-sm placeholder-gray-400";
 
   return (
-    <div className="bg-[var(--color-surface)] p-8 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
-      <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-100 pb-4">
-        <ClipboardPlus className="text-[var(--color-primary)] h-6 w-6" />
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-100 pb-4">
+        <ClipboardPlus className="text-primary h-6 w-6" />
         {recipeToEdit ? "Editar Receta" : "Crear Producto y Receta"}
       </h3>
 
@@ -318,9 +318,9 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
           </div>
 
           <div className="space-y-4 border border-gray-200 p-4 rounded-lg bg-gray-50/50">
-            <h4 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider flex items-center gap-2 mb-4">
-              <RefreshCw className="h-4 w-4 text-[var(--color-primary)]" />{" "}
-              Ingredientes por Variante
+            <h4 className="text-sm font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2 mb-4">
+              <RefreshCw className="h-4 w-4 text-primary" /> Ingredientes por
+              Variante
             </h4>
 
             {reglas.map((regla, index) => (
@@ -331,7 +331,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 1. Prioridad de Variante */}
                 <div className="col-span-12 md:col-span-1">
                   <label
-                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
+                    className={`block mb-1 text-xs font-bold text-text-secondary uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                     title="Agrupa ingredientes. Menor # = mayor prioridad."
@@ -361,7 +361,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 2. Tipo de Ingrediente */}
                 <div className="col-span-6 md:col-span-2">
                   <label
-                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
+                    className={`block mb-1 text-xs font-bold text-text-secondary uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                   >
@@ -391,7 +391,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                       ref={(el) => (ingredientRefs.current[regla.tempId] = el)}
                       label={
                         index === 0 ? (
-                          <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase">
+                          <span className="text-xs font-bold text-text-secondary uppercase">
                             Ingrediente
                           </span>
                         ) : undefined
@@ -407,7 +407,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                   ) : (
                     <div>
                       <label
-                        className={`block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
+                        className={`block mb-2 text-xs font-bold text-text-secondary uppercase ${
                           index !== 0 ? "md:sr-only" : ""
                         }`}
                       >
@@ -438,7 +438,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 4. Consumo ML */}
                 <div className="col-span-6 md:col-span-2">
                   <label
-                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
+                    className={`block mb-1 text-xs font-bold text-text-secondary uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                   >
@@ -466,7 +466,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 5. Prioridad Item (dentro de la variante) */}
                 <div className="col-span-6 md:col-span-2">
                   <label
-                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
+                    className={`block mb-1 text-xs font-bold text-text-secondary uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                     title="Prioridad entre botellas iguales"
@@ -512,7 +512,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
             <button
               type="button"
               onClick={handleAddRegla}
-              className="flex items-center gap-2 text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] font-bold text-sm uppercase tracking-wide px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+              className="flex items-center gap-2 text-primary hover:text-primary-dark font-bold text-sm uppercase tracking-wide px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
               disabled={isSubmitting}
             >
               <PlusCircle className="h-5 w-5" /> Añadir Ingrediente
@@ -529,7 +529,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
               <button
                 type="submit"
                 disabled={isSubmitting || loadingDependencies}
-                className="px-5 py-2.5 text-sm font-bold text-white bg-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
+                className="px-5 py-2.5 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
               >
                 {isSubmitting ? "Guardando..." : "Guardar Receta"}
               </button>

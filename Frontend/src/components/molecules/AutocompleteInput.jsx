@@ -21,7 +21,7 @@ const AutocompleteInput = forwardRef(
       initialItemId = null,
       initialItemName = "",
     },
-    ref
+    ref,
   ) => {
     // Recibir ref como segundo argumento
     const [searchTerm, setSearchTerm] = useState(initialItemName);
@@ -29,7 +29,7 @@ const AutocompleteInput = forwardRef(
     const [selectedItem, setSelectedItem] = useState(
       initialItemId
         ? { id: initialItemId, nombre_completo: initialItemName }
-        : null
+        : null,
     );
     const [isLoading, setIsLoading] = useState(false);
     const [isListVisible, setIsListVisible] = useState(false);
@@ -40,7 +40,7 @@ const AutocompleteInput = forwardRef(
     // 1. --- MODIFICACIÓN: Generar un ID único y estable ---
     // Usamos useRef para que el ID aleatorio no cambie en cada render
     const uniqueId = useRef(
-      `autocomplete-${Math.random().toString(36).substr(2, 9)}`
+      `autocomplete-${Math.random().toString(36).substr(2, 9)}`,
     );
 
     // Comprobar si 'label' es un string antes de usar .replace()
@@ -157,7 +157,7 @@ const AutocompleteInput = forwardRef(
           <label
             // 2. --- MODIFICACIÓN: Usar el labelId seguro ---
             htmlFor={labelId}
-            className="block mb-2 text-sm font-medium text-slate-300"
+            className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
           >
             {label} {/* Esto renderiza el string O el JSX que recibimos */}
           </label>
@@ -177,7 +177,7 @@ const AutocompleteInput = forwardRef(
               setIsListVisible(suggestions.length > 0 && !selectedItem)
             }
             placeholder={placeholder}
-            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 pl-10 pr-10"
+            className="bg-white border border-gray-300 text-text-primary text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 pl-10 pr-10 transition-all shadow-sm"
             autoComplete="off"
           />
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -188,7 +188,7 @@ const AutocompleteInput = forwardRef(
                 <button
                   type="button"
                   onClick={handleClearSelection}
-                  className="text-slate-400 hover:text-white"
+                  className="text-text-muted hover:text-primary transition-colors"
                   aria-label="Limpiar búsqueda"
                 >
                   <X className="h-5 w-5" />
@@ -201,13 +201,13 @@ const AutocompleteInput = forwardRef(
         {isListVisible && suggestions.length > 0 && (
           <ul
             ref={listRef}
-            className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto text-sm"
+            className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto text-sm divide-y divide-gray-50"
           >
             {suggestions.map((item) => (
               <li
                 key={item.id}
                 onClick={() => handleSelectSuggestion(item)}
-                className="px-4 py-2 text-white hover:bg-slate-600 cursor-pointer"
+                className="px-4 py-3 text-text-primary hover:bg-gray-50 cursor-pointer font-medium transition-colors"
               >
                 {item.nombre_completo}
               </li>
@@ -216,7 +216,7 @@ const AutocompleteInput = forwardRef(
         )}
       </div>
     );
-  }
+  },
 );
 
 AutocompleteInput.displayName = "AutocompleteInput";

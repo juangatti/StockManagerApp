@@ -27,7 +27,7 @@ export default function ProductionForm() {
   // --- Estados Mantenidos/Nuevos ---
   const [prebatchName, setPrebatchName] = useState("");
   const [productionDate, setProductionDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [setExpiryManually, setSetExpiryManually] = useState(false);
   const [expiryDate, setExpiryDate] = useState("");
@@ -77,7 +77,7 @@ export default function ProductionForm() {
         } else {
           console.error(
             "Respuesta inesperada para /prebatches/names:",
-            res.data
+            res.data,
           );
           setExistingNames([]);
         }
@@ -118,8 +118,8 @@ export default function ProductionForm() {
   const handleIngredientChange = (tempId, field, value) => {
     setIngredients(
       ingredients.map((ing) =>
-        ing.tempId === tempId ? { ...ing, [field]: value } : ing
-      )
+        ing.tempId === tempId ? { ...ing, [field]: value } : ing,
+      ),
     );
   };
   const handleIngredientSelection = (tempId, selectedItem) => {
@@ -131,8 +131,8 @@ export default function ProductionForm() {
               itemId: selectedItem?.id ?? null,
               itemName: selectedItem?.nombre_completo ?? "",
             }
-          : ing
-      )
+          : ing,
+      ),
     );
   };
 
@@ -147,7 +147,7 @@ export default function ProductionForm() {
       !description.trim()
     ) {
       toast.error(
-        "Nombre Prebatch, Fecha Prod., Cantidad Prod. (ml) y Descripción son obligatorios."
+        "Nombre Prebatch, Fecha Prod., Cantidad Prod. (ml) y Descripción son obligatorios.",
       );
       return;
     }
@@ -158,7 +158,7 @@ export default function ProductionForm() {
     }
     if (setExpiryManually && !expiryDate) {
       toast.error(
-        "Debes seleccionar una fecha de vencimiento si marcaste la opción."
+        "Debes seleccionar una fecha de vencimiento si marcaste la opción.",
       );
       return;
     }
@@ -167,14 +167,14 @@ export default function ProductionForm() {
     try {
       // Validar y construir ingredientsPayload
       const validIngredients = ingredients.filter(
-        (ing) => ing.itemId && ing.quantityConsumedMl
+        (ing) => ing.itemId && ing.quantityConsumedMl,
       );
       if (
         validIngredients.length !== ingredients.length &&
         ingredients.length > 0
       ) {
         toast.error(
-          "Completa o elimina las filas de ingredientes incompletas."
+          "Completa o elimina las filas de ingredientes incompletas.",
         );
         return;
       }
@@ -184,7 +184,7 @@ export default function ProductionForm() {
           throw new Error(
             `Cantidad consumida inválida para ${
               ing.itemName || `ID ${ing.itemId}`
-            }.`
+            }.`,
           );
         }
         return { itemId: parseInt(ing.itemId), quantityConsumedMl: consumedMl };
@@ -248,13 +248,13 @@ export default function ProductionForm() {
   };
 
   const commonInputClass =
-    "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50";
+    "bg-white border border-gray-300 text-text-primary text-sm rounded-lg w-full p-2.5 focus:ring-primary focus:border-primary transition-all shadow-sm disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed";
 
   // --- JSX (Modificado: sin selector producto base) ---
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        <Hammer className="text-sky-400" />
+    <div className="bg-surface p-8 rounded-lg shadow-(--shadow-card) border border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-50 pb-4">
+        <Hammer className="text-primary h-6 w-6" />
         Registrar Producción Interna
       </h3>
       {error && <Alert message={error} />}{" "}
@@ -271,7 +271,7 @@ export default function ProductionForm() {
             <div>
               <label
                 htmlFor="prebatchName"
-                className="block mb-2 text-sm font-medium text-slate-300"
+                className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
               >
                 Nombre Prebatch Resultante (*)
               </label>
@@ -296,7 +296,7 @@ export default function ProductionForm() {
             <div>
               <label
                 htmlFor="productionDate"
-                className="block mb-2 text-sm font-medium text-slate-300"
+                className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
               >
                 Fecha de Producción (*)
               </label>
@@ -323,12 +323,12 @@ export default function ProductionForm() {
                 type="checkbox"
                 checked={setExpiryManually}
                 onChange={(e) => setSetExpiryManually(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-sky-600 focus:ring-sky-500"
+                className="h-4 w-4 rounded border-gray-300 bg-white text-primary focus:ring-primary shadow-sm"
                 disabled={isSubmitting}
               />
               <label
                 htmlFor="setExpiryManually"
-                className="ml-2 block text-sm text-slate-300"
+                className="ml-2 block text-xs font-bold text-text-secondary uppercase tracking-wider cursor-pointer"
               >
                 ¿Vencimiento manual?
               </label>
@@ -338,7 +338,7 @@ export default function ProductionForm() {
               <div>
                 <label
                   htmlFor="expiryDate"
-                  className="block mb-2 text-sm font-medium text-slate-300"
+                  className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
                 >
                   Fecha de Vencimiento (*)
                 </label>
@@ -360,9 +360,9 @@ export default function ProductionForm() {
               {/* CORRECCIÓN: Eliminada la clase 'block' redundante */}
               <label
                 htmlFor="categoryId"
-                className="mb-2 text-sm font-medium text-slate-300 flex items-center gap-1"
+                className="mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2"
               >
-                <Tag className="h-4 w-4" /> Categoría (Opcional)
+                <Tag className="h-3 w-3 text-primary" /> Categoría (Opcional)
               </label>
               <select
                 id="categoryId"
@@ -384,21 +384,21 @@ export default function ProductionForm() {
           </div>
 
           {/* Sección Ingredientes */}
-          <div className="space-y-4 border border-slate-700 p-4 rounded-lg">
-            <h4 className="text-lg font-semibold text-white flex items-center gap-2">
-              <ListTree className="h-5 w-5 text-slate-400" />
+          <div className="space-y-4 border border-gray-100 p-6 rounded-lg bg-gray-50/30">
+            <h4 className="text-xs font-bold text-text-muted flex items-center gap-2 uppercase tracking-widest mb-4">
+              <ListTree className="h-4 w-4" />
               Ingredientes Consumidos (Opcional)
               {/* Ya no hay loadingPreview */}
             </h4>
             {ingredients.length === 0 && ( // Mensaje si no hay ingredientes
-              <p className="text-sm text-slate-500 italic">
+              <p className="text-xs text-text-muted italic font-medium">
                 Añade ingredientes manualmente si esta producción consume stock.
               </p>
             )}
             {ingredients.map((ing, index) => (
               <div
                 key={ing.tempId}
-                className="grid grid-cols-12 gap-3 items-center bg-slate-900/50 p-3 rounded"
+                className="grid grid-cols-12 gap-4 items-center bg-white p-4 rounded-lg border border-gray-100 shadow-sm"
               >
                 {/* Autocomplete Ingrediente */}
                 <div className="col-span-12 md:col-span-7">
@@ -417,7 +417,7 @@ export default function ProductionForm() {
                 <div className="col-span-8 md:col-span-3">
                   <label
                     htmlFor={`ing-qty-${ing.tempId}`}
-                    className={`block mb-2 text-sm font-medium text-slate-300 ${
+                    className={`block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider ${
                       index !== 0 ? "md:hidden" : ""
                     }`}
                   >
@@ -431,7 +431,7 @@ export default function ProductionForm() {
                       handleIngredientChange(
                         ing.tempId,
                         "quantityConsumedMl",
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     placeholder="ml o g"
@@ -447,7 +447,7 @@ export default function ProductionForm() {
                   <button
                     type="button"
                     onClick={() => handleRemoveIngredient(ing.tempId)}
-                    className="p-2 text-red-500 hover:text-red-400 disabled:opacity-50"
+                    className="p-2 text-text-muted hover:text-primary transition-colors disabled:opacity-50"
                     title="Eliminar Ingrediente"
                     disabled={isSubmitting}
                   >
@@ -459,10 +459,10 @@ export default function ProductionForm() {
             <button
               type="button"
               onClick={handleAddIngredient}
-              className="flex items-center gap-2 text-sky-400 hover:text-sky-300 font-medium text-sm disabled:opacity-50"
+              className="flex items-center gap-2 text-primary hover:text-primary-dark font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50 mt-2"
               disabled={isSubmitting}
             >
-              <PlusCircle className="h-5 w-5" /> Añadir Ingrediente
+              <PlusCircle className="h-4 w-4" /> Añadir Ingrediente
             </button>
           </div>
 
@@ -470,7 +470,7 @@ export default function ProductionForm() {
           <div>
             <label
               htmlFor="quantityProducedMl"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Cantidad Final Producida (ml) (*)
             </label>
@@ -493,7 +493,7 @@ export default function ProductionForm() {
           <div>
             <label
               htmlFor="description"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
             >
               Descripción / Motivo (*)
             </label>
@@ -511,7 +511,7 @@ export default function ProductionForm() {
           </div>
 
           {/* Botón Submit */}
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end pt-6 border-t border-gray-100 mt-6">
             <button
               type="submit"
               disabled={
@@ -523,9 +523,9 @@ export default function ProductionForm() {
                 !description.trim() ||
                 (setExpiryManually && !expiryDate)
               }
-              className="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+              className="bg-primary hover:bg-primary-dark text-white px-10 py-3.5 rounded-lg font-bold transition-all flex items-center shadow-lg shadow-red-500/20 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed group"
             >
-              <Send className="mr-2 h-5 w-5" />
+              <Send className="mr-3 h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
               {isSubmitting ? "Registrando..." : "Confirmar Producción"}
             </button>
           </div>
