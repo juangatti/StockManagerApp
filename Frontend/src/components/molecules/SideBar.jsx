@@ -26,15 +26,17 @@ const NavGroup = ({ title, children }) => (
 
 const NavItem = ({ to, icon: Icon, children, onLinkClick }) => {
   const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+    `flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 ${
       isActive
-        ? "bg-sky-500/10 text-sky-400"
-        : "text-slate-300 hover:bg-slate-700 hover:text-white"
+        ? "bg-[var(--color-primary)] text-white shadow-md font-bold tracking-wide"
+        : "text-gray-400 hover:bg-[var(--color-secondary)] hover:text-white hover:translate-x-1"
     }`;
 
   return (
     <NavLink to={to} className={navLinkClass} onClick={onLinkClick}>
-      <Icon className="h-4 w-4" />
+      <Icon
+        className={`h-4 w-4 ${({ isActive }) => (isActive ? "text-white" : "")}`}
+      />
       {children}
     </NavLink>
   );

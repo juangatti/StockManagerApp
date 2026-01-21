@@ -17,21 +17,23 @@ const UserProfileLink = ({ user, onClick }) => {
   return (
     <Link
       to="/profile"
-      className="flex items-center gap-3 p-2 rounded-lg mb-2 text-left w-full hover:bg-slate-700 transition-colors group"
+      className="flex items-center gap-3 p-2 rounded-lg mb-2 text-left w-full hover:bg-[var(--color-secondary)] transition-colors group"
       title="Ir a Mi Perfil"
       onClick={onClick} // Para cerrar el menú móvil al navegar
     >
       {/* Avatar Circular con Iniciales */}
-      <div className="shrink-0 bg-sky-600 rounded-full h-9 w-9 flex items-center justify-center font-bold text-white text-sm">
+      <div className="shrink-0 bg-[var(--color-primary)] rounded-full h-9 w-9 flex items-center justify-center font-bold text-white text-sm shadow-sm">
         {initials}
       </div>
 
       {/* Nombre y Rol */}
       <div className="overflow-hidden">
-        <span className="text-sm font-bold text-slate-200 truncate block">
+        <span className="text-sm font-bold text-gray-200 truncate block font-display tracking-wide">
           {displayName}
         </span>
-        <span className="text-xs text-slate-400">Ver Perfil</span>
+        <span className="text-xs text-gray-400 group-hover:text-white transition-colors">
+          Ver Perfil
+        </span>
       </div>
     </Link>
   );
@@ -49,22 +51,24 @@ export default function MainLayout() {
 
   return (
     // 1. CAMBIO: Volvemos a 'min-h-screen' para más flexibilidad.
-    <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] min-h-screen bg-slate-900 text-slate-100">
+    <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
       {/* --- BARRA LATERAL PARA ESCRITORIO (PC) --- */}
-      <div className="hidden md:flex flex-col bg-slate-800 border-r border-slate-700 overflow-hidden">
-        <header className="p-6 text-center border-b border-slate-700">
+      <div className="hidden md:flex flex-col bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] overflow-hidden shadow-xl z-10">
+        <header className="p-6 text-center border-b border-[var(--color-secondary)]">
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-3 text-white hover:text-sky-400 transition-colors"
+            className="inline-flex items-center gap-3 text-white hover:text-[var(--color-primary-light)] transition-colors"
           >
-            <ClipboardList className="h-8 w-8" />
-            <span className="text-xl font-bold">Gestor de Stock</span>
+            <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
+            <span className="text-2xl font-bold font-display uppercase tracking-wider">
+              Mauer Bar
+            </span>
           </Link>
         </header>
 
         {/* --- 1. UBICACIÓN NUEVA (ESCRITORIO) --- */}
         {/* Lo movimos del footer a aquí */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-[var(--color-secondary)]">
           <UserProfileLink user={user} />
         </div>
 
@@ -74,15 +78,15 @@ export default function MainLayout() {
 
         {/* 2. FOOTER (ESCRITORIO) LIMPIO --- */}
         {/* (Quitamos el UserProfileLink de aquí) */}
-        <footer className="p-4 border-t border-slate-700">
+        <footer className="p-4 border-t border-[var(--color-secondary)]">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-red-500/20 hover:text-red-400"
+            className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
           >
             <LogOut className="h-4 w-4" />
             Cerrar Sesión
           </button>
-          <p className="text-xs text-center text-slate-500 mt-4">
+          <p className="text-xs text-center text-gray-600 mt-4">
             Created by Juan Gatti ®
           </p>
         </footer>
@@ -92,29 +96,31 @@ export default function MainLayout() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
           <div
-            className="fixed inset-0 bg-black/60"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="relative flex flex-col w-72 max-w-[calc(100%-3rem)] bg-slate-800 border-r border-slate-700">
-            <header className="p-6 text-center border-b border-slate-700 flex justify-between items-center">
+          <div className="relative flex flex-col w-72 max-w-[calc(100%-3rem)] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] shadow-2xl">
+            <header className="p-6 text-center border-b border-[var(--color-secondary)] flex justify-between items-center">
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-3 text-white hover:text-sky-400 transition-colors"
+                className="inline-flex items-center gap-3 text-white hover:text-[var(--color-primary-light)] transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <ClipboardList className="h-8 w-8" />
-                <span className="text-xl font-bold">Gestor</span>
+                <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
+                <span className="text-xl font-bold font-display uppercase">
+                  Mauer
+                </span>
               </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-white p-2"
+                className="text-white p-2 hover:bg-[var(--color-secondary)] rounded-full transition-colors"
               >
                 <X className="h-6 w-6" />
               </button>
             </header>
 
             {/* --- 3. UBICACIÓN NUEVA (MÓVIL) --- */}
-            <div className="p-4 border-b border-slate-700">
+            <div className="p-4 border-b border-[var(--color-secondary)]">
               <UserProfileLink
                 user={user}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -127,15 +133,15 @@ export default function MainLayout() {
 
             {/* 4. FOOTER (MÓVIL) LIMPIO --- */}
             {/* (Quitamos el UserProfileLink de aquí) */}
-            <footer className="p-4 border-t border-slate-700">
+            <footer className="p-4 border-t border-[var(--color-secondary)]">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:bg-red-500/20 hover:text-red-400"
+                className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 Cerrar Sesión
               </button>
-              <p className="text-xs text-center text-slate-500 mt-4">
+              <p className="text-xs text-center text-gray-600 mt-4">
                 Created by Juan Gatti ®
               </p>
             </footer>
@@ -144,9 +150,9 @@ export default function MainLayout() {
       )}
 
       {/* --- CONTENIDO PRINCIPAL (sin cambios) --- */}
-      <div className="flex flex-col overflow-hidden">
+      <div className="flex flex-col overflow-hidden max-h-screen">
         <MobileHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
-        <main className="p-4 md:p-8 overflow-y-auto flex-1">
+        <main className="p-4 md:p-8 overflow-y-auto flex-1 bg-[var(--color-background)]">
           <Outlet />
         </main>
       </div>

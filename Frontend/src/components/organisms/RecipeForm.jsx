@@ -58,7 +58,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
       } catch (error) {
         console.error("Error loading recipe dependencies:", error);
         toast.error(
-          "Error al cargar datos necesarios (items/prebatches/cristalería)."
+          "Error al cargar datos necesarios (items/prebatches/cristalería).",
         );
       } finally {
         setLoadingDependencies(false);
@@ -83,7 +83,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
           display_name: r.display_name || "", // Nombre para mostrar en el input
           consumo_ml: r.consumo_ml || "",
           prioridad_item: r.prioridad_item || "1",
-        }))
+        })),
       );
     } else if (!recipeToEdit && !loadingDependencies) {
       setProductName("");
@@ -133,7 +133,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
           return updated;
         }
         return r;
-      })
+      }),
     );
   };
 
@@ -149,8 +149,8 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
               display_name: selectedItem?.nombre_completo || "",
               ingredient_type: "ITEM",
             }
-          : r
-      )
+          : r,
+      ),
     );
   };
 
@@ -166,8 +166,8 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
               item_id: null,
               ingredient_type: "PREBATCH",
             }
-          : r
-      )
+          : r,
+      ),
     );
   };
 
@@ -277,13 +277,14 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
     });
   };
 
+  // Clase común para inputs (Mauer Theme)
   const commonInputClass =
-    "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500 disabled:opacity-50";
+    "bg-white border border-gray-300 text-[var(--color-text-primary)] text-sm rounded-lg w-full p-2.5 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] disabled:opacity-50 transition-colors shadow-sm placeholder-gray-400";
 
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        <ClipboardPlus className="text-sky-400" />
+    <div className="bg-[var(--color-surface)] p-8 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
+      <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-100 pb-4">
+        <ClipboardPlus className="text-[var(--color-primary)] h-6 w-6" />
         {recipeToEdit ? "Editar Receta" : "Crear Producto y Receta"}
       </h3>
 
@@ -291,7 +292,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
         <Spinner />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <input
               type="text"
               value={productName}
@@ -316,21 +317,21 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
             </select>
           </div>
 
-          <div className="space-y-4 border border-slate-700 p-4 rounded-lg">
-            <h4 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
-              <RefreshCw className="h-5 w-5 text-slate-400" /> Ingredientes por
-              Variante
+          <div className="space-y-4 border border-gray-200 p-4 rounded-lg bg-gray-50/50">
+            <h4 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider flex items-center gap-2 mb-4">
+              <RefreshCw className="h-4 w-4 text-[var(--color-primary)]" />{" "}
+              Ingredientes por Variante
             </h4>
 
             {reglas.map((regla, index) => (
               <div
                 key={regla.tempId}
-                className="grid grid-cols-12 gap-3 bg-slate-900/50 p-3 rounded-lg items-end"
+                className="grid grid-cols-12 gap-3 bg-white p-4 rounded-lg items-end shadow-sm border border-gray-100"
               >
                 {/* 1. Prioridad de Variante */}
                 <div className="col-span-12 md:col-span-1">
                   <label
-                    className={`block mb-1 text-xs text-slate-400 ${
+                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                     title="Agrupa ingredientes. Menor # = mayor prioridad."
@@ -344,10 +345,10 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                       handleReglaChange(
                         regla.tempId,
                         "recipe_variant",
-                        e.target.value
+                        e.target.value,
                       )
                     }
-                    className={`${commonInputClass} text-center px-1`}
+                    className={`${commonInputClass} text-center px-1 font-bold`}
                     min="1"
                     step="1"
                     required
@@ -360,7 +361,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 2. Tipo de Ingrediente */}
                 <div className="col-span-6 md:col-span-2">
                   <label
-                    className={`block mb-1 text-xs text-slate-400 ${
+                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                   >
@@ -372,7 +373,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                       handleReglaChange(
                         regla.tempId,
                         "ingredient_type",
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     className={commonInputClass}
@@ -390,7 +391,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                       ref={(el) => (ingredientRefs.current[regla.tempId] = el)}
                       label={
                         index === 0 ? (
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs font-bold text-[var(--color-text-secondary)] uppercase">
                             Ingrediente
                           </span>
                         ) : undefined
@@ -406,7 +407,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                   ) : (
                     <div>
                       <label
-                        className={`block mb-2 text-xs text-slate-400 ${
+                        className={`block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
                           index !== 0 ? "md:sr-only" : ""
                         }`}
                       >
@@ -437,7 +438,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 4. Consumo ML */}
                 <div className="col-span-6 md:col-span-2">
                   <label
-                    className={`block mb-1 text-xs text-slate-400 ${
+                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                   >
@@ -450,11 +451,11 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                       handleReglaChange(
                         regla.tempId,
                         "consumo_ml",
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     placeholder="ml"
-                    className={`${commonInputClass} text-center`}
+                    className={`${commonInputClass} text-center font-mono`}
                     min="0.01"
                     step="any"
                     required
@@ -465,7 +466,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                 {/* 5. Prioridad Item (dentro de la variante) */}
                 <div className="col-span-6 md:col-span-2">
                   <label
-                    className={`block mb-1 text-xs text-slate-400 ${
+                    className={`block mb-1 text-xs font-bold text-[var(--color-text-secondary)] uppercase ${
                       index !== 0 ? "md:sr-only" : ""
                     }`}
                     title="Prioridad entre botellas iguales"
@@ -479,7 +480,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                       handleReglaChange(
                         regla.tempId,
                         "prioridad_item",
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     placeholder="1, 2..."
@@ -496,7 +497,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
                   <button
                     type="button"
                     onClick={() => handleRemoveRegla(regla.tempId)}
-                    className="p-2 text-red-500 hover:text-red-400 disabled:opacity-50"
+                    className="p-2 text-red-500 hover:text-red-700 disabled:opacity-50 hover:bg-red-50 rounded-full transition-colors"
                     disabled={isSubmitting}
                     title="Eliminar esta regla"
                   >
@@ -507,11 +508,11 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
             ))}
           </div>
 
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex justify-between items-center pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={handleAddRegla}
-              className="flex items-center gap-2 text-sky-400 hover:text-sky-300 font-medium text-sm"
+              className="flex items-center gap-2 text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] font-bold text-sm uppercase tracking-wide px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
               disabled={isSubmitting}
             >
               <PlusCircle className="h-5 w-5" /> Añadir Ingrediente
@@ -520,7 +521,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
               <button
                 type="button"
                 onClick={onCancel}
-                className="text-white bg-slate-600 hover:bg-slate-700 font-medium rounded-lg text-sm px-5 py-2.5"
+                className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors uppercase tracking-wide"
                 disabled={isSubmitting}
               >
                 Cancelar
@@ -528,7 +529,7 @@ export default function RecipeForm({ recipeToEdit, onFormSubmit, onCancel }) {
               <button
                 type="submit"
                 disabled={isSubmitting || loadingDependencies}
-                className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 disabled:bg-slate-500"
+                className="px-5 py-2.5 text-sm font-bold text-white bg-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
               >
                 {isSubmitting ? "Guardando..." : "Guardar Receta"}
               </button>

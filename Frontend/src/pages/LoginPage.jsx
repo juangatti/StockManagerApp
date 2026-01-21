@@ -18,23 +18,26 @@ export default function LoginPage() {
   // 3. El JSX permanece idéntico, pero ahora es mucho más "limpio"
   //    y solo se encarga de renderizar.
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-slate-900 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-[var(--color-background)] py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center text-white">
-          <ClipboardList className="h-12 w-12" />
+        <div className="flex justify-center text-[var(--color-primary)]">
+          <ClipboardList className="h-16 w-16" />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
-          Gestor de Stock
+        <h2 className="mt-6 text-center text-4xl font-bold tracking-tight text-[var(--color-text-primary)] font-display uppercase">
+          MAUER BAR
         </h2>
+        <h3 className="mt-2 text-center text-sm font-medium text-[var(--color-text-secondary)]">
+          STOCK MANAGER
+        </h3>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-slate-800 py-8 px-4 shadow-xl sm:rounded-lg sm:px-10">
+        <div className="bg-[var(--color-surface)] py-8 px-4 shadow-[var(--shadow-card)] sm:rounded-lg sm:px-10 border border-gray-200">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
               >
                 Usuario
               </label>
@@ -46,7 +49,7 @@ export default function LoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-white placeholder-slate-400 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-sky-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-[var(--color-text-primary)] placeholder-gray-400 shadow-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] sm:text-sm transition-colors"
                 />
               </div>
             </div>
@@ -54,7 +57,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
               >
                 Contraseña
               </label>
@@ -66,12 +69,16 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-white placeholder-slate-400 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-sky-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-[var(--color-text-primary)] placeholder-gray-400 shadow-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] sm:text-sm transition-colors"
                 />
               </div>
             </div>
 
-            {error && <div className="text-sm text-red-400">{error}</div>}
+            {error && (
+              <div className="text-sm font-medium text-[var(--color-primary)] bg-red-50 p-2 rounded">
+                {error}
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -81,11 +88,11 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberUser}
                   onChange={(e) => setRememberUser(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-sky-600 focus:ring-sky-500"
+                  className="h-4 w-4 rounded border-gray-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 <label
                   htmlFor="remember-user"
-                  className="ml-2 block text-sm text-slate-300"
+                  className="ml-2 block text-sm text-[var(--color-text-secondary)]"
                 >
                   Recordar usuario
                 </label>
@@ -96,7 +103,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex w-full justify-center rounded-md border border-transparent bg-sky-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50"
+                className="flex w-full justify-center rounded-md border border-transparent bg-[var(--color-primary)] py-2 px-4 text-sm font-bold text-white shadow-sm hover:bg-[var(--color-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 disabled:opacity-50 uppercase tracking-widest transition-colors cursor-pointer"
               >
                 {isLoading ? "Ingresando..." : "Ingresar"}
               </button>
@@ -106,8 +113,8 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <p className="text-center text-xs text-slate-500">
-          Stock Manager App{" "}
+        <p className="text-center text-xs text-[var(--color-text-muted)]">
+          Mauer Bar Stock Manager{" "}
           <span className="align-super" style={{ fontSize: "0.6rem" }}>
             ®
           </span>{" "}

@@ -4,39 +4,36 @@ import Card from "../atoms/Card";
 import Spinner from "../atoms/Spinner";
 
 export default function InventoryTable({ loading }) {
-  const { stockItems, error, stockSearchQuery } = useStockStore();
+  const { stockItems, stockSearchQuery } = useStockStore();
 
   return (
     <Card>
-      {/* 1. Mantenemos overflow-x-auto por si acaso en pantallas intermedias, pero el diseño de tarjeta lo hará menos necesario */}
+      {/* 1. Mantenemos overflow-x-auto */}
       <div className="overflow-x-auto relative">
         {loading && (
-          <div className="absolute inset-0 bg-slate-800/50 flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
             <Spinner />
           </div>
         )}
-        {/* 2. Quitamos min-w de la tabla, dejamos que el contenido dicte el ancho */}
-        <table className="w-full text-sm text-left text-slate-300">
-          {/* 3. Ocultamos el thead completo en móvil (md:table-header-group) */}
-          <thead className="text-xs uppercase bg-slate-700 text-slate-400 hidden md:table-header-group">
+        <table className="w-full text-sm text-left text-[var(--color-text-primary)]">
+          {/* 3. Thead Clean Style */}
+          <thead className="text-xs uppercase bg-gray-50 text-[var(--color-text-secondary)] font-display tracking-wider hidden md:table-header-group border-b border-gray-200">
             <tr>
-              <th scope="col" className="py-3 px-6">
+              <th scope="col" className="py-4 px-6 font-semibold">
                 Item
               </th>
-              {/* La cabecera de Categoría ya estaba oculta en móvil, pero ocultamos todo el thead */}
-              <th scope="col" className="py-3 px-6">
+              <th scope="col" className="py-4 px-6 font-semibold">
                 Categoría
               </th>
-              <th scope="col" className="py-3 px-6 text-center">
+              <th scope="col" className="py-4 px-6 text-center font-semibold">
                 Stock (Unidades)
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-100">
             {!loading && stockItems.length === 0 ? (
               <tr>
-                {/* Ajustamos colspan para escritorio */}
-                <td colSpan={3} className="text-center py-8 text-slate-500">
+                <td colSpan={3} className="text-center py-8 text-gray-500">
                   {stockSearchQuery
                     ? "No se encontraron items."
                     : "No hay items para mostrar."}
@@ -44,42 +41,37 @@ export default function InventoryTable({ loading }) {
               </tr>
             ) : (
               stockItems.map((item) => (
-                // 4. TR como bloque en móvil, fila en escritorio
+                // 4. TR Clean Style: White bg, subtle hover
                 <tr
                   key={item.id}
-                  className="block md:table-row border-b border-slate-700 mb-2 md:mb-0 bg-slate-800/50 md:bg-transparent rounded-lg md:rounded-none overflow-hidden md:overflow-visible shadow-md md:shadow-none" // Estilos de tarjeta para móvil
+                  className="block md:table-row mb-2 md:mb-0 bg-white md:bg-transparent rounded-lg md:rounded-none shadow-sm md:shadow-none hover:bg-gray-50 transition-colors"
                 >
-                  {/* 5. Celda Item (ahora 'td' para consistencia) */}
                   <td
-                    data-label="Item" // Añadir data-label para posible CSS futuro
-                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 font-medium text-white md:whitespace-nowrap border-b md:border-b-0 border-slate-700" // Padding y borde móvil
+                    data-label="Item"
+                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 font-medium text-[var(--color-text-primary)] md:whitespace-nowrap border-b md:border-b-0 border-gray-100"
                   >
-                    {/* 6. Etiqueta visible solo en móvil */}
-                    <span className="md:hidden font-semibold text-slate-400 mr-2">
+                    <span className="md:hidden font-bold text-[var(--color-text-secondary)] mr-2 uppercase text-xs">
                       Item:{" "}
                     </span>
                     {item.nombre_completo}
                   </td>
-                  {/* 7. Celda Categoría: oculta en móvil, visible en escritorio */}
                   <td
                     data-label="Categoría"
-                    className="hidden md:table-cell py-3 px-4 md:py-4 md:px-6 md:whitespace-nowrap border-b md:border-b-0 border-slate-700" // Padding móvil
+                    className="hidden md:table-cell py-3 px-4 md:py-4 md:px-6 md:whitespace-nowrap border-b md:border-b-0 border-gray-100"
                   >
-                    {/* No necesitamos etiqueta aquí porque solo se ve en escritorio */}
-                    {item.nombre_categoria}
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {item.nombre_categoria}
+                    </span>
                   </td>
-                  {/* 8. Celda Stock */}
                   <td
                     data-label="Stock"
-                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 text-left md:text-center font-mono font-bold" // Alineación móvil
+                    className="block md:table-cell py-3 px-4 md:py-4 md:px-6 text-left md:text-center font-mono font-bold text-[var(--color-secondary-dark)]"
                   >
-                    {/* 9. Etiqueta visible solo en móvil */}
-                    <span className="md:hidden font-semibold text-slate-400 mr-2">
+                    <span className="md:hidden font-bold text-[var(--color-text-secondary)] mr-2 uppercase text-xs">
                       Stock:{" "}
                     </span>
                     {item.stock_unidades.toFixed(2)}
-                    {/* 10. Añadir 'unidades' en móvil para claridad */}
-                    <span className="md:hidden text-sm font-normal text-slate-400 ml-1">
+                    <span className="md:hidden text-sm font-normal text-gray-500 ml-1">
                       unidades
                     </span>
                   </td>

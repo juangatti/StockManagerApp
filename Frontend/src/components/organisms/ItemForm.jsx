@@ -27,16 +27,16 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           /* ... manejo error formato ... */
           console.error(
             "La respuesta de /admin/marcas/all no es un array:",
-            res.data
+            res.data,
           );
           setMarcas([]);
           toast.error(
-            "Error al cargar la lista de marcas (formato inesperado)."
+            "Error al cargar la lista de marcas (formato inesperado).",
           );
         }
       })
       .catch(() =>
-        toast.error("No se pudieron cargar las marcas (error de red).")
+        toast.error("No se pudieron cargar las marcas (error de red)."),
       );
   }, []);
 
@@ -77,7 +77,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
       !formData.alerta_stock_bajo
     ) {
       toast.error(
-        "La marca, cantidad por envase, unidad de medida y alerta de stock son obligatorios." // <-- Mensaje actualizado
+        "La marca, cantidad por envase, unidad de medida y alerta de stock son obligatorios.", // <-- Mensaje actualizado
       );
       return;
     }
@@ -119,25 +119,25 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
     });
   };
 
-  // Clase común para inputs
+  // Clase común para inputs (Mauer Theme)
   const commonInputClass =
-    "bg-slate-700 border border-slate-600 text-white text-sm rounded-lg w-full p-2.5 focus:ring-sky-500 focus:border-sky-500";
+    "bg-white border border-gray-300 text-[var(--color-text-primary)] text-sm rounded-lg w-full p-2.5 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] transition-colors shadow-sm placeholder-gray-400";
 
   // --- JSX ---
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-3">
-        <PackagePlus className="text-sky-400" />
+    <div className="bg-[var(--color-surface)] p-8 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
+      <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-6 flex items-center gap-3 font-display uppercase tracking-wide border-b border-gray-100 pb-4">
+        <PackagePlus className="text-[var(--color-primary)] h-6 w-6" />
         {itemToEdit?.id ? "Editar Item de Stock" : "Crear Nuevo Item (Envase)"}
       </h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Usaremos grid de 2 columnas ahora */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Marca */}
           <div>
             <label
               htmlFor="marca_id"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Marca del Producto (*)
             </label>
@@ -164,7 +164,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="variacion"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Variación (Opcional)
             </label>
@@ -183,29 +183,31 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="cantidad_por_envase"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Cantidad por Envase (*) {/* <-- Label actualizado */}
             </label>
-            <input
-              type="number"
-              name="cantidad_por_envase"
-              id="cantidad_por_envase" /* <-- name actualizado */
-              placeholder="Ej: 750 ó 1000"
-              value={formData.cantidad_por_envase}
-              onChange={handleChange}
-              className={commonInputClass}
-              required
-              min="0.001"
-              step="any" // Permitir decimales
-            />
+            <div className="relative">
+              <input
+                type="number"
+                name="cantidad_por_envase"
+                id="cantidad_por_envase" /* <-- name actualizado */
+                placeholder="Ej: 750 ó 1000"
+                value={formData.cantidad_por_envase}
+                onChange={handleChange}
+                className={commonInputClass}
+                required
+                min="0.001"
+                step="any" // Permitir decimales
+              />
+            </div>
           </div>
 
           {/* Unidad de Medida */}
           <div>
             <label
               htmlFor="unidad_medida"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Unidad de Medida (*) {/* <-- Nuevo campo */}
             </label>
@@ -226,7 +228,7 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div>
             <label
               htmlFor="alerta_stock_bajo"
-              className="block mb-2 text-sm font-medium text-slate-300"
+              className="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider"
             >
               Alerta Stock Bajo (unid.) (*)
             </label>
@@ -248,18 +250,18 @@ export default function ItemForm({ itemToEdit, onFormSubmit, onCancel }) {
           <div></div>
         </div>
         {/* Botones */}
-        <div className="flex justify-end pt-2 gap-4">
+        <div className="flex justify-end pt-4 gap-4 border-t border-gray-100 mt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="text-white bg-slate-600 hover:bg-slate-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+            className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors uppercase tracking-wide"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="text-white bg-sky-600 hover:bg-sky-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500"
+            className="px-5 py-2.5 text-sm font-bold text-white bg-[var(--color-primary)] rounded-lg hover:bg-[var(--color-primary-dark)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
           >
             {isSubmitting ? "Guardando..." : "Guardar Cambios"}
           </button>

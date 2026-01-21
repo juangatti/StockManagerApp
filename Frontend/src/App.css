@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+/* Font Imports */
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Oswald:wght@200..700&display=swap");
+
+@theme {
+  /* Brand Colors - Mauer Industrial */
+  --color-primary: #d32f2f; /* Brick Red */
+  --color-primary-dark: #b71c1c;
+  --color-primary-light: #ffcdd2;
+
+  --color-secondary: #455a64; /* Slate Blue Grey */
+  --color-secondary-dark: #263238;
+  --color-secondary-light: #cfd8dc;
+
+  --color-accent: #ffc107; /* Industrial Yellow (Warning/Caution) */
+
+  /* Surface & Backgrounds */
+  --color-background: #f4f4f4; /* Concrete/Paper */
+  --color-surface: #ffffff;
+  --color-surface-hover: #fafafa;
+
+  /* Text Colors */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #546e7a;
+  --color-text-muted: #90a4ae;
+
+  /* Font Families */
+  --font-display: "Oswald", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* Shadows matching clean dashboard style */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-card-hover:
+    0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Base Global Styles */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  @apply antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  text-transform: uppercase; /* Industrial look */
+  letter-spacing: 0.025em;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary);
+}
