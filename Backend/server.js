@@ -10,9 +10,9 @@ import profileRoutes from "./routes/profile_Routes.js";
 import reservationsRoutes from "./routes/reservations_Routes.js";
 import schedulesRoutes from "./routes/schedules_Routes.js";
 import kegManagementRoutes from "./routes/keg_management_Routes.js";
+
 // Cargar variables de entorno
 dotenv.config();
-// Force redeploy
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "*",
-  })
+  }),
 );
 app.use(express.json());
 
@@ -35,9 +35,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/reservations", reservationsRoutes);
 app.use("/api/schedules", schedulesRoutes); // Restored schedulesRoutes
 app.use("/api/keg-management", kegManagementRoutes);
-
-// Force Redeploy timestamp
-console.log("Server initiated at " + new Date().toISOString());
 
 // Iniciar el servidor
 app.listen(PORT, () => {

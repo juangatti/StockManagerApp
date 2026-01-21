@@ -20,7 +20,7 @@ export const getStock = async (req, res) => {
       queryParams.push(
         `%${searchQuery}%`,
         `%${searchQuery}%`,
-        `%${searchQuery}%`
+        `%${searchQuery}%`,
       );
     }
 
@@ -208,14 +208,14 @@ export const registerPurchase = async (req, res) => {
     const descripcionEvento = descripcion;
     const [eventoResult] = await connection.query(
       "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('COMPRA', ?)",
-      [descripcionEvento]
+      [descripcionEvento],
     );
     const eventoId = eventoResult.insertId;
 
     for (const item of itemsComprados) {
       const [stockActualRows] = await connection.query(
         "SELECT stock_unidades FROM stock_items WHERE id = ?",
-        [item.itemId]
+        [item.itemId],
       );
       if (stockActualRows.length === 0) {
         throw new Error(`El item con ID ${item.itemId} no fue encontrado.`);
@@ -225,7 +225,7 @@ export const registerPurchase = async (req, res) => {
 
       await connection.query(
         "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-        [stockNuevo, item.itemId]
+        [stockNuevo, item.itemId],
       );
 
       // 4. MODIFICADO: Usamos la descripción general para el movimiento individual
@@ -240,7 +240,7 @@ export const registerPurchase = async (req, res) => {
           stockNuevo,
           descripcionEvento, // <-- Usamos la descripción general
           eventoId,
-        ]
+        ],
       );
     }
 
@@ -276,7 +276,7 @@ export const registerAdjustment = async (req, res) => {
 
     const [stockActualRows] = await connection.query(
       "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
-      [itemId]
+      [itemId],
     );
     if (stockActualRows.length === 0) {
       throw new Error(`El item con ID ${itemId} no fue encontrado.`);
@@ -289,14 +289,14 @@ export const registerAdjustment = async (req, res) => {
     const descEvento = descripcion || "Ajuste por conteo físico";
     const [eventoResult] = await connection.query(
       "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('AJUSTE', ?)",
-      [descEvento]
+      [descEvento],
     );
     const eventoId = eventoResult.insertId;
 
     if (cantidadMovida !== 0) {
       await connection.query(
         "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-        [conteoReal, itemId]
+        [conteoReal, itemId],
       );
 
       // MODIFICADO: 2. Añadimos el evento_id
@@ -311,14 +311,14 @@ export const registerAdjustment = async (req, res) => {
           conteoReal,
           descEvento, // Usamos la misma descripción para el movimiento
           eventoId, // <-- El nuevo ID del evento
-        ]
+        ],
       );
     }
 
     await connection.commit();
     res.status(200).json({
       message: `Ajuste registrado. Se movieron ${cantidadMovida.toFixed(
-        2
+        2,
       )} unidades.`,
     });
   } catch (error) {
@@ -358,7 +358,7 @@ export const registerMassiveAdjustment = async (req, res) => {
     const descEvento = descripcion; // Ya viene validada desde el frontend
     const [eventoResult] = await connection.query(
       "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('AJUSTE', ?)",
-      [descEvento]
+      [descEvento],
     );
     const eventoId = eventoResult.insertId;
 
@@ -367,7 +367,7 @@ export const registerMassiveAdjustment = async (req, res) => {
 
       const [stockActualRows] = await connection.query(
         "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
-        [itemId]
+        [itemId],
       );
 
       if (stockActualRows.length === 0) {
@@ -380,7 +380,7 @@ export const registerMassiveAdjustment = async (req, res) => {
       if (cantidadMovida !== 0) {
         await connection.query(
           "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-          [conteoReal, itemId]
+          [conteoReal, itemId],
         );
 
         // 4. MODIFICADO: Usamos la descripción general del evento para todos los movimientos
@@ -395,7 +395,7 @@ export const registerMassiveAdjustment = async (req, res) => {
             conteoReal,
             descEvento, // <-- Usamos la descripción general
             eventoId,
-          ]
+          ],
         );
       }
     }
@@ -686,7 +686,7 @@ export const getStockAlerts = async (req, res) => {
     `;
 
     const lowStockQuery = buildAlertQuery(
-      "si.stock_unidades > 0 AND si.stock_unidades <= si.alerta_stock_bajo"
+      "si.stock_unidades > 0 AND si.stock_unidades <= si.alerta_stock_bajo",
     );
     const [lowStockItems] = await pool.query(lowStockQuery); //
 
@@ -723,7 +723,7 @@ export const registerProduction = async (req, res) => {
   if (!prebatchName || !productionDate || !quantityProducedMl || !description) {
     console.error(
       "Error Validación registerProduction: Faltan datos básicos",
-      req.body
+      req.body,
     );
     return res.status(400).json({
       message:
@@ -736,7 +736,7 @@ export const registerProduction = async (req, res) => {
   ) {
     console.error(
       "Error Validación registerProduction: Cantidad inválida",
-      req.body.quantityProducedMl
+      req.body.quantityProducedMl,
     );
     return res
       .status(400)
@@ -745,7 +745,7 @@ export const registerProduction = async (req, res) => {
   if (ingredients && !Array.isArray(ingredients)) {
     console.error(
       "Error Validación registerProduction: Formato ingredientes inválido",
-      req.body.ingredients
+      req.body.ingredients,
     );
     return res.status(400).json({
       message:
@@ -766,25 +766,18 @@ export const registerProduction = async (req, res) => {
 
   let connection;
   try {
-    console.log(
-      `Iniciando registro de producción para Prebatch: ${prebatchName}, Cantidad: ${quantityProducedMl}ml`
-    );
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    console.log("Transacción iniciada.");
 
     // 2. Crear evento de PRODUCCION
-    console.log(`Creando evento PRODUCCION con descripción: "${description}"`);
     const [eventoResult] = await connection.query(
       "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('PRODUCCION', ?)",
-      [description]
+      [description],
     );
     const eventoId = eventoResult.insertId;
-    console.log(`Evento PRODUCCION creado con ID: ${eventoId}`);
 
     // 3. Procesar ingredientes (si existen)
     if (ingredients && ingredients.length > 0) {
-      console.log(`Procesando ${ingredients.length} ingrediente(s)...`);
       for (const ingredient of ingredients) {
         const { itemId, quantityConsumedMl } = ingredient;
 
@@ -796,21 +789,18 @@ export const registerProduction = async (req, res) => {
           parseFloat(quantityConsumedMl) <= 0
         ) {
           throw new Error(
-            `Ingrediente inválido encontrado en la lista: ID=${itemId}, Consumo=${quantityConsumedMl}`
+            `Ingrediente inválido encontrado en la lista: ID=${itemId}, Consumo=${quantityConsumedMl}`,
           );
         }
-        const consumedMl = parseFloat(quantityConsumedMl); // Usar número
-        console.log(
-          `  Procesando Ingrediente Item ID: ${itemId}, Consumo Requerido: ${consumedMl}ml`
-        );
+        const consumedMl = parseFloat(quantityConsumedMl);
 
         // Obtener info y stock actual del item con bloqueo
         const [itemInfoRows] = await connection.query(
           `SELECT si.stock_unidades, si.variacion, si.cantidad_por_envase, si.unidad_medida, m.nombre as nombre_marca
             FROM stock_items si
             JOIN marcas m ON si.marca_id = m.id
-            WHERE si.id = ? AND si.is_active = TRUE FOR UPDATE`, // Bloquear y asegurar activo
-          [itemId]
+            WHERE si.id = ? AND si.is_active = TRUE FOR UPDATE`,
+          [itemId],
         );
 
         if (itemInfoRows.length === 0) {
@@ -818,14 +808,14 @@ export const registerProduction = async (req, res) => {
           const [inactiveItem] = await connection.query(
             `SELECT CONCAT(m.nombre, ' ', COALESCE(si.variacion,''), ' ', si.cantidad_por_envase, si.unidad_medida) as nombre
              FROM stock_items si JOIN marcas m ON si.marca_id = m.id WHERE si.id = ?`,
-            [itemId]
+            [itemId],
           );
           const itemName =
             inactiveItem.length > 0
               ? `"${inactiveItem[0].nombre}" (ID: ${itemId})`
               : `ID ${itemId}`;
           throw new Error(
-            `Ingrediente ${itemName} no encontrado, no está activo o no tiene stock.`
+            `Ingrediente ${itemName} no encontrado, no está activo o no tiene stock.`,
           );
         }
         const itemInfo = itemInfoRows[0];
@@ -834,59 +824,45 @@ export const registerProduction = async (req, res) => {
           itemInfo.nombre_marca,
           itemInfo.variacion,
           itemInfo.cantidad_por_envase,
-          itemInfo.unidad_medida
+          itemInfo.unidad_medida,
         );
 
         // Verificar cantidad_por_envase válida
         if (itemInfo.cantidad_por_envase <= 0) {
-          console.warn(
-            `Advertencia: Cantidad por envase inválida (${itemInfo.cantidad_por_envase}) para item ${nombreCompletoItem} (ID: ${itemId}). Saltando este ingrediente.`
+          console.error(
+            `Cantidad por envase inválida (${itemInfo.cantidad_por_envase}) para item ${nombreCompletoItem} (ID: ${itemId})`,
           );
-          continue; // Saltar ingrediente si no se puede calcular unidades
+          continue;
         }
 
-        // Calcular unidades a descontar (Asunción 1:1 para sólidos)
-        let cantidadConsumidaEnUnidadBase = consumedMl; // Asumir ml por defecto
+        // Calcular unidades a descontar
+        let cantidadConsumidaEnUnidadBase = consumedMl;
         if (itemInfo.unidad_medida === "g") {
-          // TODO: Implementar conversión con densidad si es necesaria. Asumiendo 1ml = 1g.
-          console.log(
-            `   INFO: Asumiendo 1ml = 1g para item sólido ${nombreCompletoItem}`
-          );
-          // cantidadConsumidaEnUnidadBase = consumedMl; // Sigue siendo el mismo número
+          // Asumiendo 1ml = 1g para items sólidos
+          cantidadConsumidaEnUnidadBase = consumedMl;
         }
         const aDescontarEnUnidades =
           cantidadConsumidaEnUnidadBase / itemInfo.cantidad_por_envase;
 
         const stockNuevo = stockAnterior - aDescontarEnUnidades;
-        console.log(
-          `    Item: ${nombreCompletoItem}, Stock Anterior: ${stockAnterior.toFixed(
-            3
-          )}, A descontar: ${aDescontarEnUnidades.toFixed(
-            3
-          )} (${cantidadConsumidaEnUnidadBase}${
-            itemInfo.unidad_medida
-          }), Stock Nuevo (calc): ${stockNuevo.toFixed(3)}`
-        );
 
         // Verificar stock suficiente
         if (stockNuevo < -0.001) {
-          // Usar tolerancia
           throw new Error(
             `Stock insuficiente para "${nombreCompletoItem}" (ID: ${itemId}). Necesita consumir: ${aDescontarEnUnidades.toFixed(
-              3
+              3,
             )} unid. (${cantidadConsumidaEnUnidadBase}${
               itemInfo.unidad_medida
-            }), Disponible: ${stockAnterior.toFixed(3)} unid.`
+            }), Disponible: ${stockAnterior.toFixed(3)} unid.`,
           );
         }
-        const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5)); // Redondear
+        const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
 
         // Actualizar stock_items
         await connection.query(
           "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-          [stockNuevoRedondeado, itemId]
+          [stockNuevoRedondeado, itemId],
         );
-        console.log(`    Stock actualizado para Item ID: ${itemId}`);
 
         // Crear descripción para el movimiento
         const descripcionMovimiento = `${description} (Consumo: ${nombreCompletoItem})`;
@@ -896,28 +872,17 @@ export const registerProduction = async (req, res) => {
           `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?)`,
           [
             itemId,
-            -aDescontarEnUnidades, // Negativo
+            -aDescontarEnUnidades,
             stockAnterior,
             stockNuevoRedondeado,
             descripcionMovimiento,
             eventoId,
-          ]
+          ],
         );
-        console.log(`    Movimiento registrado para Item ID: ${itemId}`);
-      } // Fin bucle ingredients
-      console.log("Procesamiento de ingredientes completado.");
-    } else {
-      console.log("No se especificaron ingredientes para descontar.");
+      }
     }
 
     // 4. Crear Prebatch (CORREGIDO - usa categoryId)
-    console.log(
-      `Creando prebatch con nombre: ${prebatchName}, Categoria ID: ${
-        categoryId || "Ninguna"
-      }, Fecha Prod: ${productionDate}, Vencimiento: ${
-        expiryDate || "No especificado"
-      }, Cantidad: ${quantityProducedMl}ml`
-    );
     await connection.query(
       `INSERT INTO prebatches (nombre_prebatch, fecha_produccion, fecha_vencimiento, categoria_id, cantidad_inicial_ml, cantidad_actual_ml, identificador_lote, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
@@ -925,43 +890,33 @@ export const registerProduction = async (req, res) => {
         prebatchName,
         productionDate,
         expiryDate || null,
-        categoryId || null, // <-- Usa la variable 'categoryId' extraída
+        categoryId || null,
         quantityProducedMl,
         quantityProducedMl,
-        null, // Identificador lote
-      ]
+        null,
+      ],
     );
-    console.log("Prebatch creado/insertado en la tabla prebatches.");
 
-    console.log("Intentando commit final...");
     await connection.commit();
-    console.log("Commit final exitoso.");
 
-    // Enviar respuesta de éxito
     res.status(200).json({
       message:
         "Producción registrada y stock de ingredientes descontado con éxito.",
     });
   } catch (error) {
-    console.error("--- ERROR en registerProduction ---:", error); // Loggear el error completo
+    console.error("Error en registerProduction:", error);
     if (connection) {
-      console.log("Intentando rollback...");
       await connection.rollback();
-      console.log("Rollback realizado.");
     }
-    // Enviar respuesta de error 500 con el mensaje específico
     res.status(500).json({
       message:
         error.message ||
         "Error interno del servidor al registrar la producción.",
-      error: error.message, // Incluir el mensaje de error también en el campo 'error'
+      error: error.message,
     });
   } finally {
     if (connection) {
-      console.log("Liberando conexión...");
       connection.release();
-      console.log("Conexión liberada.");
     }
-    console.log("--- Finalizando registerProduction ---");
   }
 };
