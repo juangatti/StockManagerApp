@@ -24,7 +24,7 @@ export default function LoginPage() {
           <ClipboardList className="h-16 w-16" />
         </div>
         <h2 className="mt-6 text-center text-4xl font-bold tracking-tight text-[var(--color-text-primary)] font-display uppercase">
-          MAUER BAR
+          STOCK MANAGER APP
         </h2>
         <h3 className="mt-2 text-center text-sm font-medium text-[var(--color-text-secondary)]">
           STOCK MANAGER
@@ -114,7 +114,9 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <p className="text-center text-xs text-[var(--color-text-muted)]">
-          Mauer Bar Stock Manager{" "}
+          Stock Manager App
+          <br />
+          Created by Juan Gatti{" "}
           <span className="align-super" style={{ fontSize: "0.6rem" }}>
             ®
           </span>{" "}

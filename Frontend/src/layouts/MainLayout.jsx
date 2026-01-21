@@ -61,7 +61,7 @@ export default function MainLayout() {
           >
             <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
             <span className="text-2xl font-bold font-display uppercase tracking-wider">
-              Mauer Bar
+              Stock Manager App
             </span>
           </Link>
         </header>
@@ -108,7 +108,7 @@ export default function MainLayout() {
               >
                 <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
                 <span className="text-xl font-bold font-display uppercase">
-                  Mauer
+                  Stock Manager
                 </span>
               </Link>
               <button

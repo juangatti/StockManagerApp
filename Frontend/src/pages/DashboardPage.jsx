@@ -14,11 +14,11 @@ import ActiveTapsWidget from "../components/widgets/ActiveTapsWidget";
 
 const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
   <div
-    className={`bg-slate-800 p-6 rounded-lg shadow-lg border-l-4 ${colorClass}`}
+    className={`bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border-l-4 border-gray-200 ${colorClass}`}
   >
     <div className="flex items-center mb-4">
-      <Icon className="h-6 w-6 mr-3" />
-      <h3 className="text-xl font-semibold text-white">
+      <Icon className="h-6 w-6 mr-3 text-[var(--color-text-secondary)]" />
+      <h3 className="text-xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-wide">
         {title} ({items.length})
       </h3>
     </div>
@@ -27,16 +27,16 @@ const AlertCard = ({ title, items, icon: Icon, colorClass }) => (
         items.map((item) => (
           <li
             key={item.id}
-            className="flex items-center justify-between text-slate-300"
+            className="flex items-center justify-between text-[var(--color-text-secondary)] border-b border-gray-100 pb-2 last:border-0 last:pb-0"
           >
-            <span>{item.nombre_item}</span>
-            <span className="font-mono font-bold bg-slate-700 px-2 py-0.5 rounded text-xs ml-2">
+            <span className="font-medium text-sm">{item.nombre_item}</span>
+            <span className="font-mono font-bold bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs ml-2">
               {parseFloat(item.stock_unidades).toFixed(2)} {item.unidad_medida}
             </span>
           </li>
         ))
       ) : (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--color-text-muted)] italic">
           No hay items en esta categoría.
         </p>
       )}
@@ -86,27 +86,33 @@ export default function DashboardPage() {
   const fecha = new Date().toLocaleDateString("es-AR", { dateStyle: "full" });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {/* SECCIÓN SUPERIOR: FECHA Y WIDGETS PRINCIPALES */}
-      <h2 className="text-3xl font-bold text-white border-b border-slate-700 pb-2">
-        {fecha.charAt(0).toUpperCase() + fecha.slice(1)}
-      </h2>
+      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-200 pb-4 mb-6">
+        <h2 className="text-3xl font-bold text-[var(--color-text-primary)] font-display uppercase tracking-tighter">
+          {fecha}
+        </h2>
+      </div>
 
       {/* WIDGET DE CANILLAS ACTIVAS */}
       <ActiveTapsWidget />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* WIDGET DE RESERVAS */}
-        <div className="bg-slate-800 p-6 rounded-lg shadow-xl border-l-4 border-indigo-500">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
+          <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-4">
             <div className="flex items-center">
-              <CalendarCheck className="h-8 w-8 text-indigo-400 mr-3" />
+              <CalendarCheck className="h-8 w-8 text-[var(--color-primary)] mr-3" />
               <div>
-                <h2 className="text-xl font-bold text-white">Total Personas</h2>
-                <p className="text-xs text-slate-400">Reservas de hoy</p>
+                <h2 className="text-xl font-bold text-[var(--color-text-primary)] font-display uppercase">
+                  Total Personas
+                </h2>
+                <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider">
+                  Reservas de hoy
+                </p>
               </div>
             </div>
-            <span className="text-3xl font-bold text-white bg-indigo-900/50 px-4 py-2 rounded-lg">
+            <span className="text-3xl font-bold text-[var(--color-primary)] bg-red-50 px-4 py-2 rounded-lg font-mono">
               {reservationStats.totalPax || 0}
             </span>
           </div>
@@ -116,26 +122,26 @@ export default function DashboardPage() {
               reservationStats.today_reservations.map((res) => (
                 <div
                   key={res.id}
-                  className="bg-slate-700/50 p-3 rounded border border-slate-700 flex justify-between items-center text-sm"
+                  className="bg-gray-50 p-3 rounded-lg border border-gray-100 flex justify-between items-center text-sm hover:bg-white hover:shadow-sm transition-all"
                 >
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-indigo-300" />
-                      <span className="text-slate-200 font-medium">
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span className="text-[var(--color-text-primary)] font-bold">
                         {res.customer_name}
                       </span>
-                      <span className="text-xs text-slate-500">
-                        ({res.pax} pax)
+                      <span className="text-xs text-gray-500 font-medium bg-white px-2 py-0.5 rounded border border-gray-200">
+                        {res.pax} pax
                       </span>
                     </div>
                     {res.location && (
-                      <div className="flex items-center gap-2 text-xs text-slate-400 ml-1">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 ml-1">
                         <MapPin className="h-3 w-3" />
                         <span>{res.location}</span>
                       </div>
                     )}
                   </div>
-                  <span className="font-mono text-indigo-200 font-bold">
+                  <span className="font-mono text-[var(--color-primary)] font-bold text-lg">
                     {new Date(res.reservation_date).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -146,7 +152,7 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : (
-              <p className="text-slate-500 text-sm text-center py-4">
+              <p className="text-[var(--color-text-muted)] text-sm text-center py-8 italic bg-gray-50 rounded-lg">
                 Sin reservas para hoy.
               </p>
             )}
@@ -158,8 +164,8 @@ export default function DashboardPage() {
       </div>
 
       {/* SECCIÓN STOCK DE HIELO */}
-      <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-700">
-        <h2 className="text-2xl font-bold text-white mb-4 text-center">
+      <div className="bg-[var(--color-surface)] p-6 rounded-lg shadow-[var(--shadow-card)] border border-gray-200">
+        <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-6 text-center font-display uppercase tracking-wide border-b border-gray-100 pb-4">
           Informe Hielístico
         </h2>
 
@@ -170,14 +176,14 @@ export default function DashboardPage() {
                 key={index}
                 className="flex flex-col items-center justify-center gap-2 text-center"
               >
-                <Snowflake className="h-12 w-12 text-cyan-300" />
+                <Snowflake className="h-10 w-10 text-gray-400" />
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-300">
+                  <h3 className="text-lg font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
                     {item.nombre_completo_hielo}
                   </h3>
-                  <p className="text-4xl font-bold text-white font-mono">
+                  <p className="text-4xl font-bold text-[var(--color-text-primary)] font-mono">
                     {parseFloat(item.total_unidades).toFixed(2)}
-                    <span className="text-xl font-medium text-slate-400 ml-2">
+                    <span className="text-xl font-medium text-gray-400 ml-2">
                       {item.unidad_medida}
                     </span>
                   </p>
@@ -185,7 +191,7 @@ export default function DashboardPage() {
               </div>
             ))
           ) : (
-            <p className="text-slate-500 col-span-full text-center">
+            <p className="text-gray-400 col-span-full text-center italic">
               No se encontraron items en la categoría "HIELO".
             </p>
           )}
@@ -198,13 +204,13 @@ export default function DashboardPage() {
           title="Poco Stock"
           items={alerts.lowStock}
           icon={AlertTriangle}
-          colorClass="border-yellow-500"
+          colorClass="border-[var(--color-accent)]" /* Amber */
         />
         <AlertCard
           title="Agotado"
           items={alerts.outOfStock}
           icon={XCircle}
-          colorClass="border-red-500"
+          colorClass="border-[var(--color-primary)]" /* Red */
         />
       </div>
     </div>
