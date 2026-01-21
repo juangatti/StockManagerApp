@@ -1,7 +1,16 @@
 // src/layouts/MainLayout.jsx
 import { useState } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { ClipboardList, LogOut, X, Bell, Mail, Menu } from "lucide-react";
+import {
+  ClipboardList,
+  LogOut,
+  X,
+  Bell,
+  Mail,
+  Menu,
+  Sun,
+  Moon,
+} from "lucide-react";
 import Sidebar from "../components/molecules/SideBar";
 
 import useAuthStore from "../stores/useAuthStore";
@@ -50,145 +59,156 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)]">
-      {/* --- TOP HEADER BAR (Desktop & Mobile) --- */}
-      <header className="bg-white border-b border-gray-200 shadow-sm z-20 sticky top-0">
-        <div className="flex items-center justify-between px-4 md:px-8 py-3">
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+    <div className="flex min-h-screen bg-[var(--color-background)] text-[var(--color-text-primary)] overflow-hidden">
+      {/* ... sidebar and header code ... */}
+      <aside className="hidden md:flex flex-col w-[280px] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] shadow-xl shrink-0">
+        <header className="p-6 border-b border-[var(--color-secondary)]">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-3 text-white hover:text-[var(--color-primary-light)] transition-colors"
           >
-            <Menu className="h-6 w-6" />
+            <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
+            <span className="text-xl font-bold font-display uppercase tracking-wider">
+              Stock Manager
+            </span>
+          </Link>
+        </header>
+
+        <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar">
+          <Sidebar />
+        </nav>
+
+        <footer className="p-4 border-t border-[var(--color-secondary)]">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar Sesión
           </button>
+          <p className="text-[10px] text-center text-gray-600 mt-4 leading-relaxed uppercase font-bold tracking-tighter">
+            Created by Juan Gatti ® 2026
+          </p>
+        </footer>
+      </aside>
 
-          {/* Logo/Title (hidden on mobile, shown on desktop) */}
-          <div className="hidden md:block">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-3 text-[var(--color-text-primary)] hover:text-[var(--color-primary)] transition-colors"
-            >
-              <ClipboardList className="h-7 w-7 text-[var(--color-primary)]" />
-              <span className="text-xl font-bold font-display uppercase tracking-wider">
-                Stock Manager App
-              </span>
-            </Link>
-          </div>
+      {/* --- WRAPPER FOR HEADER + CONTENT --- */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* --- TOP HEADER BAR --- */}
+        <header className="bg-white border-b border-gray-200 shadow-sm z-20">
+          <div className="flex items-center justify-between px-4 md:px-8 py-3">
+            <div className="flex items-center gap-4">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Menu className="h-6 w-6" />
+              </button>
 
-          {/* Spacer for mobile */}
-          <div className="md:hidden flex-1"></div>
+              {/* SMA Title (The "SMA" specifically requested for this column) */}
+              <h1 className="text-2xl font-black font-display text-[var(--color-text-primary)] tracking-tighter">
+                SMA
+              </h1>
+            </div>
 
-          {/* Right Side Icons */}
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Notifications */}
-            <button
-              className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Notificaciones"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1 right-1 h-2 w-2 bg-[var(--color-primary)] rounded-full"></span>
-            </button>
+            {/* Right Side Icons */}
+            <div className="flex items-center gap-1 md:gap-3">
+              {/* Theme Toggle (Functional placeholder icon) */}
+              <button
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Cambiar Tema"
+              >
+                <Sun className="h-5 w-5" />
+              </button>
 
-            {/* Inbox/Messages */}
-            <button
-              className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Mensajes"
-            >
-              <Mail className="h-5 w-5" />
-            </button>
+              {/* Notifications */}
+              <button
+                className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Notificaciones"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-2 right-2 h-2 w-2 bg-[var(--color-primary)] rounded-full border-2 border-white"></span>
+              </button>
 
-            {/* User Profile Dropdown */}
-            <Link
-              to="/profile"
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="h-8 w-8 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-bold text-sm">
-                {user.username?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <span className="hidden md:block font-bold">
-                {user.display_name || user.username}
-              </span>
-            </Link>
-          </div>
-        </div>
-      </header>
+              {/* Inbox/Messages */}
+              <button
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Mensajes"
+              >
+                <Mail className="h-5 w-5" />
+              </button>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* --- SIDEBAR FOR DESKTOP --- */}
-        <div className="hidden md:flex flex-col w-[280px] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] overflow-hidden shadow-xl">
-          <nav className="flex-1 p-4 overflow-y-auto">
-            <Sidebar />
-          </nav>
+              <div className="h-6 w-px bg-gray-200 mx-2 hidden sm:block"></div>
 
-          <footer className="p-4 border-t border-[var(--color-secondary)]">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              Cerrar Sesión
-            </button>
-            <p className="text-xs text-center text-gray-600 mt-4">
-              Created by Juan Gatti ®
-            </p>
-          </footer>
-        </div>
-
-        {/* --- MOBILE SIDEBAR MENU --- */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 flex">
-            <div
-              className="flex-1 bg-black/50"
-              onClick={() => setIsMobileMenuOpen(false)}
-            ></div>
-            <div className="relative flex flex-col w-72 max-w-[calc(100%-3rem)] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] shadow-2xl">
-              <header className="p-6 text-center border-b border-[var(--color-secondary)] flex justify-between items-center">
-                <Link
-                  to="/dashboard"
-                  className="inline-flex items-center gap-3 text-white hover:text-[var(--color-primary-light)] transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <ClipboardList className="h-8 w-8 text-[var(--color-primary)]" />
-                  <span className="text-xl font-bold font-display uppercase">
-                    Stock Manager
-                  </span>
-                </Link>
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-white p-2 hover:bg-[var(--color-secondary)] rounded-full transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </header>
-
-              <nav className="flex-1 p-4 overflow-y-auto">
-                <Sidebar />
-              </nav>
-
-              <footer className="p-4 border-t border-[var(--color-secondary)]">
-                <button
-                  onClick={() => {
-                    handleLogout();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Cerrar Sesión
-                </button>
-                <p className="text-xs text-center text-gray-600 mt-4">
-                  Created by Juan Gatti ®
-                </p>
-              </footer>
+              {/* User Profile Dropdown */}
+              <Link
+                to="/profile"
+                className="flex items-center gap-3 pl-2 pr-1 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <span className="hidden lg:block font-bold text-gray-800">
+                  {user.display_name || user.username}
+                </span>
+                <div className="h-9 w-9 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center font-bold border-2 border-white shadow-sm ring-1 ring-gray-100">
+                  {user.username?.charAt(0).toUpperCase() || "U"}
+                </div>
+              </Link>
             </div>
           </div>
-        )}
+        </header>
 
         {/* --- MAIN CONTENT AREA --- */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-[var(--color-background)]">
+        <main className="flex-1 overflow-y-auto bg-[var(--color-background)] p-4 md:p-8">
           <Outlet />
         </main>
       </div>
+
+      {/* --- MOBILE SIDEBAR MENU --- */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="flex-1 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          ></div>
+          <div className="relative flex flex-col w-72 max-w-[calc(100%-3rem)] bg-[var(--color-secondary-dark)] border-r border-[var(--color-secondary)] shadow-2xl animate-in slide-in-from-left duration-300">
+            <header className="p-6 border-b border-[var(--color-secondary)] flex justify-between items-center">
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-3 text-white"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <ClipboardList className="h-7 w-7 text-[var(--color-primary)]" />
+                <span className="text-xl font-bold font-display uppercase">
+                  SMA
+                </span>
+              </Link>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-white p-2 hover:bg-[var(--color-secondary)] rounded-full transition-colors"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </header>
+
+            <nav className="flex-1 p-4 overflow-y-auto">
+              <Sidebar />
+            </nav>
+
+            <footer className="p-4 border-t border-[var(--color-secondary)]">
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-400 hover:bg-red-900/30 hover:text-red-300 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Cerrar Sesión
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
