@@ -107,10 +107,9 @@ export default function MainLayout() {
                 <Menu className="h-6 w-6" />
               </button>
 
-              {/* Date Display */}
-              <div className="hidden md:flex items-center gap-2.5 text-gray-400">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-bold font-display uppercase tracking-[0.2em] text-gray-500">
+              <div className="hidden md:flex items-center gap-2.5">
+                <Calendar className="h-5 w-5 text-primary" />
+                <span className="text-sm font-bold text-gray-800">
                   {new Date().toLocaleDateString("es-AR", {
                     weekday: "long",
                     day: "numeric",
