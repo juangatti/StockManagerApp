@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { ClipboardList, LogOut, X, Bell, Mail, Menu } from "lucide-react";
 import Sidebar from "../components/molecules/SideBar";
-import MobileHeader from "../components/molecules/MobileHeader";
+
 import useAuthStore from "../stores/useAuthStore";
 import { getInitials } from "../utils/initials.js";
 
@@ -191,9 +191,4 @@ export default function MainLayout() {
       </div>
     </div>
   );
-}
-
-// Componente Mobile Header (ya no se necesita por separado)
-function MobileHeader({ onMenuClick }) {
-  return null; // Removido porque ahora tenemos un header unificado
 }
