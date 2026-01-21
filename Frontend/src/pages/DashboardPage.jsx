@@ -85,9 +85,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* WIDGET DE CANILLAS ACTIVAS */}
-      <ActiveTapsWidget />
-
+      {/* 1. SECCIÓN RESERVAS Y HORARIOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* WIDGET DE RESERVAS */}
         <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
@@ -154,7 +152,23 @@ export default function DashboardPage() {
         <WorkScheduleWidget schedules={schedules} />
       </div>
 
-      {/* SECCIÓN STOCK DE HIELO */}
+      {/* 2. ALERTAS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <AlertCard
+          title="Poco Stock"
+          items={alerts.lowStock}
+          icon={AlertTriangle}
+          colorClass="border-accent" /* Amber */
+        />
+        <AlertCard
+          title="Agotado"
+          items={alerts.outOfStock}
+          icon={XCircle}
+          colorClass="border-primary" /* Red */
+        />
+      </div>
+
+      {/* 3. SECCIÓN STOCK DE HIELO */}
       <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
         <h2 className="text-xl font-bold text-text-primary mb-6 text-center font-display uppercase tracking-wide border-b border-gray-100 pb-4">
           Informe Hielístico
@@ -189,21 +203,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ALERTAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <AlertCard
-          title="Poco Stock"
-          items={alerts.lowStock}
-          icon={AlertTriangle}
-          colorClass="border-accent" /* Amber */
-        />
-        <AlertCard
-          title="Agotado"
-          items={alerts.outOfStock}
-          icon={XCircle}
-          colorClass="border-primary" /* Red */
-        />
-      </div>
+      {/* 4. WIDGET DE CANILLAS ACTIVAS */}
+      <ActiveTapsWidget />
     </div>
   );
 }
