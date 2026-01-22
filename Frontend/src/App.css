@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* Font Imports */
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Oswald:wght@200..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Oswald:wght@200..700&family=Patrick+Hand&display=swap");
 
 @theme {
   /* Brand Colors - Mauer Industrial (Revised) */
@@ -29,6 +29,7 @@
   /* Font Families */
   --font-display: "Oswald", sans-serif;
   --font-body: "Inter", sans-serif;
+  --font-chalk: "Patrick Hand", cursive;
 
   /* Shadows */
   --shadow-card: 0 2px 4px rgba(0,0,0,0.05);
@@ -71,4 +72,21 @@ h6 {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-secondary);
+}
+
+/* Chalkboard Theme Utilities */
+.font-chalk {
+  font-family: var(--font-chalk);
+}
+
+.bg-chalkboard {
+  background-color: #1a1a1a;
+  background-image: url("https://www.transparenttextures.com/patterns/black-paper.png"); /* Subtle texture */
+}
+
+.border-chalk {
+  border-style: solid;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }

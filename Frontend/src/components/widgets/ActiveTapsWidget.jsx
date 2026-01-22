@@ -86,20 +86,23 @@ export default function ActiveTapsWidget({ readOnly = false }) {
   if (loading && taps.length === 0) return <Spinner />;
 
   return (
-    <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
-      <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-        <Beer className="h-8 w-8 text-accent" />
+    <div className="bg-chalkboard p-8 rounded-xl shadow-2xl border-4 border-[#3d2b1f] relative overflow-hidden">
+      {/* Decorative texture overlay */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/dust.png')]"></div>
+
+      <div className="flex items-center gap-4 mb-10 border-b-2 border-dashed border-white/20 pb-6 relative z-10">
+        <Beer className="h-10 w-10 text-white/80" />
         <div>
-          <h2 className="text-2xl font-bold text-text-primary font-display uppercase tracking-wide">
-            Gestión de Canillas
+          <h2 className="text-4xl font-chalk text-white tracking-widest uppercase">
+            Pizarrón de Canillas
           </h2>
-          <p className="text-sm text-text-muted font-bold uppercase tracking-wider">
-            Vista general de las 12 canillas
+          <p className="text-sm font-chalk text-gray-400 tracking-wider">
+            Selección Artesanal - 12 Canillas Activas
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
         {slots.map((slotNum) => {
           const activeKeg = taps.find((t) => t.tap_number === slotNum);
           const isAssigning = assigningTap === slotNum;
@@ -107,116 +110,119 @@ export default function ActiveTapsWidget({ readOnly = false }) {
           return (
             <div
               key={slotNum}
-              className={`rounded-lg p-4 border relative transition-all duration-200 h-48 flex flex-col justify-between group ${
+              className={`rounded-lg p-5 border-chalk relative transition-all duration-300 h-56 flex flex-col justify-between group ${
                 activeKeg
-                  ? "bg-white border-gray-200 shadow-sm hover:shadow-md hover:border-accent"
-                  : "bg-gray-50 border-dashed border-gray-300 hover:border-gray-400"
+                  ? "bg-white/5 border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:border-white/60"
+                  : "bg-black/20 border-dashed border-white/10 hover:border-white/30"
               }`}
             >
-              {/* Tap Number Badge */}
+              {/* Tap Number Badge - Chalk Style */}
               <div
-                className={`absolute top-0 right-0 px-2 py-1 rounded-bl-lg text-xs font-bold border-b border-l ${
+                className={`absolute -top-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-chalk border-2 ${
                   activeKeg
-                    ? "bg-primary text-white border-primary"
-                    : "bg-gray-200 text-gray-500 border-gray-300"
+                    ? "bg-white text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                    : "bg-transparent text-white/30 border-white/20"
                 }`}
               >
-                #{slotNum}
+                {slotNum}
               </div>
 
               {activeKeg ? (
                 <>
-                  <div>
-                    <h3 className="text-lg font-black text-text-primary leading-tight truncate font-display uppercase tracking-tight">
+                  <div className="font-chalk">
+                    <h3 className="text-2xl font-black text-white leading-tight mb-1 truncate tracking-tight uppercase">
                       {activeKeg.style_fantasy_name || activeKeg.style_name}
                     </h3>
                     {activeKeg.style_fantasy_name && (
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1 truncate">
+                      <p className="text-xs font-bold text-accent/80 uppercase tracking-widest mb-2 truncate">
                         {activeKeg.style_name}
                       </p>
                     )}
-                    <p className="text-xs text-text-secondary font-mono mb-2 bg-gray-100 inline-block px-1.5 rounded">
-                      {activeKeg.code}
-                    </p>
-                    <div className="flex gap-3 text-xs text-text-secondary mb-2 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Activity className="h-3 w-3 text-green-600" />{" "}
-                        {activeKeg.ibu}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/20 text-white/50 font-mono tracking-tighter">
+                        CODE: {activeKeg.code}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Percent className="h-3 w-3 text-blue-600" />{" "}
+                    </div>
+
+                    <div className="flex gap-4 text-sm text-gray-300 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5 text-yellow-200/60" />{" "}
+                        {activeKeg.ibu} IBU
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Percent className="h-3.5 w-3.5 text-blue-200/60" />{" "}
                         {activeKeg.abv}%
                       </span>
                     </div>
                   </div>
 
-                  <div className="mt-auto">
-                    <div className="flex items-center gap-1 text-text-muted text-xs mb-3">
+                  <div className="mt-auto flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-white/40 text-[10px] uppercase font-chalk tracking-widest italic">
                       <GlassWater className="h-3 w-3" />
                       <span className="truncate">
-                        {activeKeg.glassware_name || "Genérico"}
+                        Copa: {activeKeg.glassware_name || "Estándar"}
                       </span>
                     </div>
                     {!readOnly && (
                       <button
                         onClick={() => handleEmptyTap(activeKeg.id, slotNum)}
-                        className="w-full py-1.5 text-xs font-bold text-red-600 hover:text-white hover:bg-red-600 rounded border border-red-200 hover:border-red-600 transition-colors uppercase tracking-wide"
+                        className="w-full py-1.5 text-[10px] font-chalk text-white/40 hover:text-white hover:bg-red-900/40 rounded border border-white/10 hover:border-red-500/50 transition-all uppercase tracking-[0.2em]"
                       >
-                        Vaciar / Liberar
+                        Vaciar Canilla
                       </button>
                     )}
                   </div>
                 </>
               ) : isAssigning ? (
-                <div className="flex flex-col h-full justify-center gap-2">
-                  <p className="text-xs font-bold text-text-secondary mb-1 uppercase">
+                <div className="flex flex-col h-full justify-center gap-2 font-chalk">
+                  <p className="text-[10px] font-bold text-white/60 mb-1 uppercase tracking-widest">
                     Seleccionar Barril:
                   </p>
                   <select
-                    className="bg-white border border-gray-300 text-text-primary text-xs rounded p-1.5 w-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer shadow-sm"
+                    className="bg-black/40 border border-white/20 text-white text-xs rounded p-2 w-full focus:outline-none focus:ring-1 focus:ring-white/50 focus:border-white/50 cursor-pointer shadow-inner appearance-none"
                     value={selectedKegId}
                     onChange={(e) => setSelectedKegId(e.target.value)}
                     autoFocus
                   >
-                    <option value="">-- Elegir --</option>
+                    <option value="">-- Elige un barril --</option>
                     {availableKegs.map((k) => (
-                      <option key={k.id} value={k.id}>
+                      <option key={k.id} value={k.id} className="bg-[#1a1a1a]">
                         {k.style_name} ({k.code})
                       </option>
                     ))}
                   </select>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => handleConfirmAssign(slotNum)}
                       disabled={!selectedKegId}
-                      className="flex-1 bg-primary hover:bg-primary-dark text-white py-1.5 rounded flex justify-center items-center disabled:opacity-50 transition-colors shadow-sm"
+                      className="flex-1 bg-white hover:bg-gray-200 text-black py-2 rounded flex justify-center items-center disabled:opacity-30 transition-all font-bold"
                     >
                       <Check className="h-4 w-4" />
                     </button>
                     <button
                       onClick={handleCancelAssign}
-                      className="flex-1 bg-white hover:bg-gray-100 text-gray-600 border border-gray-300 py-1.5 rounded flex justify-center items-center transition-colors shadow-sm"
+                      className="flex-1 bg-transparent hover:bg-white/10 text-white border border-white/20 py-2 rounded flex justify-center items-center transition-all"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2 group-hover:text-gray-500 transition-colors">
-                  <span className="text-xs uppercase font-bold tracking-wider">
-                    Disponible
+                <div className="flex flex-col items-center justify-center h-full text-white/20 gap-3 group-hover:text-white/40 transition-all font-chalk">
+                  <span className="text-[10px] uppercase font-bold tracking-[0.3em]">
+                    Libre
                   </span>
                   {!readOnly ? (
                     <button
                       onClick={() => handleAssignClick(slotNum)}
-                      className="p-2 rounded-full border-2 border-gray-300 text-gray-400 hover:text-primary hover:border-primary transition-all hover:scale-110 bg-white shadow-sm"
+                      className="p-3 rounded-full border-2 border-dashed border-white/20 text-white/20 hover:text-white hover:border-white hover:scale-110 bg-transparent transition-all"
                       title="Asignar barril"
                     >
-                      <Plus className="h-6 w-6" />
+                      <Plus className="h-8 w-8" />
                     </button>
                   ) : (
-                    <div className="p-2 rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
-                      <Beer className="h-6 w-6 text-gray-300" />
+                    <div className="p-3 rounded-full border-2 border-dotted border-white/10 bg-white/5">
+                      <Beer className="h-8 w-8 opacity-20" />
                     </div>
                   )}
                 </div>
