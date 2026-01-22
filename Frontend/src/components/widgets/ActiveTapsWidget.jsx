@@ -129,12 +129,12 @@ export default function ActiveTapsWidget({ readOnly = false }) {
 
               {activeKeg ? (
                 <>
-                  <div className="font-chalk flex-1 flex flex-col">
-                    <h3 className="text-2xl font-black text-white leading-none mb-1 truncate tracking-tight uppercase">
+                  <div className="font-chalk flex-1 flex flex-col items-center">
+                    <h3 className="text-2xl font-black text-white leading-none mb-1 truncate tracking-tight uppercase text-center w-full">
                       {activeKeg.style_fantasy_name || activeKeg.style_name}
                     </h3>
                     {activeKeg.style_fantasy_name && (
-                      <p className="text-lg font-bold text-white/70 uppercase tracking-widest mb-4 truncate leading-none">
+                      <p className="text-lg font-bold text-white/70 uppercase tracking-widest mb-4 truncate leading-none text-center w-full">
                         {activeKeg.style_name}
                       </p>
                     )}
