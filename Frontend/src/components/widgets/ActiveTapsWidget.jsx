@@ -129,45 +129,43 @@ export default function ActiveTapsWidget({ readOnly = false }) {
 
               {activeKeg ? (
                 <>
-                  <div className="font-chalk">
-                    <h3 className="text-2xl font-black text-white leading-tight mb-1 truncate tracking-tight uppercase">
+                  <div className="font-chalk flex-1 flex flex-col">
+                    <h3 className="text-2xl font-black text-white leading-none mb-1 truncate tracking-tight uppercase">
                       {activeKeg.style_fantasy_name || activeKeg.style_name}
                     </h3>
                     {activeKeg.style_fantasy_name && (
-                      <p className="text-xs font-bold text-accent/80 uppercase tracking-widest mb-2 truncate">
+                      <p className="text-lg font-bold text-white/70 uppercase tracking-widest mb-4 truncate leading-none">
                         {activeKeg.style_name}
                       </p>
                     )}
-                    <div className="grid grid-cols-2 gap-y-4 gap-x-2 mt-4 pb-2 font-chalk">
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-yellow-200/40" />
-                        <div className="flex flex-col leading-none">
-                          <span className="text-[9px] text-white/30 uppercase tracking-tighter">
+
+                    <div className="mt-auto border-t border-dashed border-white/20 pt-4">
+                      <div className="grid grid-cols-2 gap-0 font-chalk">
+                        <div className="flex flex-col items-center justify-center py-2 border-r border-dashed border-white/20">
+                          <span className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-1">
                             IBU
                           </span>
-                          <span className="text-sm text-white font-bold">
-                            {activeKeg.ibu}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <Activity className="h-4 w-4 text-yellow-200/40" />
+                            <span className="text-xl text-white font-bold">
+                              {activeKeg.ibu}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Percent className="h-4 w-4 text-blue-200/40" />
-                        <div className="flex flex-col leading-none">
-                          <span className="text-[9px] text-white/30 uppercase tracking-tighter">
+                        <div className="flex flex-col items-center justify-center py-2">
+                          <span className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-1">
                             ABV
                           </span>
-                          <span className="text-sm text-white font-bold">
-                            {activeKeg.abv}%
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <Percent className="h-4 w-4 text-blue-200/40" />
+                            <span className="text-xl text-white font-bold">
+                              {activeKeg.abv}%
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 col-span-2">
-                        <GlassWater className="h-4 w-4 text-pink-200/30" />
-                        <div className="flex flex-col leading-none">
-                          <span className="text-[9px] text-white/30 uppercase tracking-tighter">
-                            Copa Recom.
-                          </span>
-                          <span className="text-[11px] text-white/80 font-bold uppercase truncate">
+                        <div className="col-span-2 border-t border-dashed border-white/20 py-3 flex items-center justify-center gap-3">
+                          <GlassWater className="h-5 w-5 text-pink-200/30" />
+                          <span className="text-sm text-white/90 font-bold uppercase tracking-widest truncate">
                             {activeKeg.glassware_name || "Estándar"}
                           </span>
                         </div>
