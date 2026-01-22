@@ -85,7 +85,40 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* 1. SECCIÓN RESERVAS Y HORARIOS */}
+      {/* 1. SECCIÓN STOCK DE HIELO - ACHICADA */}
+      <div className="bg-surface p-4 rounded-lg shadow-(--shadow-card) border border-gray-200 inline-block min-w-[300px]">
+        <h2 className="text-sm font-bold text-text-muted mb-4 text-center font-display uppercase tracking-widest border-b border-gray-100 pb-2">
+          Informe Hielístico
+        </h2>
+
+        <div className="flex justify-center gap-12">
+          {hielo.length > 0 ? (
+            hielo.map((item, index) => (
+              <div
+                key={index}
+                className="flex flex-col items-center justify-center gap-1 text-center"
+              >
+                <Snowflake className="h-6 w-6 text-primary/40" />
+                <div>
+                  <h3 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-0.5">
+                    {item.nombre_completo_hielo}
+                  </h3>
+                  <p className="text-2xl font-bold text-text-primary font-mono leading-none">
+                    {parseFloat(item.total_unidades).toFixed(1)}
+                    <span className="text-xs font-medium text-gray-400 ml-1 uppercase">
+                      {item.unidad_medida}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-400 text-xs italic">Sin datos de hielo.</p>
+          )}
+        </div>
+      </div>
+
+      {/* 2. SECCIÓN RESERVAS Y HORARIOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* WIDGET DE RESERVAS */}
         <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
@@ -152,7 +185,7 @@ export default function DashboardPage() {
         <WorkScheduleWidget schedules={schedules} />
       </div>
 
-      {/* 2. ALERTAS */}
+      {/* 3. ALERTAS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <AlertCard
           title="Poco Stock"
@@ -166,39 +199,6 @@ export default function DashboardPage() {
           icon={XCircle}
           colorClass="border-primary" /* Red */
         />
-      </div>
-
-      {/* 3. SECCIÓN STOCK DE HIELO - ACHICADA */}
-      <div className="bg-surface p-4 rounded-lg shadow-(--shadow-card) border border-gray-200 inline-block min-w-[300px] mx-auto md:mx-0">
-        <h2 className="text-sm font-bold text-text-muted mb-4 text-center font-display uppercase tracking-widest border-b border-gray-100 pb-2">
-          Informe Hielístico
-        </h2>
-
-        <div className="flex justify-center gap-12">
-          {hielo.length > 0 ? (
-            hielo.map((item, index) => (
-              <div
-                key={index}
-                className="flex flex-col items-center justify-center gap-1 text-center"
-              >
-                <Snowflake className="h-6 w-6 text-primary/40" />
-                <div>
-                  <h3 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-0.5">
-                    {item.nombre_completo_hielo}
-                  </h3>
-                  <p className="text-2xl font-bold text-text-primary font-mono leading-none">
-                    {parseFloat(item.total_unidades).toFixed(1)}
-                    <span className="text-xs font-medium text-gray-400 ml-1 uppercase">
-                      {item.unidad_medida}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-400 text-xs italic">Sin datos de hielo.</p>
-          )}
-        </div>
       </div>
 
       {/* 4. WIDGET DE CANILLAS ACTIVAS - SOLO LECTURA EN DASHBOARD */}
