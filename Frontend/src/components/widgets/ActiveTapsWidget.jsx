@@ -139,8 +139,8 @@ export default function ActiveTapsWidget({ readOnly = false }) {
                       </p>
                     )}
 
-                    <div className="mt-auto border-t border-dashed border-white/20 pt-4">
-                      <div className="grid grid-cols-2 gap-0 font-chalk">
+                    <div className="mt-auto border-t border-dashed border-white/20 pt-4 w-full">
+                      <div className="grid grid-cols-2 gap-0 font-chalk w-full">
                         <div className="flex flex-col items-center justify-center py-2 border-r border-dashed border-white/20">
                           <span className="text-[10px] text-white/30 uppercase tracking-[0.2em] mb-1">
                             IBU
