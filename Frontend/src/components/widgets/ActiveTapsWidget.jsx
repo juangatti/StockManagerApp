@@ -12,7 +12,7 @@ import {
 import Spinner from "../atoms/Spinner";
 import toast from "react-hot-toast";
 
-export default function ActiveTapsWidget() {
+export default function ActiveTapsWidget({ readOnly = false }) {
   const [taps, setTaps] = useState([]);
   const [availableKegs, setAvailableKegs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,12 +152,14 @@ export default function ActiveTapsWidget() {
                         {activeKeg.glassware_name || "Genérico"}
                       </span>
                     </div>
-                    <button
-                      onClick={() => handleEmptyTap(activeKeg.id, slotNum)}
-                      className="w-full py-1.5 text-xs font-bold text-red-600 hover:text-white hover:bg-red-600 rounded border border-red-200 hover:border-red-600 transition-colors uppercase tracking-wide"
-                    >
-                      Vaciar / Liberar
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleEmptyTap(activeKeg.id, slotNum)}
+                        className="w-full py-1.5 text-xs font-bold text-red-600 hover:text-white hover:bg-red-600 rounded border border-red-200 hover:border-red-600 transition-colors uppercase tracking-wide"
+                      >
+                        Vaciar / Liberar
+                      </button>
+                    )}
                   </div>
                 </>
               ) : isAssigning ? (
@@ -199,13 +201,19 @@ export default function ActiveTapsWidget() {
                   <span className="text-xs uppercase font-bold tracking-wider">
                     Disponible
                   </span>
-                  <button
-                    onClick={() => handleAssignClick(slotNum)}
-                    className="p-2 rounded-full border-2 border-gray-300 text-gray-400 hover:text-primary hover:border-primary transition-all hover:scale-110 bg-white shadow-sm"
-                    title="Asignar barril"
-                  >
-                    <Plus className="h-6 w-6" />
-                  </button>
+                  {!readOnly ? (
+                    <button
+                      onClick={() => handleAssignClick(slotNum)}
+                      className="p-2 rounded-full border-2 border-gray-300 text-gray-400 hover:text-primary hover:border-primary transition-all hover:scale-110 bg-white shadow-sm"
+                      title="Asignar barril"
+                    >
+                      <Plus className="h-6 w-6" />
+                    </button>
+                  ) : (
+                    <div className="p-2 rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
+                      <Beer className="h-6 w-6 text-gray-300" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

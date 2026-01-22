@@ -168,27 +168,27 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* 3. SECCIÓN STOCK DE HIELO */}
-      <div className="bg-surface p-6 rounded-lg shadow-(--shadow-card) border border-gray-200">
-        <h2 className="text-xl font-bold text-text-primary mb-6 text-center font-display uppercase tracking-wide border-b border-gray-100 pb-4">
+      {/* 3. SECCIÓN STOCK DE HIELO - ACHICADA */}
+      <div className="bg-surface p-4 rounded-lg shadow-(--shadow-card) border border-gray-200 inline-block min-w-[300px] mx-auto md:mx-0">
+        <h2 className="text-sm font-bold text-text-muted mb-4 text-center font-display uppercase tracking-widest border-b border-gray-100 pb-2">
           Informe Hielístico
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
+        <div className="flex justify-center gap-12">
           {hielo.length > 0 ? (
             hielo.map((item, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center justify-center gap-2 text-center"
+                className="flex flex-col items-center justify-center gap-1 text-center"
               >
-                <Snowflake className="h-10 w-10 text-gray-400" />
+                <Snowflake className="h-6 w-6 text-primary/40" />
                 <div>
-                  <h3 className="text-lg font-bold text-text-secondary uppercase tracking-wider">
+                  <h3 className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-0.5">
                     {item.nombre_completo_hielo}
                   </h3>
-                  <p className="text-4xl font-bold text-text-primary font-mono">
-                    {parseFloat(item.total_unidades).toFixed(2)}
-                    <span className="text-xl font-medium text-gray-400 ml-2">
+                  <p className="text-2xl font-bold text-text-primary font-mono leading-none">
+                    {parseFloat(item.total_unidades).toFixed(1)}
+                    <span className="text-xs font-medium text-gray-400 ml-1 uppercase">
                       {item.unidad_medida}
                     </span>
                   </p>
@@ -196,15 +196,13 @@ export default function DashboardPage() {
               </div>
             ))
           ) : (
-            <p className="text-gray-400 col-span-full text-center italic">
-              No se encontraron items en la categoría "HIELO".
-            </p>
+            <p className="text-gray-400 text-xs italic">Sin datos de hielo.</p>
           )}
         </div>
       </div>
 
-      {/* 4. WIDGET DE CANILLAS ACTIVAS */}
-      <ActiveTapsWidget />
+      {/* 4. WIDGET DE CANILLAS ACTIVAS - SOLO LECTURA EN DASHBOARD */}
+      <ActiveTapsWidget readOnly={true} />
     </div>
   );
 }
