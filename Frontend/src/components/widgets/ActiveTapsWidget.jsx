@@ -138,37 +138,50 @@ export default function ActiveTapsWidget({ readOnly = false }) {
                         {activeKeg.style_name}
                       </p>
                     )}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/20 text-white/50 font-mono tracking-tighter">
-                        CODE: {activeKeg.code}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-4 text-sm text-gray-300 font-medium">
-                      <span className="flex items-center gap-1.5">
-                        <Activity className="h-3.5 w-3.5 text-yellow-200/60" />{" "}
-                        {activeKeg.ibu} IBU
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Percent className="h-3.5 w-3.5 text-blue-200/60" />{" "}
-                        {activeKeg.abv}%
-                      </span>
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-2 mt-4 pb-2 font-chalk">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-yellow-200/40" />
+                        <div className="flex flex-col leading-none">
+                          <span className="text-[9px] text-white/30 uppercase tracking-tighter">
+                            IBU
+                          </span>
+                          <span className="text-sm text-white font-bold">
+                            {activeKeg.ibu}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Percent className="h-4 w-4 text-blue-200/40" />
+                        <div className="flex flex-col leading-none">
+                          <span className="text-[9px] text-white/30 uppercase tracking-tighter">
+                            ABV
+                          </span>
+                          <span className="text-sm text-white font-bold">
+                            {activeKeg.abv}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 col-span-2">
+                        <GlassWater className="h-4 w-4 text-pink-200/30" />
+                        <div className="flex flex-col leading-none">
+                          <span className="text-[9px] text-white/30 uppercase tracking-tighter">
+                            Copa Recom.
+                          </span>
+                          <span className="text-[11px] text-white/80 font-bold uppercase truncate">
+                            {activeKeg.glassware_name || "Estándar"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-auto flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-white/40 text-[10px] uppercase font-chalk tracking-widest italic">
-                      <GlassWater className="h-3 w-3" />
-                      <span className="truncate">
-                        Copa: {activeKeg.glassware_name || "Estándar"}
-                      </span>
-                    </div>
+                  <div className="mt-2">
                     {!readOnly && (
                       <button
                         onClick={() => handleEmptyTap(activeKeg.id, slotNum)}
-                        className="w-full py-1.5 text-[10px] font-chalk text-white/40 hover:text-white hover:bg-red-900/40 rounded border border-white/10 hover:border-red-500/50 transition-all uppercase tracking-[0.2em]"
+                        className="w-full py-1.5 text-[10px] font-chalk text-white/20 hover:text-white hover:bg-red-900/40 rounded border border-white/5 hover:border-red-500/20 transition-all uppercase tracking-widest"
                       >
-                        Vaciar Canilla
+                        Liberar Canilla
                       </button>
                     )}
                   </div>
