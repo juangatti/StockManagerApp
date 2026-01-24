@@ -1,19 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../api/api";
-import {
-  Search,
-  Filter,
-  Beer,
-  Download,
-  RefreshCcw,
-  Plus,
-  X,
-  Save,
-  Link,
-  Unplug,
-} from "lucide-react";
+import { Search, Filter, Beer, RefreshCcw, Link, Unplug } from "lucide-react";
 import Spinner from "../components/atoms/Spinner";
-import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
 
 export default function KegsReportPage() {
@@ -22,19 +10,6 @@ export default function KegsReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  // Create Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [styles, setStyles] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [newKeg, setNewKeg] = useState({
-    code: "",
-    style_id: "",
-    supplier_id: "",
-    initial_volume: "",
-    cost: "",
-    purchase_date: new Date().toISOString().split("T")[0],
-  });
-
   // Tap Modal State
   const [isTapModalOpen, setIsTapModalOpen] = useState(false);
   const [selectedTapKeg, setSelectedTapKeg] = useState(null);
@@ -42,7 +17,6 @@ export default function KegsReportPage() {
 
   useEffect(() => {
     fetchKegs();
-    fetchOptions();
   }, []);
 
   const fetchKegs = async () => {
@@ -55,60 +29,6 @@ export default function KegsReportPage() {
       toast.error("Error al cargar barriles");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchOptions = async () => {
-    try {
-      const [stylesRes, suppliersRes] = await Promise.all([
-        api.get("/keg-management/styles"),
-        api.get("/keg-management/suppliers"),
-      ]);
-      setStyles(stylesRes.data);
-      setSuppliers(suppliersRes.data);
-    } catch (error) {
-      console.error("Error fetching options:", error);
-    }
-  };
-
-  const handleCreateChange = (e) => {
-    setNewKeg({ ...newKeg, [e.target.name]: e.target.value });
-  };
-
-  const handleCreateSubmit = async (e) => {
-    e.preventDefault();
-    if (
-      !newKeg.style_id ||
-      !newKeg.supplier_id ||
-      !newKeg.code ||
-      !newKeg.initial_volume
-    ) {
-      toast.error("Complete los campos obligatorios");
-      return;
-    }
-
-    try {
-      await api.post("/keg-management/kegs", {
-        ...newKeg,
-        style_id: parseInt(newKeg.style_id),
-        supplier_id: parseInt(newKeg.supplier_id),
-        initial_volume: parseFloat(newKeg.initial_volume),
-        cost: parseFloat(newKeg.cost) || 0,
-      });
-      toast.success("Barril creado exitosamente");
-      setIsModalOpen(false);
-      setNewKeg({
-        code: "",
-        style_id: "",
-        supplier_id: "",
-        initial_volume: "",
-        cost: "",
-        purchase_date: new Date().toISOString().split("T")[0],
-      });
-      fetchKegs();
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || "Error al crear barril");
     }
   };
 
@@ -139,11 +59,6 @@ export default function KegsReportPage() {
     if (!window.confirm(`¿Seguro que deseas desconectar el barril #${keg.id}?`))
       return;
     try {
-      // Assuming 'empty' marks it as empty. If user just wants to unassign without emptying, we might need a different endpoint.
-      // But typically untapping implies finishing it or moving it.
-      // Based on kegController, we have 'emptyKeg' which sets status=EMPTY and tap=NULL.
-      // If user just wants to swap, they would tap another one.
-      // Let's assume the button is for "Vaciar/Desconectar".
       await api.put(`/keg-management/kegs/${keg.id}/empty`);
       toast.success("Barril desconectado/vaciado");
       fetchKegs();
@@ -160,28 +75,6 @@ export default function KegsReportPage() {
     const matchesStatus = statusFilter === "ALL" || keg.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
-  const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(
-      filteredKegs.map((k) => ({
-        ID: k.id,
-        Código: k.code,
-        Estilo: k.style_fantasy_name || k.style_name,
-        IBU: k.ibu,
-        ABV: k.abv,
-        Cristalería: k.glassware_name || "-",
-        Estado: k.status,
-        "Ubicación/Canilla": k.tap_number ? `Canilla #${k.tap_number}` : "-",
-        "Vol. Inicial (L)": k.initial_volume,
-        "Vol. Actual (L)": k.current_volume,
-        "Fecha Compra": new Date(k.purchase_date).toLocaleDateString(),
-        Proveedor: k.supplier_name,
-      })),
-    );
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Barriles");
-    XLSX.writeFile(wb, "Reporte_Barriles.xlsx");
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -213,23 +106,11 @@ export default function KegsReportPage() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium"
-          >
-            <Plus className="h-5 w-5" /> Nuevo Barril
-          </button>
-          <button
             onClick={fetchKegs}
             className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors"
             title="Recargar"
           >
             <RefreshCcw className="h-5 w-5" />
-          </button>
-          <button
-            onClick={exportToExcel}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold uppercase text-sm tracking-wider transition-all shadow-sm"
-          >
-            <Download className="h-5 w-5" /> Exportar Excel
           </button>
         </div>
       </div>
@@ -384,143 +265,6 @@ export default function KegsReportPage() {
           </div>
         )}
       </div>
-
-      {/* CREATE MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-surface rounded-xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2 font-display uppercase tracking-wide">
-                <Plus className="h-5 w-5 text-primary" />
-                Alta Manual de Barril
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-text-muted hover:text-primary transition-colors p-1"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
-                    Código Identificador *
-                  </label>
-                  <input
-                    type="text"
-                    name="code"
-                    value={newKeg.code}
-                    onChange={handleCreateChange}
-                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm placeholder:text-gray-400"
-                    placeholder="#KEY123"
-                    required
-                  />
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
-                    Volumen Inicial (L) *
-                  </label>
-                  <input
-                    type="number"
-                    name="initial_volume"
-                    value={newKeg.initial_volume}
-                    onChange={handleCreateChange}
-                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm placeholder:text-gray-400"
-                    placeholder="50"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Estilo de Cerveza *
-                </label>
-                <select
-                  name="style_id"
-                  value={newKeg.style_id}
-                  onChange={handleCreateChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm cursor-pointer"
-                  required
-                >
-                  <option value="">-- Seleccionar Estilo --</option>
-                  {styles.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} {s.fantasy_name ? `(${s.fantasy_name})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
-                  Proveedor *
-                </label>
-                <select
-                  name="supplier_id"
-                  value={newKeg.supplier_id}
-                  onChange={handleCreateChange}
-                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm cursor-pointer"
-                  required
-                >
-                  <option value="">-- Seleccionar Proveedor --</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.contact_name})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-5">
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
-                    Costo ($)
-                  </label>
-                  <input
-                    type="number"
-                    name="cost"
-                    value={newKeg.cost}
-                    onChange={handleCreateChange}
-                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm placeholder:text-gray-400"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-xs font-bold text-text-secondary mb-1.5 uppercase tracking-wider">
-                    Fecha de Compra
-                  </label>
-                  <input
-                    type="date"
-                    name="purchase_date"
-                    value={newKeg.purchase_date}
-                    onChange={handleCreateChange}
-                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-text-primary focus:ring-primary focus:border-primary focus:outline-none transition-all shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2 rounded-lg text-text-secondary font-bold hover:bg-gray-100 transition-colors uppercase text-sm tracking-wide"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all shadow-lg shadow-red-500/10 uppercase text-sm tracking-widest"
-                >
-                  Guardar Barril
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* TAP ASSIGNMENT MODAL */}
       {isTapModalOpen && selectedTapKeg && (
