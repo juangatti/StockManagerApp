@@ -200,6 +200,7 @@ export const deletePrebatch = async (req, res) => {
     ]);
     res.status(200).json({ message: "Prebatch desactivado con éxito." });
   } catch (error) {
+    console.error("Error disabling prebatch:", error); // <-- Añadir log
     res.status(500).json({ message: "Error al desactivar el prebatch." });
   }
 };
