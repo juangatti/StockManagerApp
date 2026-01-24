@@ -33,9 +33,13 @@ import {
   tapKeg,
   emptyKeg,
   returnKegs,
+  getKegPerformanceStats,
 } from "../controllers/kegController.js";
 
 const router = Router();
+
+// --- STATS & PERFORMANCE ---
+router.get("/stats/performance", getKegPerformanceStats);
 
 // --- SUPPLIERS ---
 router.get("/suppliers", getSuppliers);

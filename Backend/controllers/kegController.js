@@ -25,7 +25,7 @@ export const createKeg = async (req, res) => {
         `Carga Manual Barril ${code}`,
         purchase_date || new Date(),
         1, // Adding 1 keg
-      ]
+      ],
     );
     const stockMovementId = moveResult.insertId;
 
@@ -42,7 +42,7 @@ export const createKeg = async (req, res) => {
         initial_volume, // volume_initial
         cost || 0, // cost_price
         initial_volume, // current_volume (Same as initial)
-      ]
+      ],
     );
 
     await connection.commit();
@@ -107,7 +107,7 @@ export const getKegById = async (req, res) => {
             FROM kegs k 
             JOIN beer_styles bs ON k.style_id = bs.id 
             WHERE k.id = ?`,
-      [id]
+      [id],
     );
 
     if (rows.length === 0)
@@ -134,7 +134,7 @@ export const tapKeg = async (req, res) => {
     // Verificar si la canilla ya está ocupada
     const [occupied] = await pool.query(
       "SELECT id FROM kegs WHERE tap_number = ? AND status = 'TAPPED'",
-      [tap_number]
+      [tap_number],
     );
 
     if (occupied.length > 0) {
@@ -145,7 +145,7 @@ export const tapKeg = async (req, res) => {
 
     const [result] = await pool.query(
       "UPDATE kegs SET status = 'TAPPED', tap_number = ?, tapped_at = NOW() WHERE id = ? AND status = 'STORED'",
-      [tap_number, id]
+      [tap_number, id],
     );
 
     if (result.affectedRows === 0) {
@@ -175,7 +175,7 @@ export const emptyKeg = async (req, res) => {
   try {
     const [result] = await pool.query(
       "UPDATE kegs SET status = 'EMPTY', tap_number = NULL, emptied_at = NOW() WHERE id = ? AND status = 'TAPPED'",
-      [id]
+      [id],
     );
 
     if (result.affectedRows === 0) {
@@ -213,7 +213,7 @@ export const returnKegs = async (req, res) => {
       `UPDATE kegs 
        SET status = 'RETURNED', returned_at = NOW() 
        WHERE id IN (?) AND status = 'EMPTY'`,
-      [kegIds]
+      [kegIds],
     );
 
     res.json({
@@ -223,5 +223,45 @@ export const returnKegs = async (req, res) => {
   } catch (error) {
     console.error("Error returning kegs:", error);
     res.status(500).json({ message: "Error al devolver barriles" });
+  }
+};
+// -- STATS: KEG PERFORMANCE --
+export const getKegPerformanceStats = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        k.id, k.code, 
+        bs.name as style_name, 
+        bs.fantasy_name as style_fantasy_name,
+        k.tapped_at, 
+        k.emptied_at,
+        k.volume_initial,
+        TIMESTAMPDIFF(HOUR, k.tapped_at, k.emptied_at) as duration_hours
+      FROM kegs k
+      JOIN beer_styles bs ON k.style_id = bs.id
+      WHERE k.status = 'EMPTY' AND k.tapped_at IS NOT NULL AND k.emptied_at IS NOT NULL
+      ORDER BY k.emptied_at DESC
+      LIMIT 50
+    `;
+    const [rows] = await pool.query(query);
+
+    // Calculate aggregated metrics (optional to do here or in frontend)
+    const avgDuration =
+      rows.length > 0
+        ? rows.reduce((acc, curr) => acc + curr.duration_hours, 0) / rows.length
+        : 0;
+
+    res.json({
+      kegs: rows,
+      summary: {
+        avg_duration_hours: parseFloat(avgDuration.toFixed(2)),
+        total_kegs_recorded: rows.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching keg stats:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener estadísticas de barriles" });
   }
 };

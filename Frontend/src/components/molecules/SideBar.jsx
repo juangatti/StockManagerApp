@@ -11,6 +11,7 @@ import {
   Hammer,
   CalendarDays,
   Clock,
+  Timer,
   Beer,
 } from "lucide-react";
 import useAuthStore from "../../stores/useAuthStore";
@@ -89,6 +90,9 @@ export default function Sidebar({ onLinkClick }) {
           onLinkClick={onLinkClick}
         >
           Gastos y Compras
+        </NavItem>
+        <NavItem to="/beer-performance" icon={Timer} onLinkClick={onLinkClick}>
+          Métricas de Cerveza
         </NavItem>
         <NavItem to="/bar" icon={ClipboardList} onLinkClick={onLinkClick}>
           Barra (Stock)

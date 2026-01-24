@@ -20,6 +20,7 @@ import AdminRoute from "./layouts/AdminRoute";
 import SchedulesPage from "./pages/SchedulesPage";
 import KegsReportPage from "./pages/KegsReportPage";
 import FinancialDashboardPage from "./pages/FinancialDashboardPage";
+import BeerDashboardPage from "./pages/BeerDashboardPage";
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
@@ -89,6 +90,7 @@ function App() {
             path="/financial-dashboard"
             element={<FinancialDashboardPage />}
           />
+          <Route path="/beer-performance" element={<BeerDashboardPage />} />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
           <Route
             path="/historicMovements/:id"
