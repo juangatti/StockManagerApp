@@ -125,7 +125,7 @@ export const createCategory = async (req, res) => {
   try {
     const [result] = await pool.query(
       "INSERT INTO categorias (nombre) VALUES (?)",
-      [nombre]
+      [nombre],
     );
     res
       .status(201)
@@ -322,7 +322,7 @@ export const createMarca = async (req, res) => {
   try {
     const [result] = await pool.query(
       "INSERT INTO marcas (nombre, categoria_id) VALUES (?, ?)",
-      [nombre, categoria_id]
+      [nombre, categoria_id],
     );
     res
       .status(201)
@@ -348,7 +348,7 @@ export const updateMarca = async (req, res) => {
   const { nombre, categoria_id } = req.body;
   await pool.query(
     "UPDATE marcas SET nombre = ?, categoria_id = ? WHERE id = ?",
-    [nombre, categoria_id, id]
+    [nombre, categoria_id, id],
   );
   res.status(200).json({ message: "Marca actualizada con éxito." });
 };
@@ -413,14 +413,14 @@ export const createStockItem = async (req, res) => {
         unidad_medida, // Guardar 'ml' o 'g'
         stock_unidades || 0,
         alerta_stock_bajo,
-      ]
+      ],
     );
     const newItemId = result.insertId;
 
     // Lógica de stock inicial (sin cambios)
     if (stock_unidades && stock_unidades > 0) {
       await connection.query(
-        `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion)
+        `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description)
            VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
         [
           newItemId,
@@ -428,7 +428,7 @@ export const createStockItem = async (req, res) => {
           0,
           stock_unidades,
           "Stock inicial al crear item",
-        ]
+        ],
       );
     }
 
@@ -458,7 +458,7 @@ export const getStockItemById = async (req, res) => {
   const [rows] = await pool.query(
     //
     "SELECT *, cantidad_por_envase, unidad_medida FROM stock_items WHERE id = ?",
-    [id]
+    [id],
   );
   if (rows.length === 0)
     return res.status(404).json({ message: "Item no encontrado." });
@@ -491,7 +491,7 @@ export const getAllActiveStockItemsForAdjustment = async (req, res) => {
     /* ... (manejo de error sin cambios) ... */
     console.error(
       "Error fetching all active stock items for adjustment:",
-      error
+      error,
     );
     res
       .status(500)
@@ -514,7 +514,7 @@ export const getActiveStockItems = async (req, res) => {
       queryParams.push(
         `%${searchQuery}%`,
         `%${searchQuery}%`,
-        `%${searchQuery}%`
+        `%${searchQuery}%`,
       );
     }
 
@@ -589,7 +589,7 @@ export const getInactiveStockItem = async (req, res) => {
       queryParams.push(
         `%${searchQuery}%`,
         `%${searchQuery}%`,
-        `%${searchQuery}%`
+        `%${searchQuery}%`,
       );
     }
 
@@ -677,7 +677,7 @@ export const updateStockItem = async (req, res) => {
         unidad_medida,
         alerta_stock_bajo,
         id,
-      ]
+      ],
     );
     res.status(200).json({ message: "Item de stock actualizado con éxito." });
   } catch (error) {
@@ -834,7 +834,7 @@ export const createRecipe = async (req, res) => {
 
     const [productResult] = await connection.query(
       "INSERT INTO productos (nombre_producto_fudo, glassware_id) VALUES (?, ?)",
-      [nombre_producto_fudo, glassware_id || null]
+      [nombre_producto_fudo, glassware_id || null],
     );
     const newProductId = productResult.insertId;
 
@@ -859,7 +859,7 @@ export const createRecipe = async (req, res) => {
           (ingredient_type !== "ITEM" && ingredient_type !== "PREBATCH")
         ) {
           throw new Error(
-            "Una regla de la receta está incompleta o tiene tipo/variante inválido."
+            "Una regla de la receta está incompleta o tiene tipo/variante inválido.",
           );
         }
         if (ingredient_type === "ITEM" && !item_id) {
@@ -867,12 +867,12 @@ export const createRecipe = async (req, res) => {
         }
         if (ingredient_type === "PREBATCH" && !prebatch_id) {
           throw new Error(
-            "Una regla de tipo 'PREBATCH' requiere un prebatch_id."
+            "Una regla de tipo 'PREBATCH' requiere un prebatch_id.",
           );
         }
         if (isNaN(parseInt(recipe_variant)) || parseInt(recipe_variant) <= 0) {
           throw new Error(
-            "La Prioridad de Variante debe ser un número positivo."
+            "La Prioridad de Variante debe ser un número positivo.",
           );
         }
 
@@ -895,7 +895,7 @@ export const createRecipe = async (req, res) => {
             ingredient_type === "PREBATCH" ? prebatch_id : null,
             consumo_ml,
             prioridad_item,
-          ]
+          ],
         );
       }
     } // Fin if (reglas.length > 0)
@@ -932,7 +932,7 @@ export const getRecipeById = async (req, res) => {
        FROM productos p 
        LEFT JOIN glassware g ON p.glassware_id = g.id 
        WHERE p.id = ?`,
-      [id]
+      [id],
     );
     if (productRows.length === 0)
       return res.status(404).json({ message: "Producto no encontrado." });
@@ -954,7 +954,7 @@ export const getRecipeById = async (req, res) => {
       FROM recipes r
       WHERE r.producto_id = ?
       ORDER BY r.recipe_variant ASC, r.id ASC`, // <-- Ordenar por variante
-      [id]
+      [id],
     );
 
     const formattedReglas = recipeRows.map((regla) => ({
@@ -989,7 +989,7 @@ export const updateRecipe = async (req, res) => {
 
     await connection.query(
       "UPDATE productos SET nombre_producto_fudo = ?, glassware_id = ? WHERE id = ?",
-      [nombre_producto_fudo, glassware_id || null, id]
+      [nombre_producto_fudo, glassware_id || null, id],
     );
     await connection.query("DELETE FROM recipes WHERE producto_id = ?", [id]);
 
@@ -1014,7 +1014,7 @@ export const updateRecipe = async (req, res) => {
           (ingredient_type !== "ITEM" && ingredient_type !== "PREBATCH")
         ) {
           throw new Error(
-            "Una regla de la receta está incompleta o tiene tipo/variante inválido."
+            "Una regla de la receta está incompleta o tiene tipo/variante inválido.",
           );
         }
         if (ingredient_type === "ITEM" && !item_id) {
@@ -1025,7 +1025,7 @@ export const updateRecipe = async (req, res) => {
         }
         if (isNaN(parseInt(recipe_variant)) || parseInt(recipe_variant) <= 0) {
           throw new Error(
-            "La Prioridad de Variante debe ser un número positivo."
+            "La Prioridad de Variante debe ser un número positivo.",
           );
         }
 
@@ -1042,7 +1042,7 @@ export const updateRecipe = async (req, res) => {
             ingredient_type === "PREBATCH" ? prebatch_id : null,
             consumo_ml,
             prioridad_item,
-          ]
+          ],
         );
       }
     } // Fin if (reglas.length > 0)
@@ -1128,14 +1128,14 @@ export const createUser = async (req, res) => {
     // 1. Insertar en 'users' (con role_id y is_active = TRUE)
     const [userResult] = await connection.query(
       "INSERT INTO users (username, password, role_id, display_name, is_active) VALUES (?, ?, ?, ?, TRUE)",
-      [username, hashedPassword, role_id, display_name || null]
+      [username, hashedPassword, role_id, display_name || null],
     );
     const newUserId = userResult.insertId;
 
     // 2. Insertar en 'employee_details'
     await connection.query(
       "INSERT INTO employee_details (user_id, full_name, email_contact, phone) VALUES (?, ?, ?, ?)",
-      [newUserId, full_name || null, email_contact || null, phone || null]
+      [newUserId, full_name || null, email_contact || null, phone || null],
     );
 
     await connection.commit();
@@ -1173,7 +1173,7 @@ export const getUsers = async (req, res) => {
         `%${searchQuery}%`,
         `%${searchQuery}%`,
         `%${searchQuery}%`,
-        `%${searchQuery}%`
+        `%${searchQuery}%`,
       );
     }
 
@@ -1229,7 +1229,7 @@ export const getInactiveUsers = async (req, res) => {
       queryParams.push(
         `%${searchQuery}%`,
         `%${searchQuery}%`,
-        `%${searchQuery}%`
+        `%${searchQuery}%`,
       );
     }
     const countQuery = `SELECT COUNT(u.id) AS totalUsers FROM users u LEFT JOIN employee_details d ON u.id = d.user_id ${whereClause}`;
@@ -1270,7 +1270,7 @@ export const getUserById = async (req, res) => {
        FROM users u
        LEFT JOIN employee_details d ON u.id = d.user_id
        WHERE u.id = ?`,
-      [id]
+      [id],
     );
     if (rows.length === 0) {
       return res.status(404).json({ message: "Usuario no encontrado." });
@@ -1322,7 +1322,7 @@ export const updateUser = async (req, res) => {
          full_name = VALUES(full_name),
          email_contact = VALUES(email_contact),
          phone = VALUES(phone)`,
-      [id, full_name || null, email_contact || null, phone || null]
+      [id, full_name || null, email_contact || null, phone || null],
     );
 
     await connection.commit();
@@ -1395,7 +1395,7 @@ export const seedPermissions = async (req, res) => {
 export const getPermissions = async (req, res) => {
   try {
     const [permissions] = await pool.query(
-      "SELECT * FROM permissions ORDER BY name ASC"
+      "SELECT * FROM permissions ORDER BY name ASC",
     );
     res.json(permissions);
   } catch (error) {
@@ -1422,7 +1422,7 @@ export const getRoleById = async (req, res) => {
 
     const [permissions] = await pool.query(
       "SELECT permission_id FROM role_permissions WHERE role_id = ?",
-      [id]
+      [id],
     );
     const permissionIds = permissions.map((p) => p.permission_id);
 
@@ -1447,7 +1447,7 @@ export const createRole = async (req, res) => {
 
     const [roleResult] = await connection.query(
       "INSERT INTO roles (name, description) VALUES (?, ?)",
-      [name, description]
+      [name, description],
     );
     const newRoleId = roleResult.insertId;
 
@@ -1455,7 +1455,7 @@ export const createRole = async (req, res) => {
       const rolePermsData = permissionIds.map((permId) => [newRoleId, permId]);
       await connection.query(
         "INSERT INTO role_permissions (role_id, permission_id) VALUES ?",
-        [rolePermsData]
+        [rolePermsData],
       );
     }
 
@@ -1489,7 +1489,7 @@ export const updateRole = async (req, res) => {
     // 1. Actualizar datos del rol
     await connection.query(
       "UPDATE roles SET name = ?, description = ? WHERE id = ?",
-      [name, description, id]
+      [name, description, id],
     );
 
     // 2. Borrar permisos antiguos
@@ -1502,7 +1502,7 @@ export const updateRole = async (req, res) => {
       const rolePermsData = permissionIds.map((permId) => [id, permId]);
       await connection.query(
         "INSERT INTO role_permissions (role_id, permission_id) VALUES ?",
-        [rolePermsData]
+        [rolePermsData],
       );
     }
 

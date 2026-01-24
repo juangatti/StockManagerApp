@@ -54,7 +54,7 @@ export const processSalesFile = async (req, res) => {
     const description = `Procesamiento de ventas desde archivo: ${req.file.originalname}`;
     const [eventoResult] = await connection.query(
       "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('VENTA', ?)",
-      [description]
+      [description],
     );
     const eventoId = eventoResult.insertId;
     console.log(`Evento VENTA creado con ID: ${eventoId}`);
@@ -66,25 +66,25 @@ export const processSalesFile = async (req, res) => {
 
       if (isNaN(cantidadVendida) || cantidadVendida <= 0) {
         console.warn(
-          `Venta ignorada: Cantidad inválida (${cantidadVendida}) para "${productoVendido}"`
+          `Venta ignorada: Cantidad inválida (${cantidadVendida}) para "${productoVendido}"`,
         );
         continue;
       }
 
       const [productoRows] = await connection.query(
         "SELECT id FROM productos WHERE nombre_producto_fudo = ? AND is_active = TRUE",
-        [productoVendido]
+        [productoVendido],
       );
 
       if (productoRows.length === 0) {
         console.warn(
-          `   Venta ignorada: Producto "${productoVendido}" no encontrado o inactivo.`
+          `   Venta ignorada: Producto "${productoVendido}" no encontrado o inactivo.`,
         );
         continue;
       }
       const productId = productoRows[0].id;
       console.log(
-        `   Procesando venta: ${cantidadVendida}x "${productoVendido}" (Producto ID: ${productId})`
+        `   Procesando venta: ${cantidadVendida}x "${productoVendido}" (Producto ID: ${productId})`,
       );
 
       // --- 2. LÓGICA DE VARIANTES ---
@@ -103,12 +103,12 @@ export const processSalesFile = async (req, res) => {
          LEFT JOIN marcas m ON si.marca_id = m.id
          WHERE r.producto_id = ?
          ORDER BY r.recipe_variant ASC, r.id ASC`, // <-- ORDENAR POR VARIANTE
-        [productId]
+        [productId],
       );
 
       if (reglasReceta.length === 0) {
         console.warn(
-          `     Venta ignorada: No se encontraron reglas de receta para ID ${productId}.`
+          `     Venta ignorada: No se encontraron reglas de receta para ID ${productId}.`,
         );
         continue;
       }
@@ -123,7 +123,7 @@ export const processSalesFile = async (req, res) => {
       console.log(
         `     Producto ID ${productId} tiene ${
           Object.keys(variantes).length
-        } variante(s)`
+        } variante(s)`,
       );
 
       // 2.3. Iterar Variantes por Prioridad
@@ -141,7 +141,7 @@ export const processSalesFile = async (req, res) => {
           // 2.5. Intentar consumir TODOS los ingredientes de ESTA variante
           for (const regla of reglasVariante) {
             console.log(
-              `       Aplicando regla: Tipo=${regla.ingredient_type}, Consumo=${regla.consumo_ml}ml`
+              `       Aplicando regla: Tipo=${regla.ingredient_type}, Consumo=${regla.consumo_ml}ml`,
             );
             let consumoTotalMl = regla.consumo_ml * cantidadVendida;
 
@@ -151,7 +151,7 @@ export const processSalesFile = async (req, res) => {
             if (regla.ingredient_type === "ITEM") {
               if (!regla.item_id || !regla.marca_id_item) {
                 throw new Error(
-                  `Regla ITEM incompleta (item_id: ${regla.item_id}, marca_id: ${regla.marca_id_item})`
+                  `Regla ITEM incompleta (item_id: ${regla.item_id}, marca_id: ${regla.marca_id_item})`,
                 );
               }
 
@@ -162,12 +162,12 @@ export const processSalesFile = async (req, res) => {
                   JOIN marcas m ON si.marca_id = m.id
                   WHERE si.marca_id = ? AND si.stock_unidades > 0.001 AND si.is_active = TRUE
                   ORDER BY (SELECT r_inner.prioridad_item FROM recipes r_inner WHERE r_inner.item_id = si.id AND r_inner.producto_id = ? LIMIT 1) ASC`,
-                [regla.marca_id_item, productId]
+                [regla.marca_id_item, productId],
               );
 
               if (itemsPriorizados.length === 0) {
                 throw new Error(
-                  `Stock insuficiente (items no encontrados) para "${regla.nombre_marca_item}"`
+                  `Stock insuficiente (items no encontrados) para "${regla.nombre_marca_item}"`,
                 );
               }
 
@@ -179,14 +179,14 @@ export const processSalesFile = async (req, res) => {
                   item.nombre_marca,
                   item.variacion,
                   item.cantidad_por_envase,
-                  item.unidad_medida
+                  item.unidad_medida,
                 );
                 if (
                   !item.cantidad_por_envase ||
                   item.cantidad_por_envase <= 0
                 ) {
                   console.warn(
-                    `         Advertencia: Cantidad por envase inválida para ${nombreCompletoItem}. Saltando.`
+                    `         Advertencia: Cantidad por envase inválida para ${nombreCompletoItem}. Saltando.`,
                   );
                   continue;
                 }
@@ -194,14 +194,14 @@ export const processSalesFile = async (req, res) => {
                 let cantidadConsumidaEnUnidadBase = consumoTotalMl;
                 if (item.unidad_medida === "g")
                   console.log(
-                    `         INFO: Asumiendo 1ml=1g para ${nombreCompletoItem}`
+                    `         INFO: Asumiendo 1ml=1g para ${nombreCompletoItem}`,
                   );
 
                 const stockDisponibleEnUnidadBase =
                   item.stock_unidades * item.cantidad_por_envase;
                 const aDescontarDeEsteItemEnUnidadBase = Math.min(
                   cantidadConsumidaEnUnidadBase,
-                  stockDisponibleEnUnidadBase
+                  stockDisponibleEnUnidadBase,
                 );
                 const aDescontarEnUnidades =
                   aDescontarDeEsteItemEnUnidadBase / item.cantidad_por_envase;
@@ -209,7 +209,7 @@ export const processSalesFile = async (req, res) => {
                 // Bloquear fila para actualizar
                 const [stockActualRows] = await connection.query(
                   "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
-                  [item.item_id]
+                  [item.item_id],
                 );
                 if (stockActualRows.length === 0)
                   throw new Error(`Item ID ${item.item_id} no encontrado.`);
@@ -219,20 +219,20 @@ export const processSalesFile = async (req, res) => {
 
                 if (stockNuevo < -0.001) {
                   throw new Error(
-                    `Stock insuficiente (cálculo) para "${nombreCompletoItem}"`
+                    `Stock insuficiente (cálculo) para "${nombreCompletoItem}"`,
                   );
                 }
 
                 const stockNuevoRedondeado = parseFloat(stockNuevo.toFixed(5));
                 await connection.query(
                   "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-                  [stockNuevoRedondeado, item.item_id]
+                  [stockNuevoRedondeado, item.item_id],
                 );
 
                 const descMovimientoItem = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItem})`;
                 // Registrar movimiento (item_id != NULL)
                 await connection.query(
-                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
+                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id, prebatch_id_afectado)
                    VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?, NULL)`,
                   [
                     item.item_id,
@@ -241,7 +241,7 @@ export const processSalesFile = async (req, res) => {
                     stockNuevoRedondeado,
                     descMovimientoItem,
                     eventoId,
-                  ]
+                  ],
                 );
 
                 consumoTotalMl -= aDescontarDeEsteItemEnUnidadBase;
@@ -251,8 +251,8 @@ export const processSalesFile = async (req, res) => {
                 // Si aún falta ML por consumir
                 throw new Error(
                   `Stock insuficiente (restante) para ${consumoTotalMl.toFixed(
-                    1
-                  )}ml de "${regla.nombre_marca_item}"`
+                    1,
+                  )}ml de "${regla.nombre_marca_item}"`,
                 );
               }
 
@@ -260,19 +260,19 @@ export const processSalesFile = async (req, res) => {
             } else if (regla.ingredient_type === "PREBATCH") {
               if (!regla.prebatch_id || !regla.nombre_prebatch_regla) {
                 throw new Error(
-                  `Regla PREBATCH incompleta (id: ${regla.prebatch_id}, nombre: ${regla.nombre_prebatch_regla})`
+                  `Regla PREBATCH incompleta (id: ${regla.prebatch_id}, nombre: ${regla.nombre_prebatch_regla})`,
                 );
               }
 
               // Buscar lotes activos (FIFO)
               const [lotesPrebatch] = await connection.query(
                 `SELECT id, cantidad_actual_ml FROM prebatches WHERE nombre_prebatch = ? AND is_active = TRUE AND cantidad_actual_ml > 0.001 ORDER BY fecha_produccion ASC FOR UPDATE`,
-                [regla.nombre_prebatch_regla]
+                [regla.nombre_prebatch_regla],
               );
 
               if (lotesPrebatch.length === 0) {
                 throw new Error(
-                  `Stock insuficiente (lotes no encontrados) para "${regla.nombre_prebatch_regla}"`
+                  `Stock insuficiente (lotes no encontrados) para "${regla.nombre_prebatch_regla}"`,
                 );
               }
 
@@ -283,30 +283,30 @@ export const processSalesFile = async (req, res) => {
                 const cantidadEnLote = lote.cantidad_actual_ml;
                 const aDescontarDeEsteLote = Math.min(
                   consumoTotalMl,
-                  cantidadEnLote
+                  cantidadEnLote,
                 );
                 const nuevaCantidadLote = cantidadEnLote - aDescontarDeEsteLote;
                 const nuevaCantidadLoteRedondeada = parseFloat(
-                  nuevaCantidadLote.toFixed(5)
+                  nuevaCantidadLote.toFixed(5),
                 );
 
                 // Actualizar el lote de prebatch
                 await connection.query(
                   "UPDATE prebatches SET cantidad_actual_ml = ? WHERE id = ?",
-                  [nuevaCantidadLoteRedondeada, lote.id]
+                  [nuevaCantidadLoteRedondeada, lote.id],
                 );
                 console.log(
                   `         Stock prebatch Lote ID ${lote.id} (${
                     regla.nombre_prebatch_regla
                   }) actualizado: ${cantidadEnLote.toFixed(
-                    3
-                  )}ml -> ${nuevaCantidadLoteRedondeada.toFixed(3)}ml`
+                    3,
+                  )}ml -> ${nuevaCantidadLoteRedondeada.toFixed(3)}ml`,
                 );
 
                 // Registrar movimiento (item_id = NULL)
                 const descMovimientoPrebatch = `Venta: ${cantidadVendida}x ${productoVendido} (consumo prebatch "${regla.nombre_prebatch_regla}" Lote ${lote.id})`;
                 await connection.query(
-                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
+                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id, prebatch_id_afectado)
                     VALUES (NULL, 'CONSUMO', ?, ?, ?, ?, ?, ?)`,
                   [
                     -aDescontarDeEsteLote, // Cantidad movida (negativa, en ml)
@@ -315,10 +315,10 @@ export const processSalesFile = async (req, res) => {
                     descMovimientoPrebatch,
                     eventoId,
                     lote.id, // ID del prebatch afectado
-                  ]
+                  ],
                 );
                 console.log(
-                  `         Movimiento registrado para prebatch Lote ID ${lote.id}`
+                  `         Movimiento registrado para prebatch Lote ID ${lote.id}`,
                 );
 
                 consumoTotalMl -= aDescontarDeEsteLote;
@@ -327,8 +327,8 @@ export const processSalesFile = async (req, res) => {
               if (consumoTotalMl > 0.01) {
                 throw new Error(
                   `Stock insuficiente (restante) para ${consumoTotalMl.toFixed(
-                    1
-                  )}ml de prebatch "${regla.nombre_prebatch_regla}"`
+                    1,
+                  )}ml de prebatch "${regla.nombre_prebatch_regla}"`,
                 );
               }
             } // Fin if/else ingredient_type
@@ -342,7 +342,7 @@ export const processSalesFile = async (req, res) => {
         } catch (error) {
           // 2.7. FALLO DE LA VARIANTE
           console.warn(
-            `     Falló Variante ${variantPriority}: ${error.message}`
+            `     Falló Variante ${variantPriority}: ${error.message}`,
           );
           await connection.query(`ROLLBACK TO SAVEPOINT ${savepointName}`);
           // No hacer 'break', el bucle for...in continuará con la siguiente variante
@@ -353,13 +353,13 @@ export const processSalesFile = async (req, res) => {
       if (!varianteConsumida) {
         // Si ninguna variante tuvo éxito, lanzamos un error que revertirá toda la transacción de esta venta
         throw new Error(
-          `Stock insuficiente para TODAS las variantes de "${productoVendido}". Venta no procesada.`
+          `Stock insuficiente para TODAS las variantes de "${productoVendido}". Venta no procesada.`,
         );
       }
     } // Fin Bucle de Ventas (for...of)
 
     console.log(
-      "Proceso de descuento finalizado. Haciendo commit principal..."
+      "Proceso de descuento finalizado. Haciendo commit principal...",
     );
     await connection.commit();
     console.log("Commit realizado.");
@@ -370,7 +370,7 @@ export const processSalesFile = async (req, res) => {
     // Error en la transacción principal (ej. el error de "Stock insuficiente" de arriba)
     console.error(
       "Error durante el procesamiento de ventas (transacción principal):",
-      error
+      error,
     );
     if (connection) {
       console.log("Intentando rollback principal...");

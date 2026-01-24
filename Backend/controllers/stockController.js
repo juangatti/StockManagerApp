@@ -551,7 +551,7 @@ export const getMovementEventById = async (req, res) => {
               ),
               -- --- FIN DE LA MODIFICACIÓN ---
               
-              'descripcion_movimiento', sm.descripcion
+              'descripcion_movimiento', sm.description
             )
           )
         ) AS movimientos
@@ -869,7 +869,7 @@ export const registerProduction = async (req, res) => {
 
         // Insertar stock_movements
         await connection.query(
-          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?)`,
+          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id) VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?)`,
           [
             itemId,
             -aDescontarEnUnidades,
