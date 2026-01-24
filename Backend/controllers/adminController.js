@@ -420,7 +420,7 @@ export const createStockItem = async (req, res) => {
     // Lógica de stock inicial (sin cambios)
     if (stock_unidades && stock_unidades > 0) {
       await connection.query(
-        `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description)
+        `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion)
            VALUES (?, 'AJUSTE', ?, ?, ?, ?)`,
         [
           newItemId,

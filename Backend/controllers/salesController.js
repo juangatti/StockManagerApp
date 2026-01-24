@@ -232,7 +232,7 @@ export const processSalesFile = async (req, res) => {
                 const descMovimientoItem = `Venta: ${cantidadVendida}x ${productoVendido} (descuento de ${nombreCompletoItem})`;
                 // Registrar movimiento (item_id != NULL)
                 await connection.query(
-                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id, prebatch_id_afectado)
+                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
                    VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?, NULL)`,
                   [
                     item.item_id,
@@ -306,7 +306,7 @@ export const processSalesFile = async (req, res) => {
                 // Registrar movimiento (item_id = NULL)
                 const descMovimientoPrebatch = `Venta: ${cantidadVendida}x ${productoVendido} (consumo prebatch "${regla.nombre_prebatch_regla}" Lote ${lote.id})`;
                 await connection.query(
-                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id, prebatch_id_afectado)
+                  `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id, prebatch_id_afectado)
                     VALUES (NULL, 'CONSUMO', ?, ?, ?, ?, ?, ?)`,
                   [
                     -aDescontarDeEsteLote, // Cantidad movida (negativa, en ml)
