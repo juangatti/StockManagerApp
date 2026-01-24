@@ -9,6 +9,9 @@ import {
   Trash2,
   Beer,
   Package,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import useStockStore from "../../stores/useStockStore";
@@ -23,14 +26,20 @@ export default function PurchasingForm() {
     invoice_number: "",
     invoice_date: new Date().toISOString().split("T")[0],
     total_amount: "",
-    main_category: "cerveza", // Default
+    main_category: "cerveza",
     notes: "",
   });
 
-  // Master Lists for Selection
+  // UI state for progressive disclosure
+  const [showItemEntry, setShowItemEntry] = useState(false);
+  const [showReturns, setShowReturns] = useState(false);
+
+  // Master Lists
   const [suppliers, setSuppliers] = useState([]);
   const [beerStyles, setBeerStyles] = useState([]);
-  const [basket, setBasket] = useState([]); // List of items/kegs to be sent
+  const [emptyKegs, setEmptyKegs] = useState([]); // Available for return
+  const [basket, setBasket] = useState([]);
+  const [returnedKegIds, setReturnedKegIds] = useState([]); // Selected for return
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Item Entry State
@@ -38,26 +47,48 @@ export default function PurchasingForm() {
   const [selectedStyleId, setSelectedStyleId] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
   const [itemPrice, setItemPrice] = useState("");
-  const [kegCode, setKegCode] = useState(""); // For individual keg code entry if needed
+  const [kegCode, setKegCode] = useState("");
 
   const autocompleteRef = useRef();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [suppliersRes, stylesRes] = await Promise.all([
-          api.get("/keg-management/suppliers"),
-          api.get("/keg-management/styles"),
-        ]);
-        setSuppliers(suppliersRes.data);
-        setBeerStyles(stylesRes.data);
-      } catch (error) {
-        console.error("Error fetching form dependencies:", error);
-        toast.error("Error al cargar proveedores o estilos.");
-      }
-    };
-    fetchData();
+    fetchDependencies();
   }, []);
+
+  useEffect(() => {
+    if (invoiceHeader.supplier_id) {
+      fetchEmptyKegs(invoiceHeader.supplier_id);
+    } else {
+      setEmptyKegs([]);
+      setReturnedKegIds([]);
+    }
+  }, [invoiceHeader.supplier_id]);
+
+  const fetchDependencies = async () => {
+    try {
+      const [suppliersRes, stylesRes] = await Promise.all([
+        api.get("/keg-management/suppliers"),
+        api.get("/keg-management/styles"),
+      ]);
+      setSuppliers(suppliersRes.data);
+      setBeerStyles(stylesRes.data);
+    } catch (error) {
+      console.error("Error fetching dependencies:", error);
+      toast.error("Error al cargar proveedores o estilos.");
+    }
+  };
+
+  const fetchEmptyKegs = async (supplierId) => {
+    try {
+      const res = await api.get("/keg-management/kegs?status=EMPTY");
+      const supplierName = suppliers.find(
+        (s) => s.id === parseInt(supplierId),
+      )?.name;
+      setEmptyKegs(res.data.filter((k) => k.supplier_name === supplierName));
+    } catch (error) {
+      console.error("Error fetching empty kegs:", error);
+    }
+  };
 
   const handleHeaderChange = (e) => {
     const { name, value } = e.target;
@@ -72,31 +103,34 @@ export default function PurchasingForm() {
         toast.error("Selecciona un estilo y especifica el precio.");
         return;
       }
-
       const style = beerStyles.find((s) => s.id === parseInt(selectedStyleId));
-      const newKeg = {
-        type: "keg",
-        style_id: style.id,
-        style_name: style.name,
-        code: kegCode || `BEER-${Date.now().toString().slice(-4)}`,
-        cost_price: parseFloat(itemPrice),
-        volume: 50.0, // Default
-      };
-      setBasket([...basket, newKeg]);
+      setBasket([
+        ...basket,
+        {
+          type: "keg",
+          style_id: style.id,
+          style_name: style.name,
+          code: kegCode || `BEER-${Date.now().toString().slice(-4)}`,
+          cost_price: parseFloat(itemPrice),
+          volume: 50.0,
+        },
+      ]);
       setKegCode("");
     } else {
       if (!selectedStockItem || !itemQuantity || !itemPrice) {
         toast.error("Datos de ítem incompletos.");
         return;
       }
-      const newItem = {
-        type: "stock",
-        itemId: selectedStockItem.id,
-        nombre: selectedStockItem.nombre_completo,
-        quantity: parseFloat(itemQuantity),
-        unitCost: parseFloat(itemPrice),
-      };
-      setBasket([...basket, newItem]);
+      setBasket([
+        ...basket,
+        {
+          type: "stock",
+          itemId: selectedStockItem.id,
+          nombre: selectedStockItem.nombre_completo,
+          quantity: parseFloat(itemQuantity),
+          unitCost: parseFloat(itemPrice),
+        },
+      ]);
       setItemQuantity("");
       setItemPrice("");
       setSelectedStockItem(null);
@@ -104,8 +138,10 @@ export default function PurchasingForm() {
     }
   };
 
-  const removeFromBasket = (index) => {
-    setBasket(basket.filter((_, i) => i !== index));
+  const toggleKegReturn = (id) => {
+    setReturnedKegIds((prev) =>
+      prev.includes(id) ? prev.filter((kId) => kId !== id) : [...prev, id],
+    );
   };
 
   const calculateBasketTotal = () => {
@@ -117,9 +153,9 @@ export default function PurchasingForm() {
 
   const handleSubmitInvoice = async () => {
     const basketTotal = calculateBasketTotal();
-    const invoiceTotal = parseFloat(invoiceHeader.total_amount);
+    const invoiceTotal = parseFloat(invoiceHeader.total_amount || 0);
 
-    if (Math.abs(basketTotal - invoiceTotal) > 0.01) {
+    if (basket.length > 0 && Math.abs(basketTotal - invoiceTotal) > 0.1) {
       toast.error(
         `El total de los ítems ($${basketTotal.toFixed(2)}) no coincide con el total de la factura ($${invoiceTotal.toFixed(2)}).`,
       );
@@ -132,11 +168,13 @@ export default function PurchasingForm() {
         ...invoiceHeader,
         items: basket.filter((i) => i.type === "stock"),
         kegs: basket.filter((i) => i.type === "keg"),
+        returned_keg_ids: returnedKegIds,
       };
 
       await api.post("/stock/purchases", payload);
-      toast.success("Factura registrada con éxito.");
+      toast.success("Operación registrada correctamente.");
       setBasket([]);
+      setReturnedKegIds([]);
       setInvoiceHeader({
         supplier_id: "",
         invoice_number: "",
@@ -145,9 +183,10 @@ export default function PurchasingForm() {
         main_category: "cerveza",
         notes: "",
       });
+      setShowItemEntry(false);
+      setShowReturns(false);
       fetchStock();
     } catch (error) {
-      console.error("Error submitting invoice:", error);
       toast.error(
         error.response?.data?.message || "Error al registrar la factura.",
       );
@@ -158,23 +197,30 @@ export default function PurchasingForm() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* 1. Header de Factura */}
-      <div className="bg-surface p-6 rounded-xl shadow-(--shadow-card) border border-gray-100">
-        <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2 uppercase tracking-tight">
-          <FileText className="text-primary h-5 w-5" />
-          Cabecera de Factura / Compra
-        </h2>
+      {/* 1. Header Section */}
+      <div className="bg-surface p-6 rounded-2xl shadow-(--shadow-card) border border-gray-100">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-xl font-black text-text-primary font-display uppercase tracking-tight flex items-center gap-2">
+            <FileText className="text-primary h-6 w-6" />
+            Cabecera de Factura
+          </h2>
+          <div
+            className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-tighter shadow-sm border ${isSubmitting ? "bg-gray-100 text-gray-400" : "bg-primary text-white"}`}
+          >
+            {isSubmitting ? "Procesando..." : "Modo Registro"}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-text-muted uppercase">
+            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
               Proveedor
             </label>
             <select
               name="supplier_id"
               value={invoiceHeader.supplier_id}
               onChange={handleHeaderChange}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-4 focus:ring-primary/10 transition-all outline-none"
             >
               <option value="">Seleccionar...</option>
               {suppliers.map((s) => (
@@ -184,263 +230,290 @@ export default function PurchasingForm() {
               ))}
             </select>
           </div>
-
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-text-muted uppercase">
-              Nro Fac/Remito
+            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+              Factura/Remito
             </label>
             <input
               type="text"
               name="invoice_number"
               value={invoiceHeader.invoice_number}
               onChange={handleHeaderChange}
-              placeholder="0001-0000123"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              placeholder="Nro de comprobante"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
-
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-text-muted uppercase">
-              Fecha
+            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+              Fecha Compra
             </label>
             <input
               type="date"
               name="invoice_date"
               value={invoiceHeader.invoice_date}
               onChange={handleHeaderChange}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
-
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-text-muted uppercase">
-              Categoría Principal
+            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+              Rubro Principal
             </label>
             <select
               name="main_category"
               value={invoiceHeader.main_category}
-              onChange={(e) => {
-                handleHeaderChange(e);
-                setBasket([]); // Limpiar canasto si cambia categoría para evitar mezclas complejas
-              }}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={handleHeaderChange}
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
             >
               <option value="cerveza">Cerveza (Barriles)</option>
-              <option value="comida">Comida / Cocina</option>
-              <option value="bebidas">Bebidas / Barra</option>
-              <option value="mantenimiento">Mantenimiento / Limpieza</option>
+              <option value="comida">Comida (Cocina)</option>
+              <option value="bebidas">Bebidas (Barra)</option>
+              <option value="mantenimiento">Mantenimiento</option>
             </select>
           </div>
-
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-text-muted uppercase text-primary">
-              Monto Total Factura
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">
-                $
-              </span>
-              <input
-                type="number"
-                name="total_amount"
-                value={invoiceHeader.total_amount}
-                onChange={handleHeaderChange}
-                placeholder="0.00"
-                className="w-full bg-gray-50 border border-primary/20 rounded-lg p-2.5 pl-7 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Carga de Items */}
-      <div className="bg-surface p-6 rounded-xl shadow-(--shadow-card) border border-gray-100">
-        <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2 uppercase tracking-tight">
-          {invoiceHeader.main_category === "cerveza" ? (
-            <Beer className="text-accent h-5 w-5" />
-          ) : (
-            <Package className="text-accent h-5 w-5" />
-          )}
-          Carga de Ítems ({invoiceHeader.main_category})
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-          {invoiceHeader.main_category === "cerveza" ? (
-            <>
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-text-muted uppercase">
-                  Estilo de Cerveza
-                </label>
-                <select
-                  value={selectedStyleId}
-                  onChange={(e) => setSelectedStyleId(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Seleccionar estilo...</option>
-                  {beerStyles.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.fantasy_name})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-muted uppercase">
-                  Código Barril (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={kegCode}
-                  onChange={(e) => setKegCode(e.target.value)}
-                  placeholder="Ej: B-123"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="md:col-span-2">
-                <AutocompleteInput
-                  ref={autocompleteRef}
-                  label="Insumo / Ítem de Stock"
-                  onItemSelected={setSelectedStockItem}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-text-muted uppercase">
-                  Cantidad
-                </label>
-                <input
-                  type="number"
-                  value={itemQuantity}
-                  onChange={(e) => setItemQuantity(e.target.value)}
-                  placeholder="0"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-text-muted uppercase">
-              {invoiceHeader.main_category === "cerveza"
-                ? "Precio Barril"
-                : "Precio Unitario"}
+            <label className="text-[10px] font-black text-primary uppercase tracking-widest">
+              Importe Total
             </label>
             <input
               type="number"
-              value={itemPrice}
-              onChange={(e) => setItemPrice(e.target.value)}
-              placeholder="$ 0.00"
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              name="total_amount"
+              value={invoiceHeader.total_amount}
+              onChange={handleHeaderChange}
+              placeholder="0.00"
+              className="w-full bg-primary/5 border-2 border-primary/20 rounded-xl p-3 text-sm font-black text-primary outline-none focus:ring-4 focus:ring-primary/10 transition-all"
             />
           </div>
+        </div>
 
+        <div className="flex gap-4 mt-8 border-t border-gray-100 pt-6">
           <button
-            onClick={handleAddToCart}
-            className="md:col-start-4 bg-primary text-white font-bold py-2.5 rounded-lg hover:bg-primary-dark transition-all flex items-center justify-center gap-2"
+            onClick={() => setShowItemEntry(!showItemEntry)}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-black uppercase text-xs tracking-tighter transition-all ${showItemEntry ? "bg-primary text-white shadow-lg" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
           >
-            <PlusCircle h-5 w-5 />
-            Agregar a la Factura
+            {invoiceHeader.main_category === "cerveza" ? (
+              <Beer className="h-5 w-5" />
+            ) : (
+              <Package className="h-5 w-5" />
+            )}
+            {showItemEntry ? "Ocultar Carga" : "Agregar Ítems de Ingreso"}
+            {showItemEntry ? (
+              <ChevronUp className="h-4 w-4 ml-2" />
+            ) : (
+              <ChevronDown className="h-4 w-4 ml-2" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowReturns(!showReturns)}
+            disabled={!invoiceHeader.supplier_id}
+            className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl font-black uppercase text-xs tracking-tighter transition-all ${showReturns ? "bg-accent text-white shadow-lg" : "bg-gray-100 text-gray-500 hover:bg-gray-200"} disabled:opacity-30`}
+          >
+            <RotateCcw className="h-5 w-5" />
+            {showReturns
+              ? "Ocultar Devoluciones"
+              : "Registrar Devolución de Vacíos"}
+            {showReturns ? (
+              <ChevronUp className="h-4 w-4 ml-2" />
+            ) : (
+              <ChevronDown className="h-4 w-4 ml-2" />
+            )}
           </button>
         </div>
       </div>
 
-      {/* 3. Canasto / Resumen */}
-      <div className="bg-surface rounded-xl shadow-(--shadow-card) border border-gray-100 overflow-hidden">
-        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-sm font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Detalle de Carga
+      {/* 2. Dynamic Entry Sections */}
+      {showItemEntry && (
+        <div className="bg-surface p-8 rounded-2xl shadow-(--shadow-card) border border-gray-100 animate-in slide-in-from-top-4 duration-300">
+          <h3 className="text-sm font-black text-text-secondary uppercase tracking-widest mb-6 flex items-center gap-2">
+            <PlusCircle className="h-5 w-5 text-primary" />
+            Ingreso de Mercadería al Canasto
           </h3>
-          <span
-            className={`text-sm font-bold ${Math.abs(calculateBasketTotal() - parseFloat(invoiceHeader.total_amount || 0)) < 0.01 ? "text-green-600" : "text-primary"}`}
-          >
-            Auditado: ${calculateBasketTotal().toLocaleString()} / $
-            {parseFloat(invoiceHeader.total_amount || 0).toLocaleString()}
-          </span>
-        </div>
-
-        <div className="p-0 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-text-muted uppercase bg-gray-50/50 border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-3 font-bold">Ítem / Estilo</th>
-                <th className="px-6 py-3 font-bold">Detalle / Cod</th>
-                <th className="px-6 py-3 font-bold text-right">Cantidad</th>
-                <th className="px-6 py-3 font-bold text-right">Subtotal</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {basket.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-10 text-center text-gray-400 italic"
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+            {invoiceHeader.main_category === "cerveza" ? (
+              <>
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                    Estilo
+                  </label>
+                  <select
+                    value={selectedStyleId}
+                    onChange={(e) => setSelectedStyleId(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10"
                   >
-                    No hay ítems cargados en esta factura.
-                  </td>
-                </tr>
-              ) : (
-                basket.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-text-primary">
+                    <option value="">Seleccionar...</option>
+                    {beerStyles.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.fantasy_name || s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                    Cod Barril
+                  </label>
+                  <input
+                    type="text"
+                    value={kegCode}
+                    onChange={(e) => setKegCode(e.target.value)}
+                    placeholder="Ej: B-101"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="md:col-span-2">
+                  <AutocompleteInput
+                    ref={autocompleteRef}
+                    label="Insumo / Ítem"
+                    onItemSelected={setSelectedStockItem}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                    Cant.
+                  </label>
+                  <input
+                    type="number"
+                    value={itemQuantity}
+                    onChange={(e) => setItemQuantity(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10"
+                  />
+                </div>
+              </>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                Costo Unit.
+              </label>
+              <input
+                type="number"
+                value={itemPrice}
+                onChange={(e) => setItemPrice(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10"
+              />
+            </div>
+            <button
+              onClick={handleAddToCart}
+              className="bg-primary text-white font-black py-3.5 rounded-xl uppercase text-xs tracking-tighter shadow-md hover:scale-[1.02] transition-all"
+            >
+              Sumar al Canasto
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showReturns && (
+        <div className="bg-surface p-8 rounded-2xl shadow-(--shadow-card) border border-gray-100 animate-in slide-in-from-top-4 duration-300">
+          <h3 className="text-sm font-black text-text-secondary uppercase tracking-widest mb-6 flex items-center gap-2">
+            <RotateCcw className="h-5 w-5 text-accent" />
+            Barriles Vacíos en Mauer (Listos para Retorno)
+          </h3>
+          {emptyKegs.length === 0 ? (
+            <p className="text-text-muted italic text-center text-sm py-4">
+              No hay barriles vacíos de este proveedor en depósito.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {emptyKegs.map((keg) => (
+                <button
+                  key={keg.id}
+                  onClick={() => toggleKegReturn(keg.id)}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${returnedKegIds.includes(keg.id) ? "bg-accent/10 border-accent text-accent shadow-inner" : "bg-gray-50 border-transparent text-gray-400 hover:border-gray-200"}`}
+                >
+                  <Beer className="h-5 w-5 mb-1" />
+                  <span className="text-[10px] font-black uppercase tracking-tighter">
+                    {keg.code}
+                  </span>
+                  <span className="text-[8px] opacity-70 truncate w-full text-center">
+                    {keg.style_name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Basket Summary */}
+      {(basket.length > 0 || returnedKegIds.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+          <div className="lg:col-span-2 bg-surface rounded-2xl shadow-(--shadow-card) border border-gray-100 overflow-hidden">
+            <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest">
+                Resumen de Carga
+              </h3>
+              {returnedKegIds.length > 0 && (
+                <span className="bg-accent text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-sm">
+                  {returnedKegIds.length} Devoluciones
+                </span>
+              )}
+            </div>
+            <ul className="divide-y divide-gray-50">
+              {basket.map((item, idx) => (
+                <li
+                  key={idx}
+                  className="p-5 flex justify-between items-center transition-colors group hover:bg-gray-50/50"
+                >
+                  <div>
+                    <p className="font-bold text-sm text-text-primary uppercase tracking-tight">
                       {item.type === "keg" ? item.style_name : item.nombre}
-                    </td>
-                    <td className="px-6 py-4 text-text-muted text-xs">
+                    </p>
+                    <p className="text-[10px] text-text-muted font-mono">
                       {item.type === "keg"
-                        ? `BARRIL COPIADO (${item.code})`
-                        : `Insumo General`}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {item.type === "keg"
-                        ? "1 Ud."
-                        : `${item.quantity.toFixed(2)} Uds.`}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono font-bold">
+                        ? `BARRIL ${item.code}`
+                        : `${item.quantity} UDS x $${item.unitCost}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <span className="font-mono font-black text-primary text-base">
                       ${" "}
                       {(item.type === "keg"
                         ? item.cost_price
                         : item.quantity * item.unitCost
                       ).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => removeFromBasket(idx)}
-                        className="text-red-400 hover:text-red-600 p-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                    <button
+                      onClick={() =>
+                        setBasket(basket.filter((_, i) => i !== idx))
+                      }
+                      className="text-gray-300 hover:text-red-500 transition-colors p-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {basket.length > 0 && (
-          <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex justify-end items-center gap-8">
-            <div className="text-right">
-              <p className="text-xs text-text-muted uppercase font-bold">
-                Total Cargado
+          <div className="bg-primary p-8 rounded-2xl shadow-xl flex flex-col justify-between text-white relative overflow-hidden">
+            <ShoppingCart className="absolute -right-8 -bottom-8 h-48 w-48 opacity-10 pointer-events-none" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">
+                Total Auditado
               </p>
-              <p className="text-2xl font-black text-text-primary">
-                ${calculateBasketTotal().toLocaleString()}
+              <h4 className="text-4xl font-black tracking-tighter">
+                $ {calculateBasketTotal().toLocaleString()}
+              </h4>
+              <div className="h-1 w-full bg-white/20 my-6 rounded-full" />
+              <p className="text-xs font-bold opacity-80 leading-relaxed italic">
+                {basket.length} ítems de ingreso y {returnedKegIds.length}{" "}
+                barriles vacíos listos para retiro.
               </p>
             </div>
             <button
               onClick={handleSubmitInvoice}
               disabled={isSubmitting}
-              className="bg-green-600 text-white font-black px-10 py-4 rounded-xl hover:bg-green-700 transition-all shadow-lg flex items-center gap-3 uppercase tracking-tighter disabled:opacity-50"
+              className="w-full bg-white text-primary font-black py-4 rounded-xl shadow-lg mt-8 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all disabled:opacity-50"
             >
               <Send className="h-5 w-5" />
-              {isSubmitting ? "Procesando..." : "Confirmar Factura y Stock"}
+              {isSubmitting ? "Registrando..." : "Confirmar Operación"}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

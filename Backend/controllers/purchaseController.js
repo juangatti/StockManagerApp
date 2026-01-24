@@ -14,6 +14,7 @@ export const registerPurchase = async (req, res) => {
     notes,
     items, // Para stock general: [{ itemId, quantity, unitCost }]
     kegs, // Para cerveza: [{ style_id, code, cost_price, description, volume }]
+    returned_keg_ids, // IDs de barriles devueltos en esta factura
   } = req.body;
 
   // Validaciones básicas
@@ -21,7 +22,7 @@ export const registerPurchase = async (req, res) => {
     !supplier_id ||
     !invoice_number ||
     !invoice_date ||
-    !total_amount ||
+    total_amount === undefined ||
     !main_category
   ) {
     return res
@@ -78,71 +79,36 @@ export const registerPurchase = async (req, res) => {
     );
     const eventoId = eventoResult.insertId;
 
-    // 3. Procesar dependiendo de la categoría
-    if (main_category === "cerveza") {
-      if (!kegs || !Array.isArray(kegs))
-        throw new Error("No se proporcionaron datos de los barriles.");
+    // 3. Procesar Devoluciones de Barriles (Si aplica)
+    if (
+      returned_keg_ids &&
+      Array.isArray(returned_keg_ids) &&
+      returned_keg_ids.length > 0
+    ) {
+      // Registrar evento de devolución
+      const [devEventoResult] = await connection.query(
+        "INSERT INTO eventos_stock (tipo_evento, descripcion) VALUES ('DEVOLUCION', ?)",
+        [
+          `Devolución de ${returned_keg_ids.length} barriles en Fac. ${invoice_number}`,
+        ],
+      );
+      const devEventoId = devEventoResult.insertId;
 
-      for (const keg of kegs) {
-        const { style_id, code, cost_price, description, volume } = keg;
-
-        // Insertar barril
+      for (const kegId of returned_keg_ids) {
+        // Actualizar estado del barril
         await connection.query(
-          `INSERT INTO kegs (code, purchase_id, style_id, cost_price, volume_initial, current_volume, description, status) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'STORED')`,
-          [
-            code,
-            purchaseId,
-            style_id,
-            cost_price,
-            volume || 50.0,
-            volume || 50.0,
-            description || "",
-          ],
+          "UPDATE kegs SET status = 'RETURNED', returned_at = NOW(), purchase_id = ? WHERE id = ?",
+          [purchaseId, kegId],
         );
 
-        // Opcional: Registrar movimiento en stock_movements para el barril?
-        // El requerimiento dice "vincular purchase_id a stock_movements y kegs".
-        // Para barriles, el registro en 'kegs' con purchase_id es suficiente, pero
-        // podemos añadir un movimiento genérico si el sistema lo requiere.
-      }
-    } else {
-      // Categorías generales: comida, bebidas, mantenimiento
-      if (!items || !Array.isArray(items))
-        throw new Error("No se proporcionaron ítems para la compra.");
-
-      for (const item of items) {
-        const { itemId, quantity, unitCost } = item;
-
-        // Obtener stock actual para el registro del movimiento
-        const [stockRows] = await connection.query(
-          "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
-          [itemId],
-        );
-        if (stockRows.length === 0)
-          throw new Error(`El ítem con ID ${itemId} no existe.`);
-
-        const stockAnterior = stockRows[0].stock_unidades;
-        const stockNuevo = stockAnterior + parseFloat(quantity);
-
-        // Actualizar stock_items
-        await connection.query(
-          "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
-          [stockNuevo, itemId],
-        );
-
-        // Crear registro en stock_movements
+        // Registrar movimiento de stock para el barril devuelto
         await connection.query(
           `INSERT INTO stock_movements 
-           (type, item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id, purchase_id, supplier_id, invoice_number) 
-           VALUES ('COMPRA', ?, 'ENTRADA', ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (type, description, evento_id, purchase_id, supplier_id, invoice_number, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo) 
+           VALUES ('DEVOLUCION', ?, ?, ?, ?, ?, 'SALIDA', 1, 0, 0)`,
           [
-            itemId,
-            quantity,
-            stockAnterior,
-            stockNuevo,
-            `Ingreso por Factura ${invoice_number}`,
-            eventoId,
+            `Retorno de barril ID: ${kegId} al proveedor`,
+            devEventoId,
             purchaseId,
             supplier_id,
             invoice_number,
@@ -151,22 +117,86 @@ export const registerPurchase = async (req, res) => {
       }
     }
 
+    // 4. Procesar Ingresos dependiendo de la categoría
+    if (main_category === "cerveza") {
+      if (kegs && Array.isArray(kegs)) {
+        for (const keg of kegs) {
+          const { style_id, code, cost_price, description, volume } = keg;
+          await connection.query(
+            `INSERT INTO kegs (code, purchase_id, style_id, cost_price, volume_initial, current_volume, description, status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'STORED')`,
+            [
+              code,
+              purchaseId,
+              style_id,
+              cost_price,
+              volume || 50.0,
+              volume || 50.0,
+              description || "",
+            ],
+          );
+        }
+      }
+    } else {
+      // Categorías generales: comida, bebidas, mantenimiento
+      if (items && Array.isArray(items)) {
+        for (const item of items) {
+          const { itemId, quantity, unitCost } = item;
+
+          // Obtener stock actual para el registro del movimiento
+          const [stockRows] = await connection.query(
+            "SELECT stock_unidades FROM stock_items WHERE id = ? FOR UPDATE",
+            [itemId],
+          );
+          if (stockRows.length === 0)
+            throw new Error(`El ítem con ID ${itemId} no existe.`);
+
+          const stockAnterior = stockRows[0].stock_unidades;
+          const stockNuevo = stockAnterior + parseFloat(quantity);
+
+          // Actualizar stock_items
+          await connection.query(
+            "UPDATE stock_items SET stock_unidades = ? WHERE id = ?",
+            [stockNuevo, itemId],
+          );
+
+          // Crear registro en stock_movements
+          await connection.query(
+            `INSERT INTO stock_movements 
+             (type, item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id, purchase_id, supplier_id, invoice_number) 
+             VALUES ('COMPRA', ?, 'ENTRADA', ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              itemId,
+              quantity,
+              stockAnterior,
+              stockNuevo,
+              `Ingreso por Factura ${invoice_number}`,
+              eventoId,
+              purchaseId,
+              supplier_id,
+              invoice_number,
+            ],
+          );
+        }
+      }
+    }
+
     await connection.commit();
     res.status(201).json({
       success: true,
-      message: "Factura y stock registrados correctamente.",
+      message: "Factura procesada correctamente.",
       purchaseId,
     });
   } catch (error) {
-    await connection.rollback();
+    if (connection) await connection.rollback();
     console.error("Error en transacción de compra:", error);
     res.status(500).json({
       success: false,
-      message: "Error al procesar la compra.",
+      message: "Error al procesar la factura.",
       error: error.message,
     });
   } finally {
-    connection.release();
+    if (connection) connection.release();
   }
 };
 
