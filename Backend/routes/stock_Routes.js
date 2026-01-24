@@ -2,7 +2,6 @@ import { Router } from "express";
 import {
   getStock,
   getStockTotals,
-  registerPurchase,
   registerAdjustment,
   registerMassiveAdjustment,
   getStockMovements,
@@ -12,6 +11,7 @@ import {
   getStockAlerts,
   registerProduction,
 } from "../controllers/stockController.js";
+import { registerPurchase } from "../controllers/purchaseController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = Router();
@@ -29,13 +29,13 @@ router.post("/adjust", authorize("stock:adjust"), registerAdjustment);
 router.post(
   "/mass-adjustment",
   authorize("stock:adjust"),
-  registerMassiveAdjustment
+  registerMassiveAdjustment,
 );
 router.get("/historic-movement", authorize("history:view"), getStockMovements);
 router.get(
   "/historic-movement/:id",
   authorize("history:view"),
-  getMovementEventById
+  getMovementEventById,
 );
 router.post("/production", authorize("production:create"), registerProduction);
 

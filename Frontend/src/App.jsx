@@ -19,6 +19,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AdminRoute from "./layouts/AdminRoute";
 import SchedulesPage from "./pages/SchedulesPage";
 import KegsReportPage from "./pages/KegsReportPage";
+import FinancialDashboardPage from "./pages/FinancialDashboardPage";
 
 const AuthRoute = () => {
   const { isAuthenticated } = useAuthStore();
@@ -84,6 +85,10 @@ function App() {
           <Route path="/adjust" element={<AdjustPage />} />
           <Route path="/keg-report" element={<KegsReportPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/financial-dashboard"
+            element={<FinancialDashboardPage />}
+          />
           <Route path="/historicMovements" element={<HistoricMovementPage />} />
           <Route
             path="/historicMovements/:id"

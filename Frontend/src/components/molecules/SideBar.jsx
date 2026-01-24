@@ -81,7 +81,14 @@ export default function Sidebar({ onLinkClick }) {
           icon={LayoutDashboard}
           onLinkClick={onLinkClick}
         >
-          Dashboard
+          Escritorio
+        </NavItem>
+        <NavItem
+          to="/financial-dashboard"
+          icon={FileClock}
+          onLinkClick={onLinkClick}
+        >
+          Gastos y Compras
         </NavItem>
         <NavItem to="/bar" icon={ClipboardList} onLinkClick={onLinkClick}>
           Barra (Stock)

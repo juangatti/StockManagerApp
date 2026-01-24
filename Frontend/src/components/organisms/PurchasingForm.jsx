@@ -1,204 +1,446 @@
 // src/components/organisms/PurchasingForm.jsx
-import React, { useState, useRef } from "react"; // 1. Importar useRef
+import React, { useState, useEffect, useRef } from "react";
 import api from "../../api/api";
-import { PlusCircle, ShoppingCart, Send, FileText } from "lucide-react";
+import {
+  PlusCircle,
+  ShoppingCart,
+  Send,
+  FileText,
+  Trash2,
+  Beer,
+  Package,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import useStockStore from "../../stores/useStockStore";
-import AutocompleteInput from "../molecules/AutocompleteInput"; // 2. Importar AutocompleteInput
+import AutocompleteInput from "../molecules/AutocompleteInput";
 
 export default function PurchasingForm() {
-  const { fetchStock } = useStockStore(); // Ya no necesitamos stockItems aquí
-  const [compraActual, setCompraActual] = useState([]);
-  const [cantidad, setCantidad] = useState("");
-  const [descripcionCompra, setDescripcionCompra] = useState("");
+  const { fetchStock } = useStockStore();
+
+  // Header State
+  const [invoiceHeader, setInvoiceHeader] = useState({
+    supplier_id: "",
+    invoice_number: "",
+    invoice_date: new Date().toISOString().split("T")[0],
+    total_amount: "",
+    main_category: "cerveza", // Default
+    notes: "",
+  });
+
+  // Master Lists for Selection
+  const [suppliers, setSuppliers] = useState([]);
+  const [beerStyles, setBeerStyles] = useState([]);
+  const [basket, setBasket] = useState([]); // List of items/kegs to be sent
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 3. Nuevo estado para el item seleccionado en el autocomplete
-  const [selectedItemToAdd, setSelectedItemToAdd] = useState(null); // { id, nombre_completo } | null
-  const autocompleteRef = useRef(); // 4. Ref para el AutocompleteInput
+  // Item Entry State
+  const [selectedStockItem, setSelectedStockItem] = useState(null);
+  const [selectedStyleId, setSelectedStyleId] = useState("");
+  const [itemQuantity, setItemQuantity] = useState("");
+  const [itemPrice, setItemPrice] = useState("");
+  const [kegCode, setKegCode] = useState(""); // For individual keg code entry if needed
 
-  // 5. Callback para el AutocompleteInput
-  const handleItemSelectionToAdd = (item) => {
-    setSelectedItemToAdd(item);
-  };
+  const autocompleteRef = useRef();
 
-  const handleAddItem = (e) => {
-    e.preventDefault();
-    // 6. Validar usando selectedItemToAdd
-    if (!selectedItemToAdd || !cantidad) {
-      toast.error("Selecciona un item y especifica la cantidad.");
-      return;
-    }
-
-    const nuevoItem = {
-      itemId: selectedItemToAdd.id,
-      nombre: selectedItemToAdd.nombre_completo,
-      cantidad: parseFloat(cantidad),
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [suppliersRes, stylesRes] = await Promise.all([
+          api.get("/keg-management/suppliers"),
+          api.get("/keg-management/styles"),
+        ]);
+        setSuppliers(suppliersRes.data);
+        setBeerStyles(stylesRes.data);
+      } catch (error) {
+        console.error("Error fetching form dependencies:", error);
+        toast.error("Error al cargar proveedores o estilos.");
+      }
     };
+    fetchData();
+  }, []);
 
-    setCompraActual([...compraActual, nuevoItem]);
+  const handleHeaderChange = (e) => {
+    const { name, value } = e.target;
+    setInvoiceHeader((prev) => ({ ...prev, [name]: value }));
+  };
 
-    // 7. Limpiar campos y el AutocompleteInput
-    setCantidad("");
-    setSelectedItemToAdd(null); // Limpiar estado local
-    if (autocompleteRef.current) {
-      autocompleteRef.current.clear(); // Limpiar el input del componente hijo
+  const handleAddToCart = (e) => {
+    if (e) e.preventDefault();
+
+    if (invoiceHeader.main_category === "cerveza") {
+      if (!selectedStyleId || !itemPrice) {
+        toast.error("Selecciona un estilo y especifica el precio.");
+        return;
+      }
+
+      const style = beerStyles.find((s) => s.id === parseInt(selectedStyleId));
+      const newKeg = {
+        type: "keg",
+        style_id: style.id,
+        style_name: style.name,
+        code: kegCode || `BEER-${Date.now().toString().slice(-4)}`,
+        cost_price: parseFloat(itemPrice),
+        volume: 50.0, // Default
+      };
+      setBasket([...basket, newKeg]);
+      setKegCode("");
+    } else {
+      if (!selectedStockItem || !itemQuantity || !itemPrice) {
+        toast.error("Datos de ítem incompletos.");
+        return;
+      }
+      const newItem = {
+        type: "stock",
+        itemId: selectedStockItem.id,
+        nombre: selectedStockItem.nombre_completo,
+        quantity: parseFloat(itemQuantity),
+        unitCost: parseFloat(itemPrice),
+      };
+      setBasket([...basket, newItem]);
+      setItemQuantity("");
+      setItemPrice("");
+      setSelectedStockItem(null);
+      if (autocompleteRef.current) autocompleteRef.current.clear();
     }
   };
 
-  const handleSubmitCompra = () => {
-    if (compraActual.length === 0) {
-      toast.error("Agrega al menos un item a la compra.");
-      return;
-    }
-    if (!descripcionCompra.trim()) {
-      toast.error("Añade un detalle o motivo para la compra.");
+  const removeFromBasket = (index) => {
+    setBasket(basket.filter((_, i) => i !== index));
+  };
+
+  const calculateBasketTotal = () => {
+    return basket.reduce((sum, item) => {
+      if (item.type === "keg") return sum + item.cost_price;
+      return sum + item.quantity * item.unitCost;
+    }, 0);
+  };
+
+  const handleSubmitInvoice = async () => {
+    const basketTotal = calculateBasketTotal();
+    const invoiceTotal = parseFloat(invoiceHeader.total_amount);
+
+    if (Math.abs(basketTotal - invoiceTotal) > 0.01) {
+      toast.error(
+        `El total de los ítems ($${basketTotal.toFixed(2)}) no coincide con el total de la factura ($${invoiceTotal.toFixed(2)}).`,
+      );
       return;
     }
 
     setIsSubmitting(true);
-    const payload = {
-      descripcion: descripcionCompra.trim(),
-      itemsComprados: compraActual,
-    };
+    try {
+      const payload = {
+        ...invoiceHeader,
+        items: basket.filter((i) => i.type === "stock"),
+        kegs: basket.filter((i) => i.type === "keg"),
+      };
 
-    const promise = api.post("/stock/purchases", payload);
-
-    toast.promise(promise, {
-      loading: "Registrando compra...",
-      success: (response) => {
-        setCompraActual([]);
-        setDescripcionCompra("");
-        setIsSubmitting(false);
-        // fetchStock() puede ser necesario si la tabla de inventario está visible
-        // o si otros componentes dependen de ella actualizada inmediatamente.
-        // Si no, se actualizará la próxima vez que se navegue a Inventario.
-        // Por ahora lo dejamos para mantener consistencia.
-        fetchStock();
-        return "¡Compra registrada con éxito!";
-      },
-      error: (err) => {
-        console.error("Error al registrar la compra:", err);
-        setIsSubmitting(false);
-        return (
-          err.response?.data?.message ||
-          "Error al registrar la compra. Intenta de nuevo."
-        );
-      },
-    });
+      await api.post("/stock/purchases", payload);
+      toast.success("Factura registrada con éxito.");
+      setBasket([]);
+      setInvoiceHeader({
+        supplier_id: "",
+        invoice_number: "",
+        invoice_date: new Date().toISOString().split("T")[0],
+        total_amount: "",
+        main_category: "cerveza",
+        notes: "",
+      });
+      fetchStock();
+    } catch (error) {
+      console.error("Error submitting invoice:", error);
+      toast.error(
+        error.response?.data?.message || "Error al registrar la factura.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="bg-slate-800 p-8 rounded-lg shadow-xl">
-      <form
-        onSubmit={handleAddItem}
-        className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-8"
-      >
-        {/* 8. Reemplazar <select> con <AutocompleteInput> */}
-        <div className="md:col-span-2">
-          <AutocompleteInput
-            ref={autocompleteRef} // Asignar ref
-            label="Item"
-            placeholder="Escribe para buscar item..."
-            onItemSelected={handleItemSelectionToAdd}
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="cantidad"
-            className="block mb-2 text-sm font-medium text-slate-300"
-          >
-            Cantidad (unidades)
-          </label>
-          <input
-            type="number"
-            id="cantidad"
-            value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-            step="0.01"
-            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5"
-            // Deshabilitar cantidad si no hay item seleccionado
-            disabled={!selectedItemToAdd}
-          />
-        </div>
-        <button
-          type="submit"
-          // Deshabilitar botón si no hay item o cantidad
-          disabled={!selectedItemToAdd || !cantidad}
-          className="flex items-center justify-center text-white bg-sky-600 hover:bg-sky-700 focus:ring-4 focus:outline-none focus:ring-sky-800 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center disabled:bg-slate-500 disabled:opacity-70"
-        >
-          <PlusCircle className="mr-2 h-5 w-5" />
-          Agregar Item
-        </button>
-      </form>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* 1. Header de Factura */}
+      <div className="bg-surface p-6 rounded-xl shadow-(--shadow-card) border border-gray-100">
+        <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2 uppercase tracking-tight">
+          <FileText className="text-primary h-5 w-5" />
+          Cabecera de Factura / Compra
+        </h2>
 
-      {/* Campo de Descripción (sin cambios) */}
-      <div className="mb-6">
-        <label
-          htmlFor="descripcion-compra"
-          className="block mb-2 text-sm font-medium text-slate-300"
-        >
-          Detalle de la Compra (Obligatorio)
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <FileText className="h-5 w-5 text-slate-400" />
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted uppercase">
+              Proveedor
+            </label>
+            <select
+              name="supplier_id"
+              value={invoiceHeader.supplier_id}
+              onChange={handleHeaderChange}
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            >
+              <option value="">Seleccionar...</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <input
-            type="text"
-            id="descripcion-compra"
-            value={descripcionCompra}
-            onChange={(e) => setDescripcionCompra(e.target.value)}
-            className="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5 pl-10"
-            placeholder="Ej: Compra Proveedor X, Factura Nro. 12345"
-          />
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted uppercase">
+              Nro Fac/Remito
+            </label>
+            <input
+              type="text"
+              name="invoice_number"
+              value={invoiceHeader.invoice_number}
+              onChange={handleHeaderChange}
+              placeholder="0001-0000123"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted uppercase">
+              Fecha
+            </label>
+            <input
+              type="date"
+              name="invoice_date"
+              value={invoiceHeader.invoice_date}
+              onChange={handleHeaderChange}
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted uppercase">
+              Categoría Principal
+            </label>
+            <select
+              name="main_category"
+              value={invoiceHeader.main_category}
+              onChange={(e) => {
+                handleHeaderChange(e);
+                setBasket([]); // Limpiar canasto si cambia categoría para evitar mezclas complejas
+              }}
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="cerveza">Cerveza (Barriles)</option>
+              <option value="comida">Comida / Cocina</option>
+              <option value="bebidas">Bebidas / Barra</option>
+              <option value="mantenimiento">Mantenimiento / Limpieza</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted uppercase text-primary">
+              Monto Total Factura
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">
+                $
+              </span>
+              <input
+                type="number"
+                name="total_amount"
+                value={invoiceHeader.total_amount}
+                onChange={handleHeaderChange}
+                placeholder="0.00"
+                className="w-full bg-gray-50 border border-primary/20 rounded-lg p-2.5 pl-7 text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Lista de Items en Compra (sin cambios) */}
-      <h3 className="text-xl font-semibold text-white mb-4 border-t border-slate-700 pt-6">
-        <ShoppingCart className="inline-block mr-3 h-6 w-6" />
-        Items en esta Compra
-      </h3>
-      <div className="bg-slate-900 rounded-lg p-4 min-h-[150px]">
-        {compraActual.length === 0 ? (
-          <p className="text-slate-500 text-center py-10">
-            Aún no has agregado items a la compra.
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-700">
-            {compraActual.map((item, index) => (
-              <li
-                key={index} // Considera usar item.itemId si no permites duplicados o una key más robusta
-                className="py-3 sm:py-4 flex justify-between items-center"
-              >
-                <div>
-                  <p className="text-md font-medium text-white">
-                    {item.nombre}
-                  </p>
-                </div>
-                <p className="text-md font-semibold text-white">
-                  {item.cantidad.toFixed(2)} unidades
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {/* 2. Carga de Items */}
+      <div className="bg-surface p-6 rounded-xl shadow-(--shadow-card) border border-gray-100">
+        <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2 uppercase tracking-tight">
+          {invoiceHeader.main_category === "cerveza" ? (
+            <Beer className="text-accent h-5 w-5" />
+          ) : (
+            <Package className="text-accent h-5 w-5" />
+          )}
+          Carga de Ítems ({invoiceHeader.main_category})
+        </h2>
 
-      {/* Botón Registrar Compra (sin cambios en lógica, solo validación) */}
-      {compraActual.length > 0 && (
-        <div className="flex justify-end mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+          {invoiceHeader.main_category === "cerveza" ? (
+            <>
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="text-xs font-bold text-text-muted uppercase">
+                  Estilo de Cerveza
+                </label>
+                <select
+                  value={selectedStyleId}
+                  onChange={(e) => setSelectedStyleId(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Seleccionar estilo...</option>
+                  {beerStyles.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.fantasy_name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-muted uppercase">
+                  Código Barril (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={kegCode}
+                  onChange={(e) => setKegCode(e.target.value)}
+                  placeholder="Ej: B-123"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="md:col-span-2">
+                <AutocompleteInput
+                  ref={autocompleteRef}
+                  label="Insumo / Ítem de Stock"
+                  onItemSelected={setSelectedStockItem}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-text-muted uppercase">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  value={itemQuantity}
+                  onChange={(e) => setItemQuantity(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-text-muted uppercase">
+              {invoiceHeader.main_category === "cerveza"
+                ? "Precio Barril"
+                : "Precio Unitario"}
+            </label>
+            <input
+              type="number"
+              value={itemPrice}
+              onChange={(e) => setItemPrice(e.target.value)}
+              placeholder="$ 0.00"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
           <button
-            onClick={handleSubmitCompra}
-            disabled={isSubmitting || !descripcionCompra}
-            className="flex items-center justify-center text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-slate-500 disabled:cursor-not-allowed"
+            onClick={handleAddToCart}
+            className="md:col-start-4 bg-primary text-white font-bold py-2.5 rounded-lg hover:bg-primary-dark transition-all flex items-center justify-center gap-2"
           >
-            <Send className="mr-2 h-5 w-5" />
-            {isSubmitting ? "Registrando..." : "Registrar Compra Completa"}
+            <PlusCircle h-5 w-5 />
+            Agregar a la Factura
           </button>
         </div>
-      )}
+      </div>
+
+      {/* 3. Canasto / Resumen */}
+      <div className="bg-surface rounded-xl shadow-(--shadow-card) border border-gray-100 overflow-hidden">
+        <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-sm font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" />
+            Detalle de Carga
+          </h3>
+          <span
+            className={`text-sm font-bold ${Math.abs(calculateBasketTotal() - parseFloat(invoiceHeader.total_amount || 0)) < 0.01 ? "text-green-600" : "text-primary"}`}
+          >
+            Auditado: ${calculateBasketTotal().toLocaleString()} / $
+            {parseFloat(invoiceHeader.total_amount || 0).toLocaleString()}
+          </span>
+        </div>
+
+        <div className="p-0 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs text-text-muted uppercase bg-gray-50/50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-3 font-bold">Ítem / Estilo</th>
+                <th className="px-6 py-3 font-bold">Detalle / Cod</th>
+                <th className="px-6 py-3 font-bold text-right">Cantidad</th>
+                <th className="px-6 py-3 font-bold text-right">Subtotal</th>
+                <th className="px-6 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {basket.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="5"
+                    className="px-6 py-10 text-center text-gray-400 italic"
+                  >
+                    No hay ítems cargados en esta factura.
+                  </td>
+                </tr>
+              ) : (
+                basket.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-text-primary">
+                      {item.type === "keg" ? item.style_name : item.nombre}
+                    </td>
+                    <td className="px-6 py-4 text-text-muted text-xs">
+                      {item.type === "keg"
+                        ? `BARRIL COPIADO (${item.code})`
+                        : `Insumo General`}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {item.type === "keg"
+                        ? "1 Ud."
+                        : `${item.quantity.toFixed(2)} Uds.`}
+                    </td>
+                    <td className="px-6 py-4 text-right font-mono font-bold">
+                      ${" "}
+                      {(item.type === "keg"
+                        ? item.cost_price
+                        : item.quantity * item.unitCost
+                      ).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => removeFromBasket(idx)}
+                        className="text-red-400 hover:text-red-600 p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {basket.length > 0 && (
+          <div className="p-6 bg-gray-50/50 border-t border-gray-100 flex justify-end items-center gap-8">
+            <div className="text-right">
+              <p className="text-xs text-text-muted uppercase font-bold">
+                Total Cargado
+              </p>
+              <p className="text-2xl font-black text-text-primary">
+                ${calculateBasketTotal().toLocaleString()}
+              </p>
+            </div>
+            <button
+              onClick={handleSubmitInvoice}
+              disabled={isSubmitting}
+              className="bg-green-600 text-white font-black px-10 py-4 rounded-xl hover:bg-green-700 transition-all shadow-lg flex items-center gap-3 uppercase tracking-tighter disabled:opacity-50"
+            >
+              <Send className="h-5 w-5" />
+              {isSubmitting ? "Procesando..." : "Confirmar Factura y Stock"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
