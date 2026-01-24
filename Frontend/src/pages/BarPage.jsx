@@ -184,8 +184,10 @@ export default function BarPage() {
                     <PrebatchesTable
                       prebatches={prebatches}
                       loading={loadingPrebatches}
-                      isAdmin={user.role === "admin"}
-                      onEdit={handleEditPrebatch} // Pasar el handler correcto
+                      isAdmin={["admin", "SuperAdmin", "GameMaster"].includes(
+                        user?.role_name,
+                      )}
+                      onEdit={handleEditPrebatch}
                       onDeleteSuccess={handleDeletePrebatchSuccess}
                     />
                     {!loadingPrebatches &&

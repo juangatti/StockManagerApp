@@ -156,19 +156,25 @@ export default function PrebatchesTable({
                         </span>
                         <button
                           onClick={() => onEdit(lote)}
-                          className="p-2 rounded-lg hover:bg-gray-100 transition-all text-text-muted hover:text-primary"
+                          className="flex items-center gap-1.5 p-2 px-3 rounded-lg bg-gray-100 hover:bg-primary/10 transition-all text-text-muted hover:text-primary border border-transparent hover:border-primary/20"
                           title="Editar"
                         >
-                          <Edit className="h-5 w-5" />
+                          <Edit className="h-4 w-4" />
+                          <span className="text-[10px] font-black uppercase tracking-tighter">
+                            Editar
+                          </span>
                         </button>
                         <button
                           onClick={() =>
                             handleDelete(lote.id, lote.nombre_prebatch)
                           }
-                          className="p-2 rounded-lg hover:bg-red-50 transition-all text-text-muted hover:text-primary"
+                          className="flex items-center gap-1.5 p-2 px-3 rounded-lg bg-gray-100 hover:bg-red-50 transition-all text-text-muted hover:text-red-600 border border-transparent hover:border-red-200"
                           title="Descartar Lote"
                         >
-                          <Trash2 className="h-5 w-5" />
+                          <Trash2 className="h-4 w-4" />
+                          <span className="text-[10px] font-black uppercase tracking-tighter">
+                            Descartar
+                          </span>
                         </button>
                       </div>
                     </td>

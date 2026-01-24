@@ -193,12 +193,12 @@ export default function UserManager() {
                   </span>
                   <span
                     className={`text-xs ml-3 px-2.5 py-1 rounded-full font-bold border ${
-                      user.role === "admin"
+                      user.role_name === "admin"
                         ? "bg-amber-50 text-amber-700 border-amber-100 shadow-sm"
                         : "bg-gray-100 text-text-secondary border-gray-200"
                     }`}
                   >
-                    {user.role}
+                    {user.role_name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
