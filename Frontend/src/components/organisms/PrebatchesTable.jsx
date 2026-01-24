@@ -11,15 +11,14 @@ export default function PrebatchesTable({
   onDeleteSuccess,
 }) {
   const handleDelete = (id, name) => {
-    if (window.confirm(`¿Seguro que quieres desactivar "${name}"?`)) {
+    if (window.confirm(`¿Seguro que deseas descartar el lote "${name}"?`)) {
       toast.promise(api.delete(`/prebatches/${id}`), {
-        //
-        loading: "Desactivando...",
+        loading: "Descartando lote...",
         success: () => {
           onDeleteSuccess();
-          return "Desactivado con éxito.";
+          return "Lote descartado con éxito.";
         },
-        error: "No se pudo desactivar.",
+        error: "No se pudo descartar el lote.",
       });
     }
   };
@@ -167,7 +166,7 @@ export default function PrebatchesTable({
                             handleDelete(lote.id, lote.nombre_prebatch)
                           }
                           className="p-2 rounded-lg hover:bg-red-50 transition-all text-text-muted hover:text-primary"
-                          title="Desactivar"
+                          title="Descartar Lote"
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>
