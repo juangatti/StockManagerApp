@@ -8,49 +8,52 @@ export const getAllPrebatches = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || "";
-    const offset = (page - 1) * limit;
-
-    let whereClause = "WHERE is_active = TRUE";
+    let whereClause = "WHERE p.is_active = TRUE";
     const queryParams = [];
 
     if (searchQuery) {
-      whereClause += " AND nombre_prebatch LIKE ?";
+      whereClause += " AND p.nombre_prebatch LIKE ?";
       queryParams.push(`%${searchQuery}%`);
     }
 
-    // Consulta de Conteo (sin cambios)
+    // Consulta de Conteo
     const countQuery = `
-      SELECT COUNT(id) AS totalPrebatches
-      FROM prebatches
+      SELECT COUNT(p.id) AS totalPrebatches
+      FROM prebatches p
       ${whereClause};
     `;
-    const [countRows] = await pool.query(countQuery, queryParams); //
+    const [countRows] = await pool.query(countQuery, queryParams);
     const totalPrebatches = countRows[0].totalPrebatches;
     const totalPages = Math.ceil(totalPrebatches / limit);
 
-    // Consulta de Datos Paginados (CASE MODIFICADO)
+    // Consulta de Datos Paginados
     const dataQuery = `
-      SELECT id, nombre_prebatch, fecha_produccion, fecha_vencimiento, cantidad_actual_ml, identificador_lote,
+      SELECT 
+        p.id, 
+        p.nombre_prebatch, 
+        p.fecha_produccion, 
+        p.fecha_vencimiento, 
+        p.cantidad_inicial_ml,
+        p.cantidad_actual_ml, 
+        p.identificador_lote,
+        p.categoria_id,
+        c.nombre AS categoria_nombre,
         CASE
-          -- Lógica con fecha de vencimiento manual (Aviso 7 días antes)
-          WHEN fecha_vencimiento IS NOT NULL AND CURDATE() >= fecha_vencimiento THEN 'VENCIDO'
-          WHEN fecha_vencimiento IS NOT NULL AND CURDATE() >= DATE_SUB(fecha_vencimiento, INTERVAL 7 DAY) THEN 'ADVERTENCIA'
-
-          -- Lógica original (fallback si no hay fecha manual - 14/28 días desde producción)
-          WHEN fecha_vencimiento IS NULL AND CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 28 DAY) THEN 'VENCIDO'
-          WHEN fecha_vencimiento IS NULL AND CURDATE() >= DATE_ADD(fecha_produccion, INTERVAL 14 DAY) THEN 'ADVERTENCIA'
-
-          -- Por defecto
+          WHEN p.fecha_vencimiento IS NOT NULL AND CURDATE() >= p.fecha_vencimiento THEN 'VENCIDO'
+          WHEN p.fecha_vencimiento IS NOT NULL AND CURDATE() >= DATE_SUB(p.fecha_vencimiento, INTERVAL 7 DAY) THEN 'ADVERTENCIA'
+          WHEN p.fecha_vencimiento IS NULL AND CURDATE() >= DATE_ADD(p.fecha_produccion, INTERVAL 28 DAY) THEN 'VENCIDO'
+          WHEN p.fecha_vencimiento IS NULL AND CURDATE() >= DATE_ADD(p.fecha_produccion, INTERVAL 14 DAY) THEN 'ADVERTENCIA'
           ELSE 'FRESCO'
         END AS estado
-      FROM prebatches
+      FROM prebatches p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
       ${whereClause}
-      ORDER BY fecha_produccion ASC -- Puedes cambiar a ORDER BY estado, fecha_vencimiento, fecha_produccion si prefieres
+      ORDER BY p.fecha_produccion ASC
       LIMIT ?
       OFFSET ?;
     `;
     const dataParams = [...queryParams, limit, offset];
-    const [prebatches] = await pool.query(dataQuery, dataParams); //
+    const [prebatches] = await pool.query(dataQuery, dataParams);
 
     res.json({
       prebatches,
@@ -128,7 +131,7 @@ export const createPrebatch = async (req, res) => {
         cantidad_inicial_ml,
         cantidad_inicial_ml,
         identificador_lote || null,
-      ]
+      ],
     );
     res.status(201).json({ message: "Prebatch creado con éxito." });
   } catch (error) {
@@ -139,29 +142,32 @@ export const createPrebatch = async (req, res) => {
 // PUT /api/prebatches/:id
 export const updatePrebatch = async (req, res) => {
   const { id } = req.params;
-  // 1. Extraer categoria_id del body
   const {
     nombre_prebatch,
     fecha_produccion,
     cantidad_inicial_ml,
+    cantidad_actual_ml, // <-- Añadido
     identificador_lote,
-    categoria_id, // <-- Nuevo campo extraído
+    categoria_id,
   } = req.body;
 
-  // Validación básica (puedes añadir más si es necesario)
-  if (!nombre_prebatch || !fecha_produccion || !cantidad_inicial_ml) {
+  if (
+    !nombre_prebatch ||
+    !fecha_produccion ||
+    cantidad_inicial_ml === undefined
+  ) {
     return res
       .status(400)
       .json({ message: "Nombre, fecha y cantidad inicial son obligatorios." });
   }
 
   try {
-    // 2. Modificar la consulta UPDATE para incluir categoria_id
     await pool.query(
       `UPDATE prebatches SET
         nombre_prebatch = ?,
         fecha_produccion = ?,
         cantidad_inicial_ml = ?,
+        cantidad_actual_ml = ?,
         identificador_lote = ?,
         categoria_id = ?
        WHERE id = ?`,
@@ -169,14 +175,17 @@ export const updatePrebatch = async (req, res) => {
         nombre_prebatch,
         fecha_produccion,
         cantidad_inicial_ml,
+        cantidad_actual_ml !== undefined
+          ? cantidad_actual_ml
+          : cantidad_inicial_ml,
         identificador_lote || null,
-        categoria_id || null, // <-- Usar el valor o null si no viene
+        categoria_id || null,
         id,
-      ]
+      ],
     );
     res.status(200).json({ message: "Prebatch actualizado con éxito." });
   } catch (error) {
-    console.error("Error updating prebatch:", error); // Añadir log
+    console.error("Error updating prebatch:", error);
     res.status(500).json({ message: "Error al actualizar el prebatch." });
   }
 };

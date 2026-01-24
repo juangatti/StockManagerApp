@@ -14,6 +14,7 @@ export default function PrebatchForm({
     nombre_prebatch: "",
     fecha_produccion: "",
     cantidad_inicial_ml: "",
+    cantidad_actual_ml: "", // 1. Añadido
     identificador_lote: "",
     // 1. Añadir categoria_id al estado inicial
     categoria_id: "",
@@ -59,6 +60,7 @@ export default function PrebatchForm({
               .split("T")[0]
           : "",
         cantidad_inicial_ml: prebatchToEdit.cantidad_inicial_ml || "",
+        cantidad_actual_ml: prebatchToEdit.cantidad_actual_ml || "", // 2. Poblar
         identificador_lote: prebatchToEdit.identificador_lote || "",
         // 4. Pre-rellenar categoría si existe en el objeto a editar
         categoria_id: prebatchToEdit.categoria_id || "",
@@ -68,6 +70,7 @@ export default function PrebatchForm({
         nombre_prebatch: "",
         fecha_produccion: "",
         cantidad_inicial_ml: "",
+        cantidad_actual_ml: "",
         identificador_lote: "",
         // 5. Resetear categoría
         categoria_id: "",
@@ -83,7 +86,7 @@ export default function PrebatchForm({
     if (
       !formData.nombre_prebatch ||
       !formData.fecha_produccion ||
-      !formData.cantidad_inicial_ml
+      formData.cantidad_inicial_ml === ""
     ) {
       toast.error(
         "Nombre, Fecha de Producción y Cantidad Inicial son obligatorios.",
@@ -95,6 +98,10 @@ export default function PrebatchForm({
     const payload = {
       ...formData,
       cantidad_inicial_ml: parseFloat(formData.cantidad_inicial_ml),
+      cantidad_actual_ml:
+        formData.cantidad_actual_ml !== ""
+          ? parseFloat(formData.cantidad_actual_ml)
+          : parseFloat(formData.cantidad_inicial_ml),
       identificador_lote: formData.identificador_lote || null,
       // 6. Añadir categoria_id al payload (asegurarse que sea null si está vacío)
       categoria_id: formData.categoria_id
@@ -210,6 +217,27 @@ export default function PrebatchForm({
                 placeholder="Ej: 5000"
               />
             </div>
+            {/* Solo mostrar cantidad actual si es edición */}
+            {prebatchToEdit && (
+              <div>
+                <label
+                  htmlFor="cantidad_actual_ml"
+                  className="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider"
+                >
+                  Cantidad Actual (ml)
+                </label>
+                <input
+                  type="number"
+                  name="cantidad_actual_ml"
+                  id="cantidad_actual_ml"
+                  value={formData.cantidad_actual_ml}
+                  onChange={handleChange}
+                  className={`${commonInputClass} border-primary/30 bg-primary/5 font-bold`}
+                  min="0"
+                  step="1"
+                />
+              </div>
+            )}
             {/* Identificador Lote */}
             <div>
               <label
