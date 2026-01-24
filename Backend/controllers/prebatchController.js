@@ -8,6 +8,7 @@ export const getAllPrebatches = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const searchQuery = req.query.search || "";
+    const offset = (page - 1) * limit; // <-- Re-añadido
     let whereClause = "WHERE p.is_active = TRUE";
     const queryParams = [];
 
