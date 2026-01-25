@@ -231,14 +231,14 @@ export const registerPurchase = async (req, res) => {
       // 4. MODIFICADO: Usamos la descripción general para el movimiento individual
       await connection.query(
         `INSERT INTO stock_movements 
-         (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) 
-         VALUES (?, 'COMPRA', ?, ?, ?, ?, ?)`,
+         (type, item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id) 
+         VALUES ('COMPRA', ?, 'ENTRADA', ?, ?, ?, ?, ?)`,
         [
           item.itemId,
           item.cantidad,
           stockAnterior,
           stockNuevo,
-          descripcionEvento, // <-- Usamos la descripción general
+          descripcionEvento,
           eventoId,
         ],
       );
@@ -302,15 +302,16 @@ export const registerAdjustment = async (req, res) => {
       // MODIFICADO: 2. Añadimos el evento_id
       await connection.query(
         `INSERT INTO stock_movements 
-             (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) 
-             VALUES (?, 'AJUSTE', ?, ?, ?, ?, ?)`, // <-- 7 signos
+             (type, item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id) 
+             VALUES ('AJUSTE', ?, ?, ?, ?, ?, ?, ?)`,
         [
           itemId,
+          cantidadMovida > 0 ? "ENTRADA" : "SALIDA",
           cantidadMovida,
           stockAnterior,
           conteoReal,
-          descEvento, // Usamos la misma descripción para el movimiento
-          eventoId, // <-- El nuevo ID del evento
+          descEvento,
+          eventoId,
         ],
       );
     }
@@ -386,14 +387,15 @@ export const registerMassiveAdjustment = async (req, res) => {
         // 4. MODIFICADO: Usamos la descripción general del evento para todos los movimientos
         await connection.query(
           `INSERT INTO stock_movements 
-           (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) 
-           VALUES (?, 'AJUSTE', ?, ?, ?, ?, ?)`,
+           (type, item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id) 
+           VALUES ('AJUSTE', ?, ?, ?, ?, ?, ?, ?)`,
           [
             itemId,
+            cantidadMovida > 0 ? "ENTRADA" : "SALIDA",
             cantidadMovida,
             stockAnterior,
             conteoReal,
-            descEvento, // <-- Usamos la descripción general
+            descEvento,
             eventoId,
           ],
         );
@@ -551,7 +553,7 @@ export const getMovementEventById = async (req, res) => {
               ),
               -- --- FIN DE LA MODIFICACIÓN ---
               
-              'descripcion_movimiento', ''
+              'descripcion_movimiento', sm.descripcion
             )
           )
         ) AS movimientos
@@ -869,7 +871,7 @@ export const registerProduction = async (req, res) => {
 
         // Insertar stock_movements
         await connection.query(
-          `INSERT INTO stock_movements (item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, descripcion, evento_id) VALUES (?, 'CONSUMO', ?, ?, ?, ?, ?)`,
+          `INSERT INTO stock_movements (type, item_id, tipo_movimiento, cantidad_unidades_movidas, stock_anterior, stock_nuevo, description, evento_id) VALUES ('CONSUMO', ?, 'SALIDA', ?, ?, ?, ?, ?)`,
           [
             itemId,
             -aDescontarEnUnidades,

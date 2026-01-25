@@ -125,7 +125,7 @@ export const createPrebatch = async (req, res) => {
   }
   try {
     await pool.query(
-      "INSERT INTO prebatches (nombre_prebatch, fecha_produccion, cantidad_inicial_ml, cantidad_actual_ml, identificador_lote) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO prebatches (nombre_prebatch, fecha_produccion, cantidad_inicial_ml, cantidad_actual_ml, identificador_lote, is_active) VALUES (?, ?, ?, ?, ?, TRUE)",
       [
         nombre_prebatch,
         fecha_produccion,
@@ -200,7 +200,6 @@ export const deletePrebatch = async (req, res) => {
     ]);
     res.status(200).json({ message: "Prebatch desactivado con éxito." });
   } catch (error) {
-    console.error("Error disabling prebatch:", error); // <-- Añadir log
     res.status(500).json({ message: "Error al desactivar el prebatch." });
   }
 };
