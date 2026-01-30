@@ -58,20 +58,22 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [iceRes, alertsRes, resStatsRes, schedulesRes] =
+        const [iceRes, alertsRes, resStatsRes, schedulesData] =
           await Promise.all([
             api.get("/stock/ice"),
             api.get("/stock/alerts"),
             api.get("/reservations/stats/dashboard").catch(() => ({
               data: { count: 0, totalPax: 0, today_reservations: [] },
             })),
-            api.get("/schedules/dashboard").catch(() => ({ data: [] })),
+            api
+              .get("/schedules/dashboard")
+              .catch(() => ({ data: { schedules: [], barConfig: null } })),
           ]);
 
         setHielo(iceRes.data);
         setAlerts(alertsRes.data);
         setReservationStats(resStatsRes.data);
-        setSchedules(schedulesRes.data);
+        setSchedules(schedulesData.data);
       } catch (error) {
         console.error("Error al cargar el dashboard:", error);
       } finally {
